@@ -1,0 +1,5 @@
+build/
+.cache/
+JUCE/
+.DS_Store
+*.log
