@@ -14,7 +14,7 @@ AU_BUILD_PATH := $(BUILD_DIR)/nitride_artefacts/$(CONFIG)/AU/$(AU_COMPONENT)
 .PHONY: help configure build test studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
 help:
 	@echo "make build        Build AU + Standalone"
-	@echo "make test         Check native UI attachments + host state"
+	@echo "make test         Check native UI, automation/state and DSP"
 	@echo "make standalone   Build and open the native app"
 	@echo "make studies      Build and open the sound comparison app"
 	@echo "make gestures     Build and open the playable control-surface study"
@@ -40,6 +40,7 @@ test: build
 install-au: build
 	mkdir -p "$(AU_INSTALL_DIR)"
 	cp -R "$(AU_BUILD_PATH)" "$(AU_INSTALL_DIR)/"
+	touch "$(AU_INSTALL_DIR)/$(AU_COMPONENT)"
 
 validate-au:
 	auval -v $(AU_TYPE) $(AU_SUBTYPE) $(AU_MANUFACTURER)

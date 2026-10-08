@@ -5,19 +5,25 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <functional>
+#include <optional>
+#include <vector>
 
 namespace Nitride
 {
 enum Parameter { coupling, stress, response, fm, pitch, attack, decay, sustain, release,
                  cutoff, resonance, motionRate, motionDepth, spaceMix, spaceSize, output, parameterCount };
+inline constexpr int monoHostIndex = parameterCount;
+inline constexpr int hostParameterCount = parameterCount + 1;
 
 struct Patch
 {
     juce::String name;
     std::array<double, parameterCount> values {};
-    bool mono = false;
-    bool chord = false;
+    bool mono = false, chord = false;
 };
+struct StoredPreset { juce::String id; Patch patch; };
+class PresetStore;
 
 inline const std::array<Patch, 4>& factoryPatches()
 {
@@ -37,61 +43,108 @@ struct LiveState
     std::atomic<float> level {0}, coherence {1}, peak {0};
     std::atomic<int> voices {0}, externalKeys {0};
     std::atomic<std::uint64_t> faults {0};
-
-    void publish(const SoundStudies::Engine::NetworkSnapshot& snapshot) noexcept
+    void publish(const SoundStudies::Engine::NetworkSnapshot& s) noexcept
     {
-        for (size_t i = 0; i < offsets.size(); ++i) offsets[i].store(snapshot.offsets[i], std::memory_order_relaxed);
-        for (size_t i = 0; i < links.size(); ++i) links[i].store(snapshot.links[i], std::memory_order_relaxed);
-        level.store(snapshot.level); coherence.store(snapshot.coherence); voices.store(snapshot.activeVoices);
+        for(size_t i=0;i<offsets.size();++i)offsets[i].store(s.offsets[i],std::memory_order_relaxed);
+        for(size_t i=0;i<links.size();++i)links[i].store(s.links[i],std::memory_order_relaxed);
+        level.store(s.level);coherence.store(s.coherence);voices.store(s.activeVoices);
     }
 };
 
-// Processor-owned state. Views write conditions and queue notes; only the audio
-// renderer touches the mutable DSP. A new editor can reopen on the current conditions.
 class InstrumentSession
 {
 public:
-    InstrumentSession() { apply(factoryPatches()[0]); }
+    explicit InstrumentSession(juce::File presetDirectory = {});
+    ~InstrumentSession();
+    static double clamp(Parameter,double) noexcept;
+    void set(Parameter,double);
+    void setMono(bool);
+    void storeFromHost(int,double) noexcept;
+    void apply(const Patch&);
+    void applyProgram(int);
+    Patch read() const;
+    Patch readVisible() const;
+    double audioValue(Parameter p) const noexcept { return comparing.load() ? compareValues[static_cast<size_t>(p)].load() : values[static_cast<size_t>(p)].load(); }
+    bool audioMono() const noexcept { return comparing.load() ? compareMono.load() : mono.load(); }
 
-    static double clamp(Parameter parameter, double value) noexcept
-    {
-        constexpr std::array<double, parameterCount> low {0,0,.01,0,-12,.001,.01,0,.02,40,0,.05,0,0,0,-24};
-        constexpr std::array<double, parameterCount> high {1,1,1.6,4,12,4,4,1,8,18000,.85,8,1,.65,1,0};
-        const auto i = static_cast<size_t>(parameter);
-        return std::isfinite(value) ? juce::jlimit(low[i], high[i], value) : factoryPatches()[0].values[i];
-    }
+    void beginEdit(std::initializer_list<int> parameters);
+    void endEdit(std::initializer_list<int> parameters);
+    void endAllEdits();
+    bool canUndo() const;
+    bool canRedo() const;
+    void undo();
+    void redo();
+    void setComparing(bool);
+    bool isComparing() const noexcept { return comparing.load(); }
+    Patch compareReference() const;
+    void setCompareReference(const Patch&);
 
-    void set(Parameter parameter, double value) noexcept
-    {
-        values[static_cast<size_t>(parameter)].store(clamp(parameter, value), std::memory_order_relaxed);
-        revision.fetch_add(1, std::memory_order_release);
-    }
-    void apply(const Patch& patch) noexcept
-    {
-        for (size_t i = 0; i < parameterCount; ++i) values[i].store(clamp(static_cast<Parameter>(i), patch.values[i]), std::memory_order_relaxed);
-        mono.store(patch.mono); chord.store(patch.chord);
-        revision.fetch_add(1, std::memory_order_release);
-    }
-    Patch read() const
-    {
-        Patch patch;
-        const auto index = juce::jlimit(0, 3, program.load());
-        patch.name = factoryPatches()[static_cast<size_t>(index)].name;
-        for (size_t i = 0; i < parameterCount; ++i) patch.values[i] = values[i].load(std::memory_order_relaxed);
-        patch.mono = mono.load(); patch.chord = chord.load();
-        return patch;
-    }
-    void applyProgram(int index) noexcept
-    {
-        if (index < 0 || index >= static_cast<int>(factoryPatches().size())) return;
-        program.store(index); apply(factoryPatches()[static_cast<size_t>(index)]);
-    }
+    std::vector<StoredPreset> presets() const;
+    juce::String selectedPresetId() const;
+    bool selectPreset(const juce::String&);
+    juce::Result keep(const juce::String& name);
+    juce::Result keepPatch(const juce::String& name,const Patch&);
+    juce::Result importPreset(const juce::File&);
+    juce::Result exportPreset(const juce::File&) const;
+    const juce::File& presetDirectory() const;
+    void refreshPresets();
+
+    juce::var saveDocument() const;
+    juce::Result restoreDocument(const juce::var&);
+    void establishRestoredPatch(const Patch&,int programIndex);
+
+    // Bound once by the processor, absent in the independent review app. Parameter
+    // listeners never enter the document lock, file store, or UI history.
+    std::function<void(int,double)> writeHostParameter;
+    std::function<void(int)> beginHostGesture, endHostGesture;
 
     std::array<std::atomic<double>, parameterCount> values {};
     std::atomic<bool> mono {false}, chord {true};
     std::atomic<int> program {0};
-    std::atomic<std::uint64_t> revision {0};
+    std::atomic<std::uint64_t> revision {0}, restoreEpoch {0}, libraryRevision {0};
     juce::MidiKeyboardState keyboard;
     LiveState live;
+
+private:
+    struct Conditions { std::array<double,parameterCount> values; bool mono,chord; };
+    struct Snapshot
+    {
+        Patch patch, reference;
+        juce::String selected;
+        int program;
+        // Patch selection restores the whole document; a control edit restores
+        // only the parameters it wrote, preserving unrelated host automation.
+        bool wholePatch = true;
+        std::array<bool,hostParameterCount> parameters {};
+    };
+    Conditions readConditions() const;
+    void storeConditions(const Patch&) noexcept;
+    void writePatch(const Patch&,bool notifyHost);
+    void setInternal(int,double,bool notifyHost);
+    void syncProgram() const;
+    Snapshot snapshot() const;
+    void restoreSnapshot(const Snapshot&);
+    bool editChanged() const;
+    void finishEdit();
+    void rememberPortable(const StoredPreset&);
+    static bool same(const Patch&,const Patch&);
+    static juce::var encodeSnapshot(const Snapshot&);
+    static std::optional<Snapshot> decodeSnapshot(const juce::var&);
+    void closeCompare() noexcept;
+
+    mutable juce::CriticalSection documentLock;
+    mutable std::atomic_flag conditionWriter = ATOMIC_FLAG_INIT;
+    std::atomic<std::uint64_t> conditionVersion {0};
+    mutable std::atomic<int> pendingProgram {-1};
+    mutable juce::String currentName, selectedId;
+    mutable Patch reference;
+    std::vector<StoredPreset> userPresets, portablePresets;
+    mutable std::vector<Snapshot> history, future;
+    mutable std::optional<Snapshot> editStart;
+    mutable std::array<int,hostParameterCount> gestures {};
+    mutable int editDepth = 0;
+    std::unique_ptr<PresetStore> store;
+    std::array<std::atomic<double>,parameterCount> compareValues {};
+    std::atomic<bool> comparing {false}, compareMono {false};
 };
 }

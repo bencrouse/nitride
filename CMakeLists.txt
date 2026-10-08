@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(nitride VERSION 0.1.0 LANGUAGES C CXX)
+project(nitride VERSION 0.2.0 LANGUAGES C CXX)
 
 if(NOT APPLE)
     message(FATAL_ERROR "nitride currently targets macOS only.")
@@ -39,6 +39,8 @@ target_sources(nitride PRIVATE
     Source/PluginEditor.cpp
     Source/Instrument/InstrumentRenderer.cpp
     Source/Instrument/InstrumentView.cpp
+    Source/Instrument/InstrumentSession.cpp
+    Source/Instrument/PresetStore.cpp
 )
 target_include_directories(nitride PRIVATE Source)
 target_compile_definitions(nitride PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
@@ -92,6 +94,8 @@ target_sources(nitride_review PRIVATE
     Source/Instrument/ReviewStandalone.cpp
     Source/Instrument/InstrumentRenderer.cpp
     Source/Instrument/InstrumentView.cpp
+    Source/Instrument/InstrumentSession.cpp
+    Source/Instrument/PresetStore.cpp
 )
 target_compile_definitions(nitride_review PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 target_link_libraries(nitride_review PRIVATE nitride_study_engine juce::juce_audio_utils
@@ -111,9 +115,17 @@ if(NITRIDE_BUILD_TESTS)
     target_link_libraries(nitride_ui_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_ui_tests COMMAND nitride_ui_tests)
+    juce_add_console_app(nitride_automation_tests PRODUCT_NAME "nitride_automation_tests")
+    target_sources(nitride_automation_tests PRIVATE Source/Tests/AutomationStateTests.cpp)
+    target_include_directories(nitride_automation_tests PRIVATE Source)
+    target_compile_definitions(nitride_automation_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
+    add_dependencies(nitride_automation_tests nitride)
+    target_link_libraries(nitride_automation_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
+        juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+    add_test(NAME nitride_automation_tests COMMAND nitride_automation_tests)
     add_executable(nitride_study_tests Source/Studies/StudyTests.cpp)
     target_link_libraries(nitride_study_tests PRIVATE nitride_study_engine)
     add_test(NAME nitride_study_tests COMMAND nitride_study_tests)
     add_executable(nitride_au_component_tests Source/Tests/AuComponentTests.cpp)
-    target_link_libraries(nitride_au_component_tests PRIVATE "-framework AudioToolbox")
+    target_link_libraries(nitride_au_component_tests PRIVATE "-framework AudioToolbox" "-framework CoreFoundation")
 endif()

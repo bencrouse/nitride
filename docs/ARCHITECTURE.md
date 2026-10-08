@@ -1,8 +1,9 @@
 # Architecture
 
-Nitride follows Carbide's native JUCE architecture. Milestone 1 now connects the
-approved view and audible engine to the AU. `MILESTONE_01.md` describes the current
-production boundary; the sections below also retain the earlier study history.
+Nitride follows Carbide's native JUCE architecture. The approved view and audible
+engine are connected to the AU, with host automation and persistent returnability.
+`MILESTONE_02.md` describes the current boundary; `MILESTONE_01.md` and the sections
+below retain the initial integration and earlier study history.
 
 `Source/Studies` now provides a separate native sound-comparison app and a
 JUCE-independent DSP library for the two candidate mechanisms. `make studies`
@@ -22,27 +23,39 @@ Control study 07 is a separate target (`make deformation`) that selects a relati
 visible-object surface while sharing the gesture study's DSP and surrounding controls.
 The original field target remains intact. See `CONTROL_STUDY_07.md`.
 Instrument review 08 (`make review`) combines the approved field with source,
-amplitude, tone, motion, space and session-local patch workflows. Its opt-in FM index
+amplitude, tone, motion, space and patch workflows. Its opt-in FM index
 and envelope controls preserve earlier study defaults. See `INSTRUMENT_REVIEW_08.md`.
-The product processor now uses the shared instrument renderer.
+The review and product processor now use the shared instrument session, renderer
+and view, including the milestone-2 preset workflow.
 
 ## Components
 
-- **PluginProcessor:** stereo host audio/MIDI and basic condition-state hooks.
+- **PluginProcessor:** stereo host audio/MIDI, APVTS parameters and versioned state hooks.
 - **PluginEditor:** hosts `InstrumentView`; no audio device ownership.
-- **InstrumentSession:** processor-owned numeric conditions, factory patches,
+- **InstrumentSession:** processor-owned atomic conditions, factory/user patches,
+  Compare audition bank, parameter-scoped control history, session document,
   keyboard input queue and atomic live metrics.
+- **PresetStore:** validated versioned JSON presets, library loading and atomic file writes.
 - **InstrumentRenderer:** shared FM/network, amplitude, motion, tone, space and gain.
 - **InstrumentView:** approved native field and supporting controls, connected to a session.
-- **Tests:** frozen-review equivalence, host MIDI/ownership, DSP checks and installed AU rendering.
+- **Tests:** frozen-review equivalence, host MIDI/ownership, automation/gestures,
+  session/preset recall, DSP checks and installed AU state/rendering.
 
 ## Parameters
 
-The current instrument has 16 numeric conditions plus mono/poly and audition-chord
-flags. The obsolete silent-shell operator/Rupture parameter layout is no longer
-published. Editor writes reach the processor-owned session directly. Host automation
-parameter registration is milestone 2. Basic versioned XML hooks preserve starting
-conditions, not mid-note DSP state or editor-local Keep/Compare/Undo libraries.
+The current instrument publishes 16 float sound parameters and a mono boolean,
+defined in `HostParameters.h`. Editor writes update the processor-owned session and
+notify the host with balanced gestures; host listeners update atomic conditions
+without entering the document lock or preset store. The view polls model revisions.
+The audition-chord flag is session metadata. The obsolete silent-shell
+operator/Rupture parameter layout is no longer published.
+
+Compare reads a separate reference bank without replacing edited parameters or host
+automation. Version-2 XML/JSON state preserves edited conditions, selected-patch
+metadata, reference, undo/redo and portable kept sounds. Control-history snapshots
+identify their edited parameters so Undo preserves unrelated automation. Version-1
+numeric XML migrates; mid-note DSP state is not serialized. `MILESTONE_02.md`
+describes the format and preset library.
 
 ## Drawing and interaction
 
@@ -57,7 +70,7 @@ The core lives in `Source/Studies/StudyEngine.*` and is linked into the shared
 instrument rendering path. MIDI owners are distinguished between host and editor;
 events are processed at sample offsets. The renderer owns mutable DSP and effects,
 while views receive atomic metrics. Production sound-quality/performance work and
-complete automation/session UX remain later milestones.
+manual DAW acceptance remain subsequent work.
 
 ## Build and inspection
 

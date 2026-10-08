@@ -21,7 +21,14 @@ For AU host integration:
 make reload-au
 ```
 
-Milestone 1 is audible: the AU and review app share `InstrumentRenderer` and
+The AU and review app share `InstrumentSession`, `InstrumentRenderer` and
 `InstrumentView`. Preserve the frozen review-render comparisons when changing that
-path. `docs/MILESTONE_01.md` describes the current scope; full host automation and
-session/preset workflows are milestone 2.
+path. `docs/MILESTONE_02.md` describes automation, session/preset scope and checks.
+Treat `Source/Instrument/HostParameters.h` as the stable version-1 automation
+contract. Keep host parameter listeners independent of document/file operations.
+
+`make test` covers hosted MIDI/render equivalence, automation/state/preset workflow
+and DSP regressions. After AU integration changes, also run
+`./build/nitride_au_component_tests` against the installed component. Native UI
+changes can be checked through the review app's `--interaction-check` and
+`--audio-check` modes; interaction tests use a temporary preset library.

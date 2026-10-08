@@ -29,7 +29,9 @@ public:
     }
     std::function<void(float, float)> onShape;
     std::function<void()> onBegin, onEnd;
+    std::function<void()> onGestureBegin, onGestureEnd;
     bool reducedMotion = false;
+    void cancelGesture() { pointerDown=false;keyDown=false; }
     void setPosition(float c, float s) { coupling = juce::jlimit(0.0f, 1.0f, c); stress = juce::jlimit(0.0f, 1.0f, s); repaint(); }
     juce::Rectangle<float> fieldBounds() const { return getLocalBounds().toFloat().reduced(30, 35); }
     void paint(juce::Graphics& g) override
@@ -75,7 +77,7 @@ public:
     void mouseDown(const juce::MouseEvent& e) override
     {
         if (!e.mods.isLeftButtonDown()) return;
-        grabKeyboardFocus(); pointerDown = true; shapeAt(e.position); if (!keyDown && onBegin) onBegin();
+        grabKeyboardFocus(); if(onGestureBegin)onGestureBegin(); pointerDown = true; shapeAt(e.position); if (!keyDown && onBegin) onBegin();
     }
     void mouseDrag(const juce::MouseEvent& e) override { if (pointerDown) shapeAt(e.position); }
     void mouseUp(const juce::MouseEvent&) override { endPointer(); }
@@ -83,6 +85,9 @@ public:
     void focusGained(FocusChangeType) override { repaint(); }
     bool keyPressed(const juce::KeyPress& key) override
     {
+        const auto code=key.getKeyCode();
+        const auto changesShape=code==juce::KeyPress::leftKey||code==juce::KeyPress::rightKey||code==juce::KeyPress::upKey||code==juce::KeyPress::downKey;
+        if(changesShape&&onGestureBegin)onGestureBegin();
         const auto step = key.getModifiers().isShiftDown() ? .002f : .02f;
         if (key.getKeyCode() == juce::KeyPress::leftKey) coupling -= step;
         else if (key.getKeyCode() == juce::KeyPress::rightKey) coupling += step;
@@ -93,7 +98,7 @@ public:
             if (!keyDown) { keyDown = true; if (!pointerDown && onBegin) onBegin(); } return true;
         }
         else return false;
-        setPosition(coupling, stress); if (onShape) onShape(coupling, stress); return true;
+        setPosition(coupling, stress); if (onShape) onShape(coupling, stress); if(onGestureEnd)onGestureEnd(); return true;
     }
     bool keyStateChanged(bool) override
     {
@@ -117,7 +122,7 @@ public:
     }
 private:
     void shapeAt(juce::Point<float> p) { const auto area = fieldBounds(); setPosition((p.x-area.getX())/area.getWidth(),1-(p.y-area.getY())/area.getHeight()); if(onShape)onShape(coupling,stress); }
-    void endPointer() { if(pointerDown){pointerDown=false;if(!keyDown&&onEnd)onEnd();} }
+    void endPointer() { if(pointerDown){pointerDown=false;if(!keyDown&&onEnd)onEnd();if(onGestureEnd)onGestureEnd();} }
     void endKey() { if(keyDown){keyDown=false;if(!pointerDown&&onEnd)onEnd();} }
     LiveState& live;
     float coupling=.65f, stress=.2f;
@@ -135,7 +140,9 @@ public:
     }
     std::function<void(double)> onResponse;
     std::function<void()> onBegin, onEnd;
+    std::function<void()> onGestureBegin, onGestureEnd;
     bool reducedMotion=false;
+    void cancelGesture() { holding=false;dragging=false;stopTimer(); }
     void setResponse(double seconds) { response=juce::jlimit(.01,1.6,seconds);repaint(); }
     void paint(juce::Graphics& g) override
     {
@@ -154,16 +161,17 @@ public:
         text(g,"SLOW",{getWidth()-100,65,100,16},muted(),8,juce::Justification::right);
         if(hasKeyboardFocus(true)){g.setColour(accent());g.drawRect(getLocalBounds().reduced(1),1);}
     }
-    void mouseDown(const juce::MouseEvent& e) override {if(!e.mods.isLeftButtonDown())return;grabKeyboardFocus();started=juce::Time::getMillisecondCounterHiRes();holding=true;dragging=false;if(onBegin)onBegin();startTimerHz(30);}
+    void mouseDown(const juce::MouseEvent& e) override {if(!e.mods.isLeftButtonDown())return;grabKeyboardFocus();if(onGestureBegin)onGestureBegin();started=juce::Time::getMillisecondCounterHiRes();holding=true;dragging=false;if(onBegin)onBegin();startTimerHz(30);}
     void mouseDrag(const juce::MouseEvent& e) override {if(!holding||e.getDistanceFromDragStart()<4)return;dragging=true;stopTimer();change(responseFromPosition(static_cast<double>(e.position.x-20)/static_cast<double>(getWidth()-40)));}
     void mouseUp(const juce::MouseEvent&) override {finish();}
     void focusLost(FocusChangeType) override {finish();repaint();}
     void focusGained(FocusChangeType) override {repaint();}
     bool keyPressed(const juce::KeyPress& key) override
     {
-        const auto step=key.getModifiers().isShiftDown()?.005:.035;
+        const auto code=key.getKeyCode();if(code!=juce::KeyPress::leftKey&&code!=juce::KeyPress::rightKey&&code!=juce::KeyPress::upKey&&code!=juce::KeyPress::downKey)return false;
+        if(onGestureBegin)onGestureBegin();const auto step=key.getModifiers().isShiftDown()?.005:.035;
         if(key.getKeyCode()==juce::KeyPress::leftKey||key.getKeyCode()==juce::KeyPress::downKey)change(responseFromPosition(responsePosition(response)-step));
-        else if(key.getKeyCode()==juce::KeyPress::rightKey||key.getKeyCode()==juce::KeyPress::upKey)change(responseFromPosition(responsePosition(response)+step));else return false;return true;
+        else if(key.getKeyCode()==juce::KeyPress::rightKey||key.getKeyCode()==juce::KeyPress::upKey)change(responseFromPosition(responsePosition(response)+step));if(onGestureEnd)onGestureEnd();return true;
     }
     std::unique_ptr<juce::AccessibilityHandler> createAccessibilityHandler() override
     {
@@ -174,8 +182,8 @@ public:
             bool isReadOnly()const override{return false;}
             double getCurrentValue()const override{return ribbon.response;}
             juce::String getCurrentValueAsString()const override{return juce::String(ribbon.response*1000,0)+" milliseconds";}
-            void setValue(double v)override{ribbon.change(v);}
-            void setValueAsString(const juce::String& v)override{ribbon.change(v.getDoubleValue()/1000);}
+            void setValue(double v)override{if(ribbon.onGestureBegin)ribbon.onGestureBegin();ribbon.change(v);if(ribbon.onGestureEnd)ribbon.onGestureEnd();}
+            void setValueAsString(const juce::String& v)override{setValue(v.getDoubleValue()/1000);}
             AccessibleValueRange getRange()const override{return{{.01,1.6},.01};}
         private:ResponseRibbon& ribbon;
         };
@@ -184,7 +192,7 @@ public:
     }
 private:
     void change(double seconds){setResponse(seconds);if(onResponse)onResponse(response);}
-    void finish(){if(!holding)return;if(!dragging)change((juce::Time::getMillisecondCounterHiRes()-started)/1000);holding=false;stopTimer();if(onEnd)onEnd();}
+    void finish(){if(!holding)return;if(!dragging)change((juce::Time::getMillisecondCounterHiRes()-started)/1000);holding=false;stopTimer();if(onEnd)onEnd();if(onGestureEnd)onGestureEnd();}
     void timerCallback()override{if(holding&&!dragging)change((juce::Time::getMillisecondCounterHiRes()-started)/1000);}
     LiveState& live;
     double response=.075,started=0;

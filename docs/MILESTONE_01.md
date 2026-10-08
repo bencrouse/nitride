@@ -1,5 +1,8 @@
 # Milestone 1 / first playable AU
 
+This records the initial playable integration. See [milestone 2](MILESTONE_02.md)
+for the current automation, session and persistent preset workflow.
+
 The approved dark/orange native instrument view and audible engine are connected
 to the actual AU processor. The AU is no longer the silent original UI shell.
 

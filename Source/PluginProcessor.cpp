@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "Instrument/PresetStore.h"
 
 namespace
 {
@@ -9,9 +10,48 @@ constexpr std::array<const char*, Nitride::parameterCount> stateNames {
 };
 }
 
-NitrideAudioProcessor::NitrideAudioProcessor()
-    : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)), renderer(session)
+NitrideAudioProcessor::NitrideAudioProcessor(juce::File presetDirectory)
+    : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      session(std::move(presetDirectory)),apvts(*this,nullptr,"NITRIDE_PARAMETERS",createParameterLayout()),renderer(session)
 {
+    for(size_t i=0;i<Nitride::parameterCount;++i)
+    {
+        hostBindings[i]=apvts.getParameter(Nitride::hostParameters[i].id);
+        apvts.addParameterListener(Nitride::hostParameters[i].id,this);
+    }
+    hostBindings[Nitride::monoHostIndex]=apvts.getParameter(Nitride::monoParameterId);
+    apvts.addParameterListener(Nitride::monoParameterId,this);
+    session.writeHostParameter=[this](int index,double value){auto* p=hostBindings[static_cast<size_t>(index)];p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(value)));};
+    session.beginHostGesture=[this](int index){hostBindings[static_cast<size_t>(index)]->beginChangeGesture();};
+    session.endHostGesture=[this](int index){hostBindings[static_cast<size_t>(index)]->endChangeGesture();};
+}
+
+NitrideAudioProcessor::~NitrideAudioProcessor()
+{
+    session.endAllEdits();session.writeHostParameter={};session.beginHostGesture={};session.endHostGesture={};
+    for(const auto& p:Nitride::hostParameters)apvts.removeParameterListener(p.id,this);
+    apvts.removeParameterListener(Nitride::monoParameterId,this);
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout NitrideAudioProcessor::createParameterLayout()
+{
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
+    for(size_t i=0;i<Nitride::parameterCount;++i)
+    {
+        const auto& d=Nitride::hostParameters[i];
+        juce::NormalisableRange<float> range(d.minimum,d.maximum,0,d.skew);
+        layout.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID(d.id,1),d.name,range,
+            static_cast<float>(Nitride::factoryPatches()[0].values[i])));
+    }
+    layout.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID(Nitride::monoParameterId,1),"Mono",false));
+    return layout;
+}
+
+void NitrideAudioProcessor::parameterChanged(const juce::String& id,float value)
+{
+    for(size_t i=0;i<Nitride::hostParameters.size();++i)
+        if(id==Nitride::hostParameters[i].id){session.storeFromHost(static_cast<int>(i),value);return;}
+    if(id==Nitride::monoParameterId)session.storeFromHost(Nitride::monoHostIndex,value);
 }
 
 void NitrideAudioProcessor::prepareToPlay(double sampleRate, int)
@@ -54,25 +94,51 @@ void NitrideAudioProcessor::applyPreset(int index) { session.applyProgram(index)
 
 void NitrideAudioProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
-    // Retain basic condition recall through the existing processor hooks. Full preset,
-    // gesture automation and session UX validation remain the next milestone.
-    const auto patch=session.read();
     juce::XmlElement state("NITRIDE_INSTRUMENT");
-    state.setAttribute("version",1);state.setAttribute("program",getCurrentProgram());
-    state.setAttribute("mono",patch.mono);state.setAttribute("chord",patch.chord);
-    for(size_t i=0;i<stateNames.size();++i)state.setAttribute(stateNames[i],patch.values[i]);
+    state.setAttribute("version",2);
+    const auto document=session.saveDocument();
+    state.createNewChildElement("DOCUMENT")->addTextElement(juce::JSON::toString(document,true));
+    // The document's edited conditions are the authority even while Compare is
+    // auditioning a reference, or automation is changing the live parameter bank.
+    const auto preset=Nitride::PresetStore::decode(document["current"]["patch"]);
+    if(preset)if(auto xml=parameterStateFor(preset->patch).createXml())state.addChildElement(xml.release());
     copyXmlToBinary(state,destination);
+}
+
+juce::ValueTree NitrideAudioProcessor::parameterStateFor(const Nitride::Patch& patch)
+{
+    auto tree=apvts.copyState();
+    for(auto child:tree)
+    {
+        const auto id=child.getProperty("id").toString();
+        for(size_t i=0;i<Nitride::parameterCount;++i)if(id==Nitride::hostParameters[i].id)child.setProperty("value",static_cast<float>(patch.values[i]),nullptr);
+        if(id==Nitride::monoParameterId)child.setProperty("value",patch.mono?1.0f:0.0f,nullptr);
+    }
+    return tree;
 }
 
 void NitrideAudioProcessor::setStateInformation(const void* data,int size)
 {
-    if(auto state=getXmlFromBinary(data,size);state&&state->hasTagName("NITRIDE_INSTRUMENT")&&state->getIntAttribute("version")==1)
+    if(size<=0||size>4*1024*1024)return;
+    if(auto state=getXmlFromBinary(data,size);state&&state->hasTagName("NITRIDE_INSTRUMENT"))
     {
-        const auto index=juce::jlimit(0,getNumPrograms()-1,state->getIntAttribute("program"));
-        auto patch=Nitride::factoryPatches()[static_cast<size_t>(index)];
-        for(size_t i=0;i<stateNames.size();++i)patch.values[i]=state->getDoubleAttribute(stateNames[i],patch.values[i]);
-        patch.mono=state->getBoolAttribute("mono",patch.mono);patch.chord=state->getBoolAttribute("chord",patch.chord);
-        session.program.store(index);session.apply(patch);
+        const auto version=state->getIntAttribute("version");
+        if(version==2)
+        {
+            const auto* document=state->getChildByName("DOCUMENT");if(document==nullptr)return;
+            const auto json=juce::JSON::parse(document->getAllSubText());
+            if(session.restoreDocument(json).failed())return;
+        }
+        else if(version==1)
+        {
+            const auto index=juce::jlimit(0,getNumPrograms()-1,state->getIntAttribute("program"));
+            auto patch=Nitride::factoryPatches()[static_cast<size_t>(index)];
+            for(size_t i=0;i<stateNames.size();++i)patch.values[i]=Nitride::InstrumentSession::clamp(static_cast<Nitride::Parameter>(i),state->getDoubleAttribute(stateNames[i],patch.values[i]));
+            patch.mono=state->getBoolAttribute("mono",patch.mono);patch.chord=state->getBoolAttribute("chord",patch.chord);
+            session.establishRestoredPatch(patch,index);
+        }
+        else return;
+        apvts.replaceState(parameterStateFor(session.read()));
     }
 }
 

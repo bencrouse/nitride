@@ -2,7 +2,8 @@
 
 A native FM synth project exploring a distinctive sound-making capability.
 The approved native interface and audible engine are now connected to a **playable
-stereo AU and Standalone instrument**. The sound/gesture studies remain as references.
+stereo AU and Standalone instrument** with host automation, session recall and
+persistent presets. The sound/gesture studies remain as references.
 
 ## Play the instrument
 
@@ -12,9 +13,15 @@ make standalone
 
 The AU is installed locally as `~/Library/Audio/Plug-Ins/Components/nitride.component`.
 Select **nitride / nitride** as a stereo AU instrument in your DAW. See
-[`docs/MILESTONE_01.md`](docs/MILESTONE_01.md) for integration and verification details.
+[`docs/MILESTONE_02.md`](docs/MILESTONE_02.md) for automation, preset and verification
+details; [`docs/MILESTONE_01.md`](docs/MILESTONE_01.md) records the initial integration.
 
-## Full instrument mockup
+**Keep** saves a named sound to `~/Library/Application Support/nitride/Presets`.
+**Compare** auditions its reference while retaining your edits. **Undo** restores
+control gestures or patch selections; the **...** menu includes Redo and preset
+import/export. The host can automate all 17 sound controls.
+
+## Shared instrument review
 
 ```sh
 make review
@@ -22,7 +29,8 @@ make review
 
 Opens **Nitride Instrument Review**, using the same shared view and rendering path
 as the AU. Source, amplitude, tone, motion and space controls are audible;
-Keep/Compare/Undo provide session-local returnability. See
+Keep/Compare/Undo use the shared persistent session and preset workflow. The
+original visual review is recorded in
 [`docs/INSTRUMENT_REVIEW_08.md`](docs/INSTRUMENT_REVIEW_08.md).
 
 ![Native full-instrument review](docs/instrument-review-08.png)
@@ -103,10 +111,10 @@ Following Carbide's conventions:
 - macOS 15+, Apple Silicon.
 - AUv2 instrument + Standalone targets.
 - Native custom `LookAndFeel_V4`, sliders, buttons, combo boxes, and JUCE drawing.
-- Processor-owned live sound conditions and basic XML state hooks. Host automation
-  registration and full session/preset UX are milestone 2.
+- Processor-owned sound conditions, 17 stable host parameters, versioned session
+  recall, persistent presets and Compare/Undo/Redo.
 - In-code factory patches in `Source/Instrument/InstrumentSession.h`.
-- Native self-test executable registered with CTest.
+- Native hosted/UI, automation/state and DSP tests registered with CTest.
 - Makefile configure / build / test / install / auval / standalone workflow.
 
 The default JUCE path reuses `../carbide/JUCE` without modifying it. Override it
@@ -129,20 +137,24 @@ make reload-au      # build, install, validate
 
 Restart Logic after replacing the component. The AU is now audible and uses the
 approved editor and shared renderer. Apple validation and installed-component MIDI
-render checks pass; complete session/automation validation is the next milestone.
+automation/state-recall and MIDI render checks pass. Logic project save/reopen and
+recorded-automation playback are the remaining manual host acceptance checks.
 
 ## Key files
 
 | File | Responsibility |
 | --- | --- |
 | `Source/PluginEditor.*` | Hosts the shared approved instrument view |
-| `Source/PluginProcessor.*` | Host MIDI/audio, factory programs, basic state hooks |
+| `Source/PluginProcessor.*` | Host MIDI/audio, APVTS automation, factory programs and state |
 | `Source/Instrument/*` | Shared conditions, renderer, view and review device wrapper |
+| `Source/Instrument/HostParameters.h` | Stable host parameter IDs and ranges |
+| `Source/Instrument/PresetStore.*` | Versioned preset files and atomic writes |
 | `Source/Tests/UiSelfTests.cpp` | Hosted/review equivalence, MIDI and editor ownership checks |
-| `Source/Tests/AuComponentTests.cpp` | Installed AudioToolbox/MusicDevice render test |
+| `Source/Tests/AutomationStateTests.cpp` | Gestures, automation, session recall and preset workflow |
+| `Source/Tests/AuComponentTests.cpp` | Installed AU automation/state and MusicDevice render test |
 | `Source/Studies/*` | Audible experiments, audition app, renders, DSP checks |
 | `docs/DESIGN.md` | Musical brief, visual direction, open questions |
 | `docs/ARCHITECTURE.md` | Native integration and DSP boundary |
 
-Define and freeze the host automation parameter contract in milestone 2 before
-release, so sessions and automation stay compatible.
+Preserve the version-1 host parameter contract in `HostParameters.h` so sessions
+and automation stay compatible across subsequent builds.

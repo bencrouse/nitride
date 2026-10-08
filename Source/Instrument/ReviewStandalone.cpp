@@ -7,7 +7,7 @@ namespace
 class ReviewStandalone final : public juce::AudioAppComponent
 {
 public:
-    ReviewStandalone() : renderer(session), view(session, [this] { showAudioSettings(); })
+    explicit ReviewStandalone(juce::File presetDirectory = {}) : session(std::move(presetDirectory)),renderer(session), view(session, [this] { showAudioSettings(); })
     {
         addAndMakeVisible(view);
         midi.ensureSize(8192);
@@ -79,7 +79,8 @@ public:
     const juce::String getApplicationVersion() override { return "0.9"; }
     void initialise(const juce::String& commandLine) override
     {
-        window=std::make_unique<Window>();
+        if(commandLine=="--interaction-check")testPresets=juce::File::getSpecialLocation(juce::File::tempDirectory).getNonexistentChildFile("nitride-review-tests","",false);
+        window=std::make_unique<Window>(testPresets);
         auto* component=static_cast<ReviewStandalone*>(window->getContentComponent());
         if(commandLine=="--interaction-check") {setApplicationReturnValue(component->checkInteractions()?0:1);quit();}
         if(commandLine=="--audio-check")
@@ -97,17 +98,18 @@ public:
             juce::Timer::callAfterDelay(active?900:10,[component,path]{component->snapshot(path);quit();});
         }
     }
-    void shutdown() override {window.reset();}
+    void shutdown() override {window.reset();if(testPresets!=juce::File{})testPresets.deleteRecursively();}
     void systemRequestedQuit() override {quit();}
 private:
     class Window final : public juce::DocumentWindow
     {
     public:
-        Window():DocumentWindow("Nitride / instrument review",juce::Colour(0xff151817),DocumentWindow::allButtons)
-        {setUsingNativeTitleBar(true);setContentOwned(new ReviewStandalone(),true);centreWithSize(getWidth(),getHeight());setVisible(true);}
+        explicit Window(juce::File presetDirectory):DocumentWindow("Nitride / instrument review",juce::Colour(0xff151817),DocumentWindow::allButtons)
+        {setUsingNativeTitleBar(true);setContentOwned(new ReviewStandalone(std::move(presetDirectory)),true);centreWithSize(getWidth(),getHeight());setVisible(true);}
         void closeButtonPressed() override {juce::JUCEApplication::getInstance()->systemRequestedQuit();}
     };
     std::unique_ptr<Window> window;
+    juce::File testPresets;
 };
 }
 

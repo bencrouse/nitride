@@ -2,11 +2,13 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Instrument/InstrumentRenderer.h"
+#include "Instrument/HostParameters.h"
 
-class NitrideAudioProcessor final : public juce::AudioProcessor
+class NitrideAudioProcessor final : public juce::AudioProcessor, private juce::AudioProcessorValueTreeState::Listener
 {
 public:
-    NitrideAudioProcessor();
+    explicit NitrideAudioProcessor(juce::File presetDirectory = {});
+    ~NitrideAudioProcessor() override;
     void prepareToPlay(double, int) override;
     void releaseResources() override;
     bool isBusesLayoutSupported(const BusesLayout&) const override;
@@ -27,9 +29,15 @@ public:
     void setStateInformation(const void*, int) override;
     Nitride::InstrumentSession& getInstrumentSession() noexcept { return session; }
     void applyPreset(int);
+    juce::AudioProcessorValueTreeState& getState() noexcept { return apvts; }
 
 private:
     Nitride::InstrumentSession session;
+    juce::AudioProcessorValueTreeState apvts;
     Nitride::InstrumentRenderer renderer;
+    std::array<juce::RangedAudioParameter*,Nitride::hostParameterCount> hostBindings {};
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    void parameterChanged(const juce::String&,float) override;
+    juce::ValueTree parameterStateFor(const Nitride::Patch&);
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NitrideAudioProcessor)
 };

@@ -13,21 +13,21 @@ void InstrumentRenderer::prepare(double sampleRate)
     engine.prepare(sampleRate);
     reverb.setSampleRate(sampleRate); reverb.reset(); tone = {};
     cutoffSmooth.reset(sampleRate, .025); resonanceSmooth.reset(sampleRate, .025); gainSmooth.reset(sampleRate, .025);
-    cutoffSmooth.setCurrentAndTargetValue(static_cast<float>(session.values[cutoff].load()));
-    resonanceSmooth.setCurrentAndTargetValue(static_cast<float>(session.values[resonance].load()));
-    gainSmooth.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(static_cast<float>(session.values[output].load())));
+    cutoffSmooth.setCurrentAndTargetValue(static_cast<float>(session.audioValue(cutoff)));
+    resonanceSmooth.setCurrentAndTargetValue(static_cast<float>(session.audioValue(resonance)));
+    gainSmooth.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(static_cast<float>(session.audioValue(output))));
     session.keyboard.allNotesOff(1); session.keyboard.allNotesOff(16);
     publish();
 }
 
 void InstrumentRenderer::updateEngine()
 {
-    engine.setFmIndex(session.values[fm].load());
-    engine.setAmplitudeEnvelope(session.values[attack].load(), session.values[decay].load(),
-        static_cast<float>(session.values[sustain].load()), session.values[release].load());
-    engine.setNetworkDimensions(static_cast<float>(session.values[coupling].load()),
-        static_cast<float>(session.values[stress].load()), session.values[response].load());
-    engine.setPitchBend(static_cast<float>(session.values[pitch].load() + wheel));
+    engine.setFmIndex(session.audioValue(fm));
+    engine.setAmplitudeEnvelope(session.audioValue(attack), session.audioValue(decay),
+        static_cast<float>(session.audioValue(sustain)), session.audioValue(release));
+    engine.setNetworkDimensions(static_cast<float>(session.audioValue(coupling)),
+        static_cast<float>(session.audioValue(stress)), session.audioValue(response));
+    engine.setPitchBend(static_cast<float>(session.audioValue(pitch) + wheel));
 }
 
 bool InstrumentRenderer::heldAnywhere(int note) const noexcept
@@ -63,7 +63,7 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
             bool capture = false;
             if (editor && midiChannel == 15)
                 for (size_t c = 0; c < 31; ++c) capture |= held[c * 128 + static_cast<size_t>(note)] || deferred[c * 128 + static_cast<size_t>(note)];
-            if (!capture) engine.noteOn(note, message.getFloatVelocity(), session.mono.load()
+            if (!capture) engine.noteOn(note, message.getFloatVelocity(), session.audioMono()
                 ? SoundStudies::Articulation::lead : SoundStudies::Articulation::pad);
         }
         else
@@ -75,7 +75,7 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
     else if (message.isPitchWheel())
     {
         wheel = static_cast<double>(message.getPitchWheelValue() - 8192) * 2 / 8192;
-        engine.setPitchBend(static_cast<float>(session.values[pitch].load() + wheel));
+        engine.setPitchBend(static_cast<float>(session.audioValue(pitch) + wheel));
     }
     else if (message.isController() && message.getControllerNumber() == 64)
     {
@@ -96,11 +96,11 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
     while (offset < samples)
     {
         const auto size = std::min(32, samples - offset);
-        const auto modulation = std::sin(lfoPhase) * session.values[motionDepth].load() * .18;
-        engine.setNetworkDimensions(static_cast<float>(juce::jlimit(0.0, 1.0, session.values[coupling].load() + modulation)),
-            static_cast<float>(session.values[stress].load()), session.values[response].load());
+        const auto modulation = std::sin(lfoPhase) * session.audioValue(motionDepth) * .18;
+        engine.setNetworkDimensions(static_cast<float>(juce::jlimit(0.0, 1.0, session.audioValue(coupling) + modulation)),
+            static_cast<float>(session.audioValue(stress)), session.audioValue(response));
         engine.render(left + offset, right + offset, size);
-        lfoPhase += juce::MathConstants<double>::twoPi * session.values[motionRate].load() * size / rate;
+        lfoPhase += juce::MathConstants<double>::twoPi * session.audioValue(motionRate) * size / rate;
         lfoPhase = std::fmod(lfoPhase, juce::MathConstants<double>::twoPi);
         offset += size;
     }
@@ -138,8 +138,8 @@ void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuff
     }
     renderRange(left + offset, right + offset, audio.getNumSamples() - offset);
 
-    cutoffSmooth.setTargetValue(static_cast<float>(session.values[cutoff].load()));
-    resonanceSmooth.setTargetValue(static_cast<float>(session.values[resonance].load()));
+    cutoffSmooth.setTargetValue(static_cast<float>(session.audioValue(cutoff)));
+    resonanceSmooth.setTargetValue(static_cast<float>(session.audioValue(resonance)));
     for (int i = 0; i < audio.getNumSamples(); ++i)
     {
         const auto frequency = std::min(static_cast<double>(cutoffSmooth.getNextValue()), rate * .42);
@@ -157,15 +157,15 @@ void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuff
         if (right != left) right[i] = filterSample(right[i], 1);
     }
     juce::Reverb::Parameters space;
-    space.roomSize = static_cast<float>(session.values[spaceSize].load());
+    space.roomSize = static_cast<float>(session.audioValue(spaceSize));
     space.damping = .45f; space.width = 1;
-    space.wetLevel = static_cast<float>(session.values[spaceMix].load()) * .45f;
-    space.dryLevel = 1 - static_cast<float>(session.values[spaceMix].load()) * .35f;
+    space.wetLevel = static_cast<float>(session.audioValue(spaceMix)) * .45f;
+    space.dryLevel = 1 - static_cast<float>(session.audioValue(spaceMix)) * .35f;
     reverb.setParameters(space);
     if (right != left) reverb.processStereo(left, right, audio.getNumSamples());
     else reverb.processMono(left, audio.getNumSamples());
 
-    gainSmooth.setTargetValue(juce::Decibels::decibelsToGain(static_cast<float>(session.values[output].load())));
+    gainSmooth.setTargetValue(juce::Decibels::decibelsToGain(static_cast<float>(session.audioValue(output))));
     float peak = 0;
     for (int i = 0; i < audio.getNumSamples(); ++i)
     {

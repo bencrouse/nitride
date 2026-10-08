@@ -23,6 +23,7 @@ public:
     std::function<juce::String(double)> format;
     void setValue(double v) { value = juce::jlimit(minimum, maximum, v); repaint(); }
     double getValue() const { return value; }
+    void cancelGesture() { dragging=false; }
     double position(double v) const { return logScale ? std::log(v / minimum) / std::log(maximum / minimum) : (v - minimum) / (maximum - minimum); }
     double fromPosition(double p) const { p = juce::jlimit(0.0, 1.0, p); return logScale ? minimum * std::pow(maximum / minimum, p) : minimum + p * (maximum - minimum); }
     void paint(juce::Graphics& g) override
@@ -32,14 +33,14 @@ public:
         text(g, format ? format(value) : juce::String(value, 2), { getWidth() / 2, 0, getWidth() / 2 - 10, getHeight() }, ink(), 12, juce::Justification::right);
         if (isMouseOverOrDragging() || hasKeyboardFocus(true)) { g.setColour(accent()); g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 3, 1); }
     }
-    void mouseDown(const juce::MouseEvent& e) override { grabKeyboardFocus(); origin = e.position; initial = position(value); if (onBegin) onBegin(); }
-    void mouseDrag(const juce::MouseEvent& e) override { change(fromPosition(initial + (origin.y - e.position.y) / (e.mods.isShiftDown() ? 900 : 170))); }
-    void mouseUp(const juce::MouseEvent&) override { if (onEnd) onEnd(); }
+    void mouseDown(const juce::MouseEvent& e) override { if(!e.mods.isLeftButtonDown())return;grabKeyboardFocus(); if (onBegin) onBegin(); dragging=true;origin = e.position; initial = position(value); }
+    void mouseDrag(const juce::MouseEvent& e) override { if(dragging)change(fromPosition(initial + (origin.y - e.position.y) / (e.mods.isShiftDown() ? 900 : 170))); }
+    void mouseUp(const juce::MouseEvent&) override { finish(); }
     void mouseDoubleClick(const juce::MouseEvent&) override { if (onBegin) onBegin(); change(defaultValue); if (onEnd) onEnd(); }
     void mouseEnter(const juce::MouseEvent&) override { repaint(); }
     void mouseExit(const juce::MouseEvent&) override { repaint(); }
     void focusGained(FocusChangeType) override { repaint(); }
-    void focusLost(FocusChangeType) override { repaint(); if (onEnd) onEnd(); }
+    void focusLost(FocusChangeType) override { finish();repaint(); }
     bool keyPressed(const juce::KeyPress& key) override
     {
         const auto code = key.getKeyCode();
@@ -67,10 +68,11 @@ public:
             juce::AccessibilityHandler::Interfaces(std::make_unique<Value>(*this)));
     }
 private:
+    void finish() { if(dragging){dragging=false;if(onEnd)onEnd();} }
     void change(double v) { setValue(v); if (onChange) onChange(value); }
     juce::String caption;
     double minimum, maximum, value, defaultValue, initial = 0;
-    bool logScale;
+    bool logScale,dragging=false;
     juce::Point<float> origin;
 };
 
@@ -81,6 +83,7 @@ public:
     std::function<void()> onBegin, onEnd;
     std::function<void(std::array<double, 4>)> onChange;
     void setEnvelope(std::array<double, 4> v) { values = v; repaint(); }
+    void cancelGesture() { dragging=false; }
     juce::Rectangle<float> plot() const { return getLocalBounds().toFloat().reduced(12, 15); }
     static double norm(double v, double low, double high) { return std::log(v / low) / std::log(high / low); }
     std::array<juce::Point<float>, 3> handles() const
@@ -106,13 +109,14 @@ public:
     }
     void mouseDown(const juce::MouseEvent& e) override
     {
-        grabKeyboardFocus(); origin = e.position; initial = values;
+        if(!e.mods.isLeftButtonDown())return;
+        grabKeyboardFocus(); if (onBegin) onBegin(); dragging=true;origin = e.position; initial = values;
         const auto points = handles(); float distance = 1.0e9f;
         for (int i = 0; i < 3; ++i) if (auto d = points[static_cast<size_t>(i)].getDistanceFrom(e.position); d < distance) { selected = i; distance = d; }
-        if (onBegin) onBegin();
     }
     void mouseDrag(const juce::MouseEvent& e) override
     {
+        if(!dragging)return;
         const auto dx = static_cast<double>(e.position.x - origin.x) / plot().getWidth();
         if (selected == 0) values[0] = .001 * std::pow(4000.0, juce::jlimit(0.0, 1.0, norm(initial[0], .001, 4) + dx * 3));
         else if (selected == 1)
@@ -123,11 +127,14 @@ public:
         else values[3] = .02 * std::pow(400.0, juce::jlimit(0.0, 1.0, norm(initial[3], .02, 8) + dx * 3));
         if (onChange) onChange(values); repaint();
     }
-    void mouseUp(const juce::MouseEvent&) override { if (onEnd) onEnd(); }
+    void mouseUp(const juce::MouseEvent&) override { finish(); }
+    void focusLost(FocusChangeType) override { finish();repaint(); }
 private:
+    void finish() { if(dragging){dragging=false;if(onEnd)onEnd();} }
     std::array<double, 4> values { .65, .7, .72, 1.4 }, initial = values;
     juce::Point<float> origin;
     int selected = 0;
+    bool dragging=false;
 };
 
 class ReviewXY final : public juce::Component
@@ -142,6 +149,7 @@ public:
     std::function<void()> onBegin, onEnd;
     std::function<void(float, float)> onChange;
     void setPosition(float a, float b) { x = a; y = b; repaint(); }
+    void cancelGesture() { dragging=false; }
     juce::Rectangle<float> plot() const { return getLocalBounds().toFloat().reduced(15, 12); }
     void paint(juce::Graphics& g) override
     {
@@ -177,9 +185,10 @@ public:
         g.setColour(accent()); g.fillEllipse(marker.x - 3, marker.y - 3, 6, 6);
         if (hasKeyboardFocus(true)) { g.setColour(accent()); g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(2), 3, 1); }
     }
-    void mouseDown(const juce::MouseEvent& e) override { grabKeyboardFocus(); if (onBegin) onBegin(); move(e.position); }
-    void mouseDrag(const juce::MouseEvent& e) override { move(e.position); }
-    void mouseUp(const juce::MouseEvent&) override { if (onEnd) onEnd(); }
+    void mouseDown(const juce::MouseEvent& e) override { if(!e.mods.isLeftButtonDown())return;grabKeyboardFocus(); if (onBegin) onBegin(); dragging=true;move(e.position); }
+    void mouseDrag(const juce::MouseEvent& e) override { if(dragging)move(e.position); }
+    void mouseUp(const juce::MouseEvent&) override { finish(); }
+    void focusLost(FocusChangeType) override { finish();repaint(); }
     bool keyPressed(const juce::KeyPress& key) override
     {
         const auto code = key.getKeyCode();
@@ -192,6 +201,7 @@ public:
         if (onEnd) onEnd(); return true;
     }
 private:
+    void finish() { if(dragging){dragging=false;if(onEnd)onEnd();} }
     void move(juce::Point<float> point)
     {
         const auto p = plot(); setPosition(juce::jlimit(0.0f, 1.0f, (point.x - p.getX()) / p.getWidth()), juce::jlimit(0.0f, 1.0f, (p.getBottom() - point.y) / p.getHeight()));
@@ -199,6 +209,7 @@ private:
     }
     Kind kind;
     float x = .5f, y = .2f;
+    bool dragging=false;
 };
 
 class InstrumentReview final : public
@@ -247,31 +258,65 @@ public:
             { "03 / Contact lead", {.75,.4,.025,2.7,0,.006,.16,.62,.16,15000,.2,.75,0,.08,.3,-6}, true, false },
             { "04 / Hard hit", {.90,.70,.012,2.7,0,.003,.16,0,.22,15000,.15,.5,0,.05,.3,-6}, false, false }
         };
+#if NITRIDE_HOST_VIEW
+        rebuildPresets();
+#else
         for (size_t i = 0; i < patches.size(); ++i) patchBox.addItem(patches[i].name, static_cast<int>(i) + 1);
+#endif
         patchBox.setName("Starting patch");
         patchBox.onChange = [this] { if (patchBox.getSelectedId() > 0) {
-            remember(); compare.setToggleState(false,juce::dontSendNotification); endAudition();
 #if NITRIDE_HOST_VIEW
-            if(patchBox.getSelectedId()<=4)session.program.store(patchBox.getSelectedId()-1);
-#endif
+            endAudition();hold.setToggleState(false,juce::dontSendNotification);
+            const auto index=static_cast<size_t>(patchBox.getSelectedId()-1);
+            if(index<presetIds.size())session.selectPreset(presetIds[index]);syncFromSession();
+#else
+            remember(); compare.setToggleState(false,juce::dontSendNotification); endAudition();
             apply(patches[static_cast<size_t>(patchBox.getSelectedId() - 1)]); reference = current; if (hold.getToggleState()) startAudition(); } };
+#endif
+#if NITRIDE_HOST_VIEW
+        } };
+#endif
         addAndMakeVisible(patchBox);
-        undo.setButtonText("UNDO"); undo.onClick = [this] { if (!history.empty()) { auto p = history.back(); history.pop_back(); compare.setToggleState(false,juce::dontSendNotification); apply(p); undo.setEnabled(!history.empty()); } };
+        undo.setButtonText("UNDO"); undo.onClick = [this] {
+#if NITRIDE_HOST_VIEW
+            session.undo();syncFromSession();
+#else
+            if (!history.empty()) { auto p = history.back(); history.pop_back(); compare.setToggleState(false,juce::dontSendNotification); apply(p); undo.setEnabled(!history.empty()); }
+#endif
+        };
         compare.setButtonText("COMPARE"); compare.setClickingTogglesState(true);
-        compare.onClick = [this] { if (compare.getToggleState()) { edited = current; apply(reference); } else apply(edited); };
+        compare.onClick = [this] {
+#if NITRIDE_HOST_VIEW
+            session.setComparing(compare.getToggleState());syncFromSession();
+#else
+            if (compare.getToggleState()) { edited = current; apply(reference); } else apply(edited);
+#endif
+        };
         keep.setButtonText("KEEP"); keep.onClick = [this] {
+#if NITRIDE_HOST_VIEW
+            promptKeep();
+#else
             auto p = current; p.name = "Kept " + juce::String(++keptCount); patches.push_back(p); patchBox.addItem(p.name, static_cast<int>(patches.size()));
             current.name = p.name; reference = current; patchBox.setSelectedId(static_cast<int>(patches.size()), juce::dontSendNotification);
             compare.setToggleState(false, juce::dontSendNotification); repaint();
+#endif
         };
         hold.setButtonText("HOLD"); hold.setClickingTogglesState(true); hold.onClick = [this] { if (hold.getToggleState()) startAudition(true); else if (!touching) endAudition(); };
         settings.setButtonText("..."); settings.onClick = [this] { showSettings(); };
         for (auto* b : { &undo, &compare, &keep, &hold, &settings }) addAndMakeVisible(*b);
+#if NITRIDE_HOST_VIEW
+        keep.setTooltip("Name and save this sound to your Nitride preset library");
+        field.onGestureBegin=[this]{beginControl({coupling,stress});};
+        field.onGestureEnd=[this]{endControl({coupling,stress});};
+        ribbon.onGestureBegin=[this]{beginControl({response});};
+        ribbon.onGestureEnd=[this]{endControl({response});};
+#else
         keep.setTooltip("Keep the current patch in this review session");
-        field.onShape = [this](float c, float s) { if (!touching) remember(); set(coupling, c); set(stress, s); };
+#endif
+        field.onShape = [this](float c, float s) { if(!acceptControlChange())return;if (!touching) remember(); set(coupling, c); set(stress, s); };
         field.onBegin = [this] { touching = true; if(current.values[sustain]<.01&&!notes.isEmpty())endAudition(); startAudition(); };
         field.onEnd = [this] { touching = false; if (!hold.getToggleState()) endAudition(); };
-        ribbon.onResponse = [this](double seconds) { set(response, seconds); };
+        ribbon.onResponse = [this](double seconds) { if(acceptControlChange())set(response, seconds); };
         ribbon.onBegin = [this] { remember(); touching = true; startAudition(); };
         ribbon.onEnd = field.onEnd;
         addAndMakeVisible(field); addAndMakeVisible(ribbon);
@@ -279,8 +324,13 @@ public:
                            {&sustainValue, sustain}, {&releaseValue, release}, {&outputValue, output} })
         {
             auto* view = pair.first; const auto parameter = pair.second;
+#if NITRIDE_HOST_VIEW
+            view->onBegin = [this,parameter] { beginControl({parameter}); };
+            view->onEnd = [this,parameter] { endControl({parameter}); };
+#else
             view->onBegin = [this] { remember(); };
-            view->onChange = [this, parameter](double value) { set(parameter, value); if (parameter >= attack && parameter <= release) syncEnvelope(); };
+#endif
+            view->onChange = [this, parameter](double value) { if(!acceptControlChange())return;set(parameter, value); if (parameter >= attack && parameter <= release) syncEnvelope(); };
             addAndMakeVisible(*view);
         }
         fmValue.format = [](double v) { return juce::String(v, 2); };
@@ -289,16 +339,38 @@ public:
         sustainValue.format = [](double v) { return juce::String(v * 100, 0) + "%"; };
         outputValue.format = [](double v) { return juce::String(v, 1) + " dB"; };
         poly.setButtonText("POLY"); monoButton.setButtonText("MONO");
-        poly.onClick = [this] { remember(); current.mono = false; publish(); syncModes(); };
-        monoButton.onClick = [this] { remember(); current.mono = true; publish(); syncModes(); };
+        poly.onClick = [this] {
+#if NITRIDE_HOST_VIEW
+            session.setMono(false);syncFromSession();
+#else
+            remember(); current.mono=false;publish();syncModes();
+#endif
+        };
+        monoButton.onClick = [this] {
+#if NITRIDE_HOST_VIEW
+            session.setMono(true);syncFromSession();
+#else
+            remember();current.mono=true;publish();syncModes();
+#endif
+        };
         addAndMakeVisible(poly); addAndMakeVisible(monoButton);
+#if NITRIDE_HOST_VIEW
+        envelope.onBegin=[this]{beginControl({attack,decay,sustain,release});};
+        envelope.onEnd=[this]{endControl({attack,decay,sustain,release});};
+#else
         envelope.onBegin = [this] { remember(); };
-        envelope.onChange = [this](std::array<double, 4> v) { for (size_t i = 0; i < v.size(); ++i) set(static_cast<Parameter>(attack + i), v[i]); syncEnvelope(); };
+#endif
+        envelope.onChange = [this](std::array<double, 4> v) { if(!acceptControlChange())return;for (size_t i = 0; i < v.size(); ++i) set(static_cast<Parameter>(attack + i), v[i]); syncEnvelope(); };
         addAndMakeVisible(envelope);
         for (auto* panel : { &filter, &motion, &space }) { panel->onBegin = [this] { remember(); }; addAndMakeVisible(*panel); }
-        filter.onChange = [this](float x, float y) { set(cutoff, 40 * std::pow(450.0, x)); set(resonance, y * .85); };
-        motion.onChange = [this](float x, float y) { set(motionRate, .05 * std::pow(160.0, x)); set(motionDepth, y); };
-        space.onChange = [this](float x, float y) { set(spaceMix, x * .65); set(spaceSize, y); };
+#if NITRIDE_HOST_VIEW
+        filter.onBegin=[this]{beginControl({cutoff,resonance});};filter.onEnd=[this]{endControl({cutoff,resonance});};
+        motion.onBegin=[this]{beginControl({motionRate,motionDepth});};motion.onEnd=[this]{endControl({motionRate,motionDepth});};
+        space.onBegin=[this]{beginControl({spaceMix,spaceSize});};space.onEnd=[this]{endControl({spaceMix,spaceSize});};
+#endif
+        filter.onChange = [this](float x, float y) { if(!acceptControlChange())return;set(cutoff, 40 * std::pow(450.0, x)); set(resonance, y * .85); };
+        motion.onChange = [this](float x, float y) { if(!acceptControlChange())return;set(motionRate, .05 * std::pow(160.0, x)); set(motionDepth, y); };
+        space.onChange = [this](float x, float y) { if(!acceptControlChange())return;set(spaceMix, x * .65); set(spaceSize, y); };
         keyboard.setAvailableRange(48, 84); keyboard.setKeyPressBaseOctave(4); keyboard.setOctaveForMiddleC(4);
 #if NITRIDE_HOST_VIEW
         keyboard.setMidiChannel(15);
@@ -309,10 +381,8 @@ public:
         keyboard.setColour(juce::MidiKeyboardComponent::keyDownOverlayColourId, accent().withAlpha(.65f));
         addAndMakeVisible(keyboard);
 #if NITRIDE_HOST_VIEW
-        const auto initial = session.read();
-        apply({initial.name,initial.values,initial.mono,initial.chord}); reference = current;
-        patchBox.setSelectedId(session.program.load()+1,juce::dontSendNotification);
-        undo.setEnabled(false); setSize(1200,840); startTimerHz(30);
+        syncFromSession();reference=current;
+        setSize(1200,840); startTimerHz(30);
 #else
         midi.ensureSize(8192); apply(patches[0]); reference = current; patchBox.setSelectedId(1, juce::dontSendNotification);
         undo.setEnabled(false); setSize(1200, 840);
@@ -323,6 +393,9 @@ public:
     }
     ~InstrumentReview() override {
         stopTimer(); endAudition();
+#if NITRIDE_HOST_VIEW
+        session.endAllEdits();
+#endif
 #if !NITRIDE_HOST_VIEW
         deviceManager.removeMidiInputDeviceCallback({}, &collector); shutdownAudio();
 #endif
@@ -444,13 +517,23 @@ public:
 #endif
     bool checkInteractions()
     {
-        apply(patches[0]);reference=current;const auto initial=current.values[coupling];
+        apply(patches[0]);reference=current;
+#if NITRIDE_HOST_VIEW
+        session.setCompareReference(session.read());syncFromSession();
+#endif
+        const auto initial=current.values[coupling];
         field.keyPressed(juce::KeyPress(juce::KeyPress::rightKey));const auto changed=current.values[coupling]>initial;
         undo.onClick();const auto undone=std::abs(current.values[coupling]-initial)<.001;
         fmValue.getAccessibilityHandler()->getValueInterface()->setValue(3.2);const auto source=std::abs(current.values[fm]-3.2)<.001;
         envelope.setEnvelope({.1,.2,.5,.4});envelope.onChange({.1,.2,.5,.4});const auto env=std::abs(current.values[attack]-.1)<.001;
         filter.onChange(.7f,.4f);motion.onChange(.4f,.2f);space.onChange(.3f,.7f);const auto support=current.values[cutoff]>1000&&current.values[motionDepth]>.1&&current.values[spaceMix]>.1;
-        keep.onClick();const auto kept=patches.size()==5&&patchBox.getSelectedId()==5;
+        const auto previousPresets=patches.size();
+#if NITRIDE_HOST_VIEW
+        const auto keepResult=session.keep("Interaction test");rebuildPresets();syncFromSession();
+        const auto kept=keepResult.wasOk()&&patches.size()==previousPresets+1;
+#else
+        keep.onClick();const auto kept=patches.size()==previousPresets+1;
+#endif
         const auto saved=current;set(stress,.8);compare.setToggleState(true,juce::dontSendNotification);compare.onClick();const auto compared=std::abs(current.values[stress]-saved.values[stress])<.001;
         compare.setToggleState(false,juce::dontSendNotification);compare.onClick();const auto returned=std::abs(current.values[stress]-.8)<.001;
         field.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey));const auto played=!notes.isEmpty();field.keyStateChanged(false);const auto stopped=notes.isEmpty();
@@ -480,6 +563,13 @@ public:
 #endif
 
 private:
+    bool acceptControlChange()
+    {
+#if NITRIDE_HOST_VIEW
+        if(lastRestoreEpoch!=session.restoreEpoch.load()){syncFromSession();return false;}
+#endif
+        return true;
+    }
     static void section(juce::Graphics& g,const juce::String& label,juce::Rectangle<int> r){g.setColour(ink());g.setFont(juce::Font(juce::FontOptions("Helvetica Neue",11,juce::Font::bold)));g.drawText(label,r,juce::Justification::left);}
     static juce::String formatCutoff(double hz){return hz>=1000?juce::String(hz/1000,2)+" kHz":juce::String(hz,0)+" Hz";}
     void sourceWave(juce::Graphics& g)
@@ -490,7 +580,7 @@ private:
     }
     void publish(){
 #if NITRIDE_HOST_VIEW
-        session.apply({current.name,current.values,current.mono,current.chord}); lastRevision=session.revision.load();
+        session.apply({current.name,current.values,current.mono,current.chord});syncFromSession();
 #else
         for(size_t i=0;i<count;++i)audio[i].store(current.values[i]);monoAudio.store(current.mono);
 #endif
@@ -498,22 +588,122 @@ private:
     }
     void set(Parameter p,double value){current.values[static_cast<size_t>(p)]=value;
 #if NITRIDE_HOST_VIEW
-        session.set(static_cast<Nitride::Parameter>(p),value);lastRevision=session.revision.load();
+        session.set(static_cast<Nitride::Parameter>(p),value);
+        const auto editedPatch=session.read();current={editedPatch.name,editedPatch.values,editedPatch.mono,editedPatch.chord};
+        compare.setToggleState(false,juce::dontSendNotification);undo.setEnabled(session.canUndo());
 #else
         audio[static_cast<size_t>(p)].store(value);
 #endif
         repaint();
     }
-    void remember(){if(!applying){history.push_back(current);if(history.size()>40)history.erase(history.begin());undo.setEnabled(true);}}
+    void remember(){
+#if !NITRIDE_HOST_VIEW
+        if(!applying){history.push_back(current);if(history.size()>40)history.erase(history.begin());undo.setEnabled(true);}
+#endif
+    }
     void apply(const Patch& patch)
     {
+#if NITRIDE_HOST_VIEW
+        session.apply({patch.name,patch.values,patch.mono,patch.chord});syncFromSession();
+#else
         applying=true;current=patch;publish();field.setPosition(static_cast<float>(current.values[coupling]),static_cast<float>(current.values[stress]));ribbon.setResponse(current.values[response]);
         fmValue.setValue(current.values[fm]);pitchValue.setValue(current.values[pitch]);outputValue.setValue(current.values[output]);syncEnvelope();syncModes();
         filter.setPosition(static_cast<float>(std::log(current.values[cutoff]/40)/std::log(450.0)),static_cast<float>(current.values[resonance]/.85));
         motion.setPosition(static_cast<float>(std::log(current.values[motionRate]/.05)/std::log(160.0)),static_cast<float>(current.values[motionDepth]));
         space.setPosition(static_cast<float>(current.values[spaceMix]/.65),static_cast<float>(current.values[spaceSize]));applying=false;
         for(size_t i=0;i<patches.size();++i)if(patches[i].name==current.name){patchBox.setSelectedId(static_cast<int>(i)+1,juce::dontSendNotification);break;}
+#endif
     }
+#if NITRIDE_HOST_VIEW
+    void rebuildPresets()
+    {
+        const auto libraryRevision=session.libraryRevision.load();
+        patches.clear();presetIds.clear();patchBox.clear(juce::dontSendNotification);
+        const auto list=session.presets();
+        for(size_t i=0;i<list.size();++i)
+        {
+            const auto& p=list[i];patches.push_back({p.patch.name,p.patch.values,p.patch.mono,p.patch.chord});presetIds.push_back(p.id);
+            if(i==0)patchBox.addSectionHeading("Starting patches");if(i==4)patchBox.addSectionHeading("Kept sounds");
+            patchBox.addItem(p.patch.name,static_cast<int>(i)+1);
+        }
+        lastLibraryRevision=libraryRevision;
+    }
+    void syncFromSession()
+    {
+        // Capture revisions before reading. A concurrent host write during drawing
+        // must leave a newer revision for the next tick, not be marked as displayed.
+        const auto revision=session.revision.load(std::memory_order_acquire);
+        const auto restoreEpoch=session.restoreEpoch.load();
+        if(lastRestoreEpoch!=restoreEpoch)
+        {
+            endAudition();hold.setToggleState(false,juce::dontSendNotification);touching=false;localEdits={};
+            field.cancelGesture();ribbon.cancelGesture();envelope.cancelGesture();
+            for(auto* value:{&fmValue,&pitchValue,&attackValue,&decayValue,&sustainValue,&releaseValue,&outputValue})value->cancelGesture();
+            for(auto* panel:{&filter,&motion,&space})panel->cancelGesture();
+            lastRestoreEpoch=restoreEpoch;
+        }
+        if(lastLibraryRevision!=session.libraryRevision.load())rebuildPresets();
+        const auto p=session.readVisible();current={p.name,p.values,p.mono,p.chord};
+        applying=true;field.setPosition(static_cast<float>(p.values[coupling]),static_cast<float>(p.values[stress]));ribbon.setResponse(p.values[response]);
+        fmValue.setValue(p.values[fm]);pitchValue.setValue(p.values[pitch]);outputValue.setValue(p.values[output]);syncEnvelope();syncModes();
+        filter.setPosition(static_cast<float>(std::log(p.values[cutoff]/40)/std::log(450.0)),static_cast<float>(p.values[resonance]/.85));
+        motion.setPosition(static_cast<float>(std::log(p.values[motionRate]/.05)/std::log(160.0)),static_cast<float>(p.values[motionDepth]));
+        space.setPosition(static_cast<float>(p.values[spaceMix]/.65),static_cast<float>(p.values[spaceSize]));
+        compare.setToggleState(session.isComparing(),juce::dontSendNotification);undo.setEnabled(session.canUndo());
+        const auto id=session.selectedPresetId();bool found=false;
+        for(size_t i=0;i<presetIds.size();++i)if(presetIds[i]==id){patchBox.setSelectedId(static_cast<int>(i)+1,juce::dontSendNotification);found=true;break;}
+        if(!found){patchBox.setSelectedId(0,juce::dontSendNotification);patchBox.setText(p.name,juce::dontSendNotification);}
+        applying=false;lastRevision=revision;repaint();
+    }
+    void beginControl(std::initializer_list<int> parameters)
+    {
+        // A new pointer may arrive before the restore polling tick. Cancel the old
+        // gesture first so this new gesture retains its matching end notification.
+        if(lastRestoreEpoch!=session.restoreEpoch.load())syncFromSession();
+        for(const auto index:parameters)if(localEdits[static_cast<size_t>(index)]>0)return;
+        session.beginEdit(parameters);for(const auto index:parameters)localEdits[static_cast<size_t>(index)]=1;
+        syncFromSession();
+    }
+    void endControl(std::initializer_list<int> parameters)
+    {
+        bool active=false;for(const auto index:parameters)active|=localEdits[static_cast<size_t>(index)]>0;
+        if(!active)return;
+        for(const auto index:parameters)localEdits[static_cast<size_t>(index)]=0;
+        session.endEdit(parameters);syncFromSession();
+    }
+    void showResult(const juce::Result& result)
+    {
+        if(result.failed())juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon,"Nitride preset",result.getErrorMessage());
+        else {rebuildPresets();syncFromSession();}
+    }
+    void promptKeep()
+    {
+        const auto snapshot=session.read();
+        auto* dialog=new juce::AlertWindow("Keep sound","Save these sound conditions to your Nitride library.",juce::MessageBoxIconType::NoIcon);
+        dialog->addTextEditor("name",snapshot.name,"Name");dialog->addButton("Keep",1,juce::KeyPress(juce::KeyPress::returnKey));
+        dialog->addButton("Cancel",0,juce::KeyPress(juce::KeyPress::escapeKey));
+        const juce::Component::SafePointer<InstrumentReview> safe(this);
+        dialog->enterModalState(true,juce::ModalCallbackFunction::create([safe,dialog,snapshot](int result){
+            if(safe!=nullptr&&result==1)safe->showResult(safe->session.keepPatch(dialog->getTextEditorContents("name"),snapshot));
+        }),true);
+    }
+    void importPreset()
+    {
+        fileChooser=std::make_unique<juce::FileChooser>("Import Nitride preset",session.presetDirectory(),"*.nitridepreset");
+        const juce::Component::SafePointer<InstrumentReview> safe(this);
+        fileChooser->launchAsync(juce::FileBrowserComponent::openMode|juce::FileBrowserComponent::canSelectFiles,[safe](const juce::FileChooser& chooser){
+            if(safe!=nullptr&&chooser.getResult().existsAsFile())safe->showResult(safe->session.importPreset(chooser.getResult()));
+        });
+    }
+    void exportPreset()
+    {
+        fileChooser=std::make_unique<juce::FileChooser>("Export Nitride preset",session.presetDirectory().getChildFile("Sound.nitridepreset"),"*.nitridepreset");
+        const juce::Component::SafePointer<InstrumentReview> safe(this);
+        fileChooser->launchAsync(juce::FileBrowserComponent::saveMode|juce::FileBrowserComponent::canSelectFiles|juce::FileBrowserComponent::warnAboutOverwriting,[safe](const juce::FileChooser& chooser){
+            if(safe!=nullptr&&chooser.getResult()!=juce::File{})safe->showResult(safe->session.exportPreset(chooser.getResult().withFileExtension(".nitridepreset")));
+        });
+    }
+#endif
     void syncEnvelope(){envelope.setEnvelope({current.values[attack],current.values[decay],current.values[sustain],current.values[release]});attackValue.setValue(current.values[attack]);decayValue.setValue(current.values[decay]);sustainValue.setValue(current.values[sustain]);releaseValue.setValue(current.values[release]);}
     void syncModes(){poly.setToggleState(!current.mono,juce::dontSendNotification);monoButton.setToggleState(current.mono,juce::dontSendNotification);}
 #if !NITRIDE_HOST_VIEW
@@ -538,14 +728,20 @@ private:
         if(showAudioSettings)menu.addItem(1,"Audio / MIDI...");
         menu.addItem(2,"Reduced motion",true,field.reducedMotion);
         menu.addItem(3,"About Nitride");
+        menu.addSeparator();menu.addItem(4,"Redo",session.canRedo());
+        menu.addItem(5,"Import preset...");menu.addItem(6,"Export preset...");menu.addItem(7,"Refresh kept sounds");
         const juce::Component::SafePointer<InstrumentReview> safe(this);
         menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&settings),[safe](int choice){
             if(safe==nullptr)return;
             if(choice==1&&safe->showAudioSettings)safe->showAudioSettings();
             else if(choice==2){safe->field.reducedMotion=!safe->field.reducedMotion;safe->ribbon.reducedMotion=safe->field.reducedMotion;}
-            else if(choice==3)juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon,"Nitride / first playable instrument",
-                "The native field, source, envelope, tone, motion and space are connected to the instrument's audio processor. "
-                "Keep/Compare/Undo are local to the current editor. Host automation and complete session/preset workflow are the next milestone.");
+            else if(choice==4){safe->session.redo();safe->syncFromSession();}
+            else if(choice==5)safe->importPreset();else if(choice==6)safe->exportPreset();
+            else if(choice==7){safe->session.refreshPresets();safe->rebuildPresets();safe->syncFromSession();}
+            else if(choice==3)juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon,"Nitride",
+                 "The native field, source, envelope, tone, motion and space are connected to the instrument's audio processor. "
+                "The host can automate every sound control. Keep writes a named preset to your library. "
+                "Compare auditions the reference without replacing your edited sound; session saving retains edits, reference and history.");
         });
 #else
         juce::PopupMenu menu;menu.addItem(1,"Audio / MIDI...");menu.addItem(2,"Reduced motion",true,field.reducedMotion);menu.addItem(3,"About this review");
@@ -555,7 +751,7 @@ private:
     void timerCallback() override{
 #if NITRIDE_HOST_VIEW
         const auto revision=session.revision.load(std::memory_order_acquire);
-        if(revision!=lastRevision){const auto patch=session.read();apply({patch.name,patch.values,patch.mono,patch.chord});}
+        if(revision!=lastRevision||lastLibraryRevision!=session.libraryRevision.load())syncFromSession();
         deviceStatus="AUDIO PROCESSOR";
 #else
         if(auto* device=deviceManager.getCurrentAudioDevice())deviceStatus=device->getName()+" / "+juce::String(device->getCurrentSampleRate(),0)+" Hz";else deviceStatus="NO AUDIO DEVICE";
@@ -570,6 +766,10 @@ private:
     juce::MidiKeyboardState& keyboardState;
     std::function<void()> showAudioSettings;
     std::uint64_t lastRevision=0;
+    std::uint64_t lastLibraryRevision=0,lastRestoreEpoch=0;
+    std::array<int,Nitride::hostParameterCount> localEdits{};
+    std::vector<juce::String> presetIds;
+    std::unique_ptr<juce::FileChooser> fileChooser;
 #else
     SoundStudies::Engine engine;
     LiveState live;
@@ -604,6 +804,8 @@ private:
     double rate=48000,lfoPhase=0,wheel=0;
 #endif
     bool touching=false,applying=false;
+#if !NITRIDE_HOST_VIEW
     int keptCount=0;
+#endif
     juce::String deviceStatus;
 };

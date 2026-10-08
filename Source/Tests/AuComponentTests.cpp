@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 namespace
 {
@@ -27,6 +28,33 @@ int main()
         const auto component=AudioComponentFindNext(nullptr,&description);
         if(component==nullptr)throw std::runtime_error("Installed Nitride AU not found; run make install-au first");
         Instance instance;check(AudioComponentInstanceNew(component,&instance.unit),"AudioComponentInstanceNew");
+        UInt32 listSize=0;Boolean writable=false;
+        check(AudioUnitGetPropertyInfo(instance.unit,kAudioUnitProperty_ParameterList,kAudioUnitScope_Global,0,&listSize,&writable),"Parameter list info");
+        std::vector<AudioUnitParameterID> parameterIds(listSize/sizeof(AudioUnitParameterID));
+        check(AudioUnitGetProperty(instance.unit,kAudioUnitProperty_ParameterList,kAudioUnitScope_Global,0,parameterIds.data(),&listSize),"Parameter list");
+        if(parameterIds.size()!=17)throw std::runtime_error("Installed AU does not publish the 17-control automation contract");
+        AudioUnitParameterID couplingId=0;bool foundCoupling=false;
+        for(const auto id:parameterIds)
+        {
+            AudioUnitParameterInfo info{};UInt32 infoSize=sizeof(info);
+            check(AudioUnitGetProperty(instance.unit,kAudioUnitProperty_ParameterInfo,kAudioUnitScope_Global,id,&info,&infoSize),"Parameter info");
+            std::array<char,256> name{};
+            if(info.cfNameString!=nullptr)CFStringGetCString(info.cfNameString,name.data(),static_cast<CFIndex>(name.size()),kCFStringEncodingUTF8);
+            else std::copy(std::begin(info.name),std::end(info.name),name.begin());
+            if(std::string(name.data())=="Coupling"){couplingId=id;foundCoupling=true;}
+            if((info.flags&kAudioUnitParameterFlag_CFNameRelease)!=0&&info.cfNameString!=nullptr)CFRelease(info.cfNameString);
+        }
+        if(!foundCoupling)throw std::runtime_error("AU Coupling automation parameter missing");
+        check(AudioUnitSetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,.82f,0),"Host parameter write");
+        AudioUnitParameterValue retained=0;check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Host parameter read");
+        if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("AU did not retain host automation value");
+        CFPropertyListRef savedState=nullptr;UInt32 stateSize=sizeof(savedState);
+        check(AudioUnitGetProperty(instance.unit,kAudioUnitProperty_ClassInfo,kAudioUnitScope_Global,0,&savedState,&stateSize),"AU session state");
+        check(AudioUnitSetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,.2f,0),"Changed host parameter");
+        check(AudioUnitSetProperty(instance.unit,kAudioUnitProperty_ClassInfo,kAudioUnitScope_Global,0,&savedState,sizeof(savedState)),"AU session restore");
+        CFRelease(savedState);
+        check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Restored host parameter");
+        if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("Installed AU lost automation conditions during state restore");
         AudioStreamBasicDescription format{};
         format.mSampleRate=48000;format.mFormatID=kAudioFormatLinearPCM;
         format.mFormatFlags=static_cast<AudioFormatFlags>(kAudioFormatFlagsNativeFloatPacked)
@@ -57,7 +85,7 @@ int main()
         check(MusicDeviceMIDIEvent(instance.unit,0x80,60,0,0),"Host note-off");
         double tail=0;for(int block=0;block<1500;++block){const auto p=render();if(block>1480)tail=std::max(tail,p);}
         if(tail>0.0001)throw std::runtime_error("Installed AU did not release its note/tail");
-        std::cout<<"Installed AU component passed: real MusicDevice MIDI, sample timing, stereo rendering, peak "<<peak<<", released tail "<<tail<<'\n';
+        std::cout<<"Installed AU component passed: 17 host parameters, parameter/class-state recall, real MIDI timing, stereo peak "<<peak<<", released tail "<<tail<<'\n';
         return 0;
     }
     catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
