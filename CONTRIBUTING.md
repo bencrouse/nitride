@@ -32,3 +32,10 @@ and DSP regressions. After AU integration changes, also run
 `./build/nitride_au_component_tests` against the installed component. Native UI
 changes can be checked through the review app's `--interaction-check` and
 `--audio-check` modes; interaction tests use a temporary preset library.
+
+For performance changes, capture a Release `make benchmark` baseline before
+editing DSP and compare the candidate against it. Require unchanged audio
+fingerprints for exact optimizations, check per-pass variability and deadline
+headroom, then run the Release regression suites. Profile independently of timing
+runs. `docs/PERFORMANCE.md` defines the workloads and records the first measured
+optimization; timings are not CTest pass/fail criteria.

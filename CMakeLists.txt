@@ -123,6 +123,13 @@ if(NITRIDE_BUILD_TESTS)
     target_link_libraries(nitride_automation_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_automation_tests COMMAND nitride_automation_tests)
+    juce_add_console_app(nitride_perf PRODUCT_NAME "nitride_perf")
+    target_sources(nitride_perf PRIVATE Source/Tests/PerformanceHarness.cpp)
+    target_include_directories(nitride_perf PRIVATE Source)
+    target_compile_definitions(nitride_perf PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NITRIDE_BENCH_CONFIG="$<CONFIG>")
+    add_dependencies(nitride_perf nitride)
+    target_link_libraries(nitride_perf PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
+        juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_executable(nitride_study_tests Source/Studies/StudyTests.cpp)
     target_link_libraries(nitride_study_tests PRIVATE nitride_study_engine)
     add_test(NAME nitride_study_tests COMMAND nitride_study_tests)

@@ -105,6 +105,21 @@ The audible experiments above explore the revised sound-making brief.
 
 ## Infrastructure
 
+### Performance measurements
+
+```sh
+make benchmark
+```
+
+Runs a separate Release processor benchmark across sample rates, buffer sizes and
+eight MIDI/automation workloads. JSON reports include audio-budget occupancy,
+block-time percentiles, deadline overruns and deterministic audio fingerprints.
+Use `PERF_ARGS` to capture/compare baselines. See
+[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md) for methodology, measured results and
+reproduction commands.
+
+### Native build
+
 Following Carbide's conventions:
 
 - JUCE 8, CMake, C++20.
@@ -151,6 +166,7 @@ recorded-automation playback are the remaining manual host acceptance checks.
 | `Source/Instrument/PresetStore.*` | Versioned preset files and atomic writes |
 | `Source/Tests/UiSelfTests.cpp` | Hosted/review equivalence, MIDI and editor ownership checks |
 | `Source/Tests/AutomationStateTests.cpp` | Gestures, automation, session recall and preset workflow |
+| `Source/Tests/PerformanceHarness.cpp` | Repeatable Release processor benchmark and baseline comparison |
 | `Source/Tests/AuComponentTests.cpp` | Installed AU automation/state and MusicDevice render test |
 | `Source/Studies/*` | Audible experiments, audition app, renders, DSP checks |
 | `docs/DESIGN.md` | Musical brief, visual direction, open questions |

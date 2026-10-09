@@ -10,11 +10,14 @@ AU_MANUFACTURER ?= NTRD
 AU_COMPONENT ?= nitride.component
 AU_INSTALL_DIR ?= $(HOME)/Library/Audio/Plug-Ins/Components
 AU_BUILD_PATH := $(BUILD_DIR)/nitride_artefacts/$(CONFIG)/AU/$(AU_COMPONENT)
+PERF_BUILD_DIR ?= build/performance
+PERF_ARGS ?= --output "$(PERF_BUILD_DIR)/latest.json"
 
-.PHONY: help configure build test studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
+.PHONY: help configure build test benchmark studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
 help:
 	@echo "make build        Build AU + Standalone"
 	@echo "make test         Check native UI, automation/state and DSP"
+	@echo "make benchmark    Measure Release processor rendering; override PERF_ARGS"
 	@echo "make standalone   Build and open the native app"
 	@echo "make studies      Build and open the sound comparison app"
 	@echo "make gestures     Build and open the playable control-surface study"
@@ -36,6 +39,11 @@ build: configure
 
 test: build
 	$(CMAKE) --build "$(BUILD_DIR)" --target test
+
+benchmark:
+	$(CMAKE) -S . -B "$(PERF_BUILD_DIR)" -DCMAKE_BUILD_TYPE=Release -DJUCE_DIR="$(JUCE_DIR)"
+	$(CMAKE) --build "$(PERF_BUILD_DIR)" --target nitride_perf --parallel $(JOBS)
+	"$(PERF_BUILD_DIR)/nitride_perf_artefacts/Release/nitride_perf" $(PERF_ARGS)
 
 install-au: build
 	mkdir -p "$(AU_INSTALL_DIR)"

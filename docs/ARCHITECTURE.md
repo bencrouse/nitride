@@ -72,6 +72,12 @@ events are processed at sample offsets. The renderer owns mutable DSP and effect
 while views receive atomic metrics. Production sound-quality/performance work and
 manual DAW acceptance remain subsequent work.
 
+Performance refinement now has a separate Release harness linked to the actual
+processor code. It times full MIDI/automation rendering, reports audio-budget
+occupancy and block-time percentiles, and compares deterministic audio fingerprints.
+`PERFORMANCE.md` records baseline/candidate measurements and the first exact DSP
+caching optimizations. This is a measurement foundation for milestone 3.
+
 ## Build and inspection
 
 `make standalone` builds the AU and app, then opens the native editor.

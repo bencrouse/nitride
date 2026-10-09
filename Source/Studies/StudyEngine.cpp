@@ -1,6 +1,7 @@
 #include "StudyEngine.h"
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <numbers>
 
@@ -491,7 +492,8 @@ double Engine::networkSample(Voice& voice, NetworkState& state, double env, doub
         const auto feedback = a * (0.18 + 1.4 * stress * stress) * state.signal * networkKick[i];
         const auto force = drift + coupling * torque[i] / 3.0 - a * anchor * sine[i] + impulse + feedback;
         state.offsets[i] = wrap(state.offsets[i] + phaseStep * force * phaseSpeed);
-        wave[i] = std::sin(voice.phase * networkHarmonics[i] + state.offsets[i]);
+        // The carrier uses its phase directly; only nodes 1–5 are FM modulators.
+        if (i != 0) wave[i] = std::sin(voice.phase * networkHarmonics[i] + state.offsets[i]);
     }
     // The adaptive links participate in FM generation as well as phase synchronization.
     // This is one evolving voice, rather than a network processing a finished FM signal.
@@ -511,13 +513,23 @@ double Engine::voiceSample(Voice& voice) noexcept
     const auto fundamental = voice.frequency * pitchMultiplier;
     const auto amount = smoothedAmount;
     const auto spectralActive = modeWeights[2] > 0.00000001;
+    // The Nyquist mask depends on pitch, not on network evolution. Cache the exact
+    // values while pitch is unchanged, and invalidate for bends/legato glides.
+    const auto pitchBits = std::bit_cast<std::uint64_t>(fundamental);
+    if (pitchBits != voice.bandPitchBits)
+    {
+        for (size_t i = 0; i < voice.referenceBands.size(); ++i)
+            voice.referenceBands[i] = std::clamp((rate * 0.47 - fundamental * static_cast<double>(2 * i + 1)) / (rate * 0.08), 0.0, 1.0);
+        voice.bandPitchBits = pitchBits;
+    }
     double reference = 0.0, deformed = 0.0;
     for (size_t i = 0; i < partialAmplitudes.size(); ++i)
     {
         const auto harmonic = static_cast<double>(2 * i + 1);
         const auto frequency = fundamental * partialRatios[i];
-        const auto referenceBand = std::clamp((rate * 0.47 - fundamental * harmonic) / (rate * 0.08), 0.0, 1.0);
-        reference += partialAmplitudes[i] * std::sin(voice.phase * harmonic) * referenceBand;
+        const auto referenceBand = voice.referenceBands[i];
+        if (referenceBand != 0.0)
+            reference += partialAmplitudes[i] * std::sin(voice.phase * harmonic) * referenceBand;
         if (spectralActive)
         {
             const auto band = std::clamp((rate * 0.47 - frequency) / (rate * 0.08), 0.0, 1.0);
@@ -576,16 +588,20 @@ void Engine::render(float* left, float* right, int samples) noexcept
         {
             couplingDimension += smoothing * (targetCoupling - couplingDimension);
             stressDimension += smoothing * (targetStress - stressDimension);
+            const auto previousResponse = responseDimension;
             responseDimension += smoothing * (targetResponse - responseDimension);
-            updateDimensionRates();
+            if (std::bit_cast<std::uint64_t>(previousResponse) != std::bit_cast<std::uint64_t>(responseDimension))
+                updateDimensionRates();
         }
         sourceBlend += smoothing * ((source == Source::rich ? 1.0 : 0.0) - sourceBlend);
         if (indexOverride) currentIndex += smoothing * (targetIndex - currentIndex);
         else currentIndex = sourceIndex(Source::simple) + sourceBlend * (sourceIndex(Source::rich) - sourceIndex(Source::simple));
         if (envelopeOverride)
             for (size_t i = 0; i < envelopeValues.size(); ++i) envelopeValues[i] += smoothing * (envelopeTarget[i] - envelopeValues[i]);
+        const auto previousBend = smoothedBend;
         smoothedBend += smoothing * (targetBend - smoothedBend);
-        pitchMultiplier = std::exp2(smoothedBend / 12.0);
+        if (std::bit_cast<std::uint64_t>(previousBend) != std::bit_cast<std::uint64_t>(smoothedBend))
+            pitchMultiplier = std::exp2(smoothedBend / 12.0);
         for (size_t i = 0; i < partialRatios.size(); ++i)
         {
             partialRatios[i] = static_cast<double>(2 * i + 1) + smoothedAmount * partialSpreads[i];
@@ -598,11 +614,14 @@ void Engine::render(float* left, float* right, int samples) noexcept
             }
             else partialAmplitudes[i] = sourceAmplitudes[0][i] * (1.0 - sourceBlend) + sourceAmplitudes[1][i] * sourceBlend;
         }
-        for (size_t i = 0; i < bodyDamping.size(); ++i)
-        {
-            bodyDamping[i] = std::exp(-(7.0 + static_cast<double>(i) * 3.0 + smoothedAmount * 4.0) / internalRate);
-            interactionDamping[i] = std::exp(-(1.8 + static_cast<double>(i) * 2.0 + smoothedAmount * 1.5) / internalRate);
-        }
+        // Legacy body models only consume damping while their crossfade is active.
+        // Include the selected treatment so its first fade-in sample is initialized.
+        if (modeWeights[1] > 0.00000001 || treatment == Treatment::body)
+            for (size_t i = 0; i < bodyDamping.size(); ++i)
+                bodyDamping[i] = std::exp(-(7.0 + static_cast<double>(i) * 3.0 + smoothedAmount * 4.0) / internalRate);
+        if (modeWeights[3] > 0.00000001 || treatment == Treatment::interaction)
+            for (size_t i = 0; i < interactionDamping.size(); ++i)
+                interactionDamping[i] = std::exp(-(1.8 + static_cast<double>(i) * 2.0 + smoothedAmount * 1.5) / internalRate);
         for (auto& voice : voices)
             if (voice.active && voice.articulation == Articulation::lead)
             {

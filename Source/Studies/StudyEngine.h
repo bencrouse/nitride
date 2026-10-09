@@ -73,6 +73,8 @@ private:
         double phase = 0.0, bodySignal = 0.0;
         double interactionSignal = 0.0, delaySignal = 0.0;
         double noteDelayPhase = 0.0;
+        std::uint64_t bandPitchBits = 0;
+        std::array<double, 12> referenceBands {};
         std::array<double, 12> partialPhases {};
         std::array<Mode, 4> modes {};
         std::array<Mode, 4> interactionModes {};
