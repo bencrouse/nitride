@@ -2,7 +2,8 @@
 
 Nitride follows Carbide's native JUCE architecture. The approved view and audible
 engine are connected to the AU, with host automation and persistent returnability.
-`MILESTONE_02.md` describes the current boundary; `MILESTONE_01.md` and the sections
+`PITCH_MOTION.md` describes the current pitch-motion extension and measurements;
+`MILESTONE_02.md`, `MILESTONE_01.md` and the sections
 below retain the initial integration and earlier study history.
 
 `Source/Studies` now provides a separate native sound-comparison app and a
@@ -43,19 +44,30 @@ and view, including the milestone-2 preset workflow.
 
 ## Parameters
 
-The current instrument publishes 16 float sound parameters and a mono boolean,
-defined in `HostParameters.h`. Editor writes update the processor-owned session and
+The current instrument publishes the original 16 float parameters and mono boolean
+followed by 11 typed pitch-motion controls. `Parameters.h` owns the metadata and
+explicit condition/host mapping, preserving mono at host index 16. Editor writes update the processor-owned session and
 notify the host with balanced gestures; host listeners update atomic conditions
 without entering the document lock or preset store. The view polls model revisions.
 The audition-chord flag is session metadata. The obsolete silent-shell
 operator/Rupture parameter layout is no longer published.
 
 Compare reads a separate reference bank without replacing edited parameters or host
-automation. Version-2 XML/JSON state preserves edited conditions, selected-patch
+automation. Version-3 XML/JSON state preserves edited conditions, selected-patch
 metadata, reference, undo/redo and portable kept sounds. Control-history snapshots
 identify their edited parameters so Undo preserves unrelated automation. Version-1
 numeric XML migrates; mid-note DSP state is not serialized. `MILESTONE_02.md`
-describes the format and preset library.
+describes the original format and preset library; `PITCH_MOTION.md` describes the
+version-3/v2-preset migration. Host listeners now publish independent scalar atomics
+without a condition-writer spinlock; model snapshots are per-control observations,
+not globally transactional parameter-bank captures.
+
+Glide/Autobend controllers in `Source/DSP/PitchMotion.h` advance on the host sample
+clock. The shared engine integrates independent carrier/modulator phases at 4×;
+its constant-ratio and moving-ratio synthesis paths are separately compiled.
+The renderer owns last-note-priority mono selection, key ownership/press counts and
+the latest-voice policy for the shared Tone filter. Native pitch controls are normal
+compiled components; the surrounding approved view retains its study-based include.
 
 ## Drawing and interaction
 

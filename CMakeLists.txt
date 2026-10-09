@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(nitride VERSION 0.2.0 LANGUAGES C CXX)
+project(nitride VERSION 0.3.0 LANGUAGES C CXX)
 
 if(NOT APPLE)
     message(FATAL_ERROR "nitride currently targets macOS only.")
@@ -41,6 +41,7 @@ target_sources(nitride PRIVATE
     Source/Instrument/InstrumentView.cpp
     Source/Instrument/InstrumentSession.cpp
     Source/Instrument/PresetStore.cpp
+    Source/Instrument/PitchMotionPanel.cpp
 )
 target_include_directories(nitride PRIVATE Source)
 target_compile_definitions(nitride PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
@@ -96,6 +97,7 @@ target_sources(nitride_review PRIVATE
     Source/Instrument/InstrumentView.cpp
     Source/Instrument/InstrumentSession.cpp
     Source/Instrument/PresetStore.cpp
+    Source/Instrument/PitchMotionPanel.cpp
 )
 target_compile_definitions(nitride_review PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 target_link_libraries(nitride_review PRIVATE nitride_study_engine juce::juce_audio_utils
@@ -123,6 +125,14 @@ if(NITRIDE_BUILD_TESTS)
     target_link_libraries(nitride_automation_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_automation_tests COMMAND nitride_automation_tests)
+    juce_add_console_app(nitride_pitch_tests PRODUCT_NAME "nitride_pitch_tests")
+    target_sources(nitride_pitch_tests PRIVATE Source/Tests/PitchMotionTests.cpp)
+    target_include_directories(nitride_pitch_tests PRIVATE Source)
+    target_compile_definitions(nitride_pitch_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
+    add_dependencies(nitride_pitch_tests nitride)
+    target_link_libraries(nitride_pitch_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
+        juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+    add_test(NAME nitride_pitch_tests COMMAND nitride_pitch_tests)
     juce_add_console_app(nitride_perf PRODUCT_NAME "nitride_perf")
     target_sources(nitride_perf PRIVATE Source/Tests/PerformanceHarness.cpp)
     target_include_directories(nitride_perf PRIVATE Source)

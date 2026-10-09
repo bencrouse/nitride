@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include "../DSP/PitchMotion.h"
 
 namespace SoundStudies
 {
@@ -32,12 +33,16 @@ public:
     void setNetworkDimensions(float coupling, float stress, double responseSeconds) noexcept;
     void setFmIndex(double index) noexcept;
     void setAmplitudeEnvelope(double attack, double decay, float sustain, double release) noexcept;
+    void setPitchMotion(const PitchSettings&) noexcept;
+    void beginNoteGroup() noexcept;
     void start(Pattern pattern) noexcept;
     void stop() noexcept;
-    void noteOn(int note, float velocity, Articulation articulation = Articulation::pad) noexcept;
+    void noteOn(int note, float velocity, Articulation articulation = Articulation::pad, bool overlapping = false, bool returning = false) noexcept;
     void noteOff(int note) noexcept;
     void allNotesOff() noexcept;
-    void render(float* left, float* right, int samples) noexcept;
+    void render(float* left, float* right, int samples, double* tonePitch = nullptr) noexcept;
+    struct PitchSnapshot { int note=-1;double carrierHz=0,modulatorHz=0,glideHz=0,autobendSemitones=0; };
+    PitchSnapshot getPitchSnapshot(int note=-1) const noexcept;
     float getAmount() const noexcept { return static_cast<float>(smoothedAmount); }
     NetworkSnapshot getNetworkSnapshot() const noexcept;
     std::uint64_t getNumericalFaults() const noexcept { return numericalFaults; }
@@ -67,7 +72,17 @@ private:
         Articulation articulation = Articulation::pad;
         int note = 60;
         double frequency = 261.625565;
+        GlideMotion glide;
+        AutobendMotion autobend;
+        PitchRouting glideRouting,autobendRouting;
+        double carrierHz=261.625565,modulatorHz=261.625565,modulatorPhase=0,tonePitch=0,autoOffset=0,autoDepth=0;
+        double carrierBand=1;
+        bool splitPhase=false;
+        std::array<double,13> positiveBands{},negativeBands{};
+        double previousCarrierHz=0,previousModulatorHz=0;
         double velocity = 0.7, envelope = 0.0;
+        double targetVelocity=.7,velocityStep=0,lastSample=0,stolenSample=0;
+        int velocitySamples=0,stealSamples=0,stealLength=1;
         double age = 0.0, releaseAge = 0.0, releaseLevel = 0.0;
         double attackStart = 0.0;
         double phase = 0.0, bodySignal = 0.0;
@@ -86,20 +101,27 @@ private:
     };
 
     void schedule() noexcept;
-    double voiceSample(Voice&) noexcept;
+    // Compile constant-ratio and moving-ratio paths separately: inactive motion
+    // must not add branches inside every partial and network oscillator evaluation.
+    template<bool Split> double voiceSample(Voice&) noexcept;
     double envelope(Voice&) noexcept;
     double bodySample(Voice&, double env, double fundamental) noexcept;
     double interactionSample(Voice&, double env, double fundamental) noexcept;
     double phaseDelaySample(Voice&, double env, double fundamental) noexcept;
     double noteCoupledDelaySample(Voice&, double env, double fundamental) noexcept;
-    double networkSample(Voice&, NetworkState&, double env, double fundamental, double amount, double stress,
+    template<bool Split> double networkSample(Voice&, NetworkState&, double env, double fundamental, double amount, double stress,
                          double learning, double phaseSpeed = 1.0) noexcept;
     void updateDimensionRates() noexcept;
+    void updateVoicePitch(Voice&) noexcept;
+    double splitReference(const Voice&) const noexcept;
 
     std::array<Voice, 12> voices {};
     std::array<double, 12> partialAmplitudes {};
     std::array<std::array<double, 12>, 2> sourceAmplitudes {};
     std::array<std::array<double, 12>, 129> indexAmplitudes {};
+    std::array<std::array<double,13>,129> indexBessel{};
+    std::array<std::array<double,13>,2> sourceBessel{};
+    std::array<double,13> rawBessel{};
     std::array<double, 12> partialSpreads {}, partialRatios {};
     std::array<double, 4> bodyDamping {};
     std::array<double, 4> interactionDamping {};
@@ -113,6 +135,9 @@ private:
     double smoothing = 0.0, decimationCoefficient = 0.0;
     double sourceBlend = 0.0, currentIndex = 1.65;
     bool indexOverride = false, envelopeOverride = false;
+    bool pitchOverride=false;
+    PitchSettings pitchSettings;
+    double groupOrigin=0,lastNoteHz=0,toneAnchorHz=0;
     double targetIndex = 2.7;
     std::array<double, 4> envelopeTarget { 0.006, 0.16, 0.62, 0.16 };
     std::array<double, 4> envelopeValues { 0.006, 0.16, 0.62, 0.16 };

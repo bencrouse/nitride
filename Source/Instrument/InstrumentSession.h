@@ -2,6 +2,7 @@
 
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "../Studies/StudyEngine.h"
+#include "Parameters.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -11,15 +12,10 @@
 
 namespace Nitride
 {
-enum Parameter { coupling, stress, response, fm, pitch, attack, decay, sustain, release,
-                 cutoff, resonance, motionRate, motionDepth, spaceMix, spaceSize, output, parameterCount };
-inline constexpr int monoHostIndex = parameterCount;
-inline constexpr int hostParameterCount = parameterCount + 1;
-
 struct Patch
 {
     juce::String name;
-    std::array<double, parameterCount> values {};
+    std::array<double, parameterCount> values = defaultParameterValues();
     bool mono = false, chord = false;
 };
 struct StoredPreset { juce::String id; Patch patch; };
@@ -27,12 +23,19 @@ class PresetStore;
 
 inline const std::array<Patch, 4>& factoryPatches()
 {
-    static const std::array<Patch, 4> patches {{
-        { "01 / Soft pad", {.55,.08,.35,1.65,0,.65,.7,.72,1.4,5500,.18,.25,.08,.25,.7,-6}, false, true },
-        { "02 / Glass keys", {.60,.20,.035,2.7,0,.004,.65,.2,.45,12000,.1,.5,0,.12,.4,-6}, false, false },
-        { "03 / Contact lead", {.75,.4,.025,2.7,0,.006,.16,.62,.16,15000,.2,.75,0,.08,.3,-6}, true, false },
-        { "04 / Hard hit", {.90,.70,.012,2.7,0,.003,.16,0,.22,15000,.15,.5,0,.05,.3,-6}, false, false }
-    }};
+    static const auto patches=[] {
+        const auto make=[](const char* name,std::array<double,legacyParameterCount> old,bool mono,bool chord) {
+            Patch p;p.name=name;std::copy(old.begin(),old.end(),p.values.begin());p.mono=mono;p.chord=chord;
+            if(mono){p.values[glideOn]=1;p.values[glideTime]=.025;p.values[glideCurve]=2;}
+            return p;
+        };
+        return std::array {
+            make("01 / Soft pad",{.55,.08,.35,1.65,0,.65,.7,.72,1.4,5500,.18,.25,.08,.25,.7,-6},false,true),
+            make("02 / Glass keys",{.60,.20,.035,2.7,0,.004,.65,.2,.45,12000,.1,.5,0,.12,.4,-6},false,false),
+            make("03 / Contact lead",{.75,.4,.025,2.7,0,.006,.16,.62,.16,15000,.2,.75,0,.08,.3,-6},true,false),
+            make("04 / Hard hit",{.90,.70,.012,2.7,0,.003,.16,0,.22,15000,.15,.5,0,.05,.3,-6},false,false)
+        };
+    }();
     return patches;
 }
 
@@ -133,8 +136,6 @@ private:
     void closeCompare() noexcept;
 
     mutable juce::CriticalSection documentLock;
-    mutable std::atomic_flag conditionWriter = ATOMIC_FLAG_INIT;
-    std::atomic<std::uint64_t> conditionVersion {0};
     mutable std::atomic<int> pendingProgram {-1};
     mutable juce::String currentName, selectedId;
     mutable Patch reference;

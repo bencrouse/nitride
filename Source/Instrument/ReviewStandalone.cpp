@@ -36,7 +36,12 @@ public:
     void beginPreview() { view.beginPreview(); }
     bool checkInteractions() { return view.checkInteractions(); }
     void beginAudioCheck() { view.beginPreview(); }
-    void changeAudioCheck() { session.set(Nitride::coupling,.95); session.set(Nitride::stress,.8); session.set(Nitride::response,.035); }
+    void changeAudioCheck()
+    {
+        session.set(Nitride::coupling,.95);session.set(Nitride::stress,.8);session.set(Nitride::response,.035);
+        session.setMono(true);session.set(Nitride::legato,1);session.set(Nitride::glideOn,1);session.set(Nitride::glideTime,.2);session.set(Nitride::glideCurve,0);
+        session.set(Nitride::autobendOn,1);session.set(Nitride::autobendDepth,12);session.set(Nitride::autobendTarget,3);session.keyboard.noteOn(16,72,.74f);
+    }
     bool finishAudioCheck()
     {
         const auto passed=session.live.peak.load()>.0001f&&session.live.faults.load()==0

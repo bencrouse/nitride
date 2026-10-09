@@ -221,7 +221,11 @@ class InstrumentReview final : public
     private juce::Timer
 {
 public:
-    enum Parameter { coupling, stress, response, fm, pitch, attack, decay, sustain, release, cutoff, resonance, motionRate, motionDepth, spaceMix, spaceSize, output, count };
+    enum Parameter { coupling, stress, response, fm, pitch, attack, decay, sustain, release, cutoff, resonance, motionRate, motionDepth, spaceMix, spaceSize, output,
+#if NITRIDE_HOST_VIEW
+        glideOn,glideTime,glideTarget,glideLegato,glideCurve,autobendOn,autobendTime,autobendDepth,autobendTarget,autobendPhrase,legato,
+#endif
+        count };
     struct Patch
     {
         juce::String name;
@@ -231,7 +235,7 @@ public:
 
 #if NITRIDE_HOST_VIEW
     InstrumentReview(Nitride::InstrumentSession& state, std::function<void()> audioSettings = {})
-        : session(state), live(state.live), keyboardState(state.keyboard), showAudioSettings(std::move(audioSettings)),
+        : session(state), live(state.live), keyboardState(state.keyboard), showAudioSettings(std::move(audioSettings)),glidePanel(state,false),autobendPanel(state,true),
 #else
     InstrumentReview() :
 #endif
@@ -341,19 +345,23 @@ public:
         poly.setButtonText("POLY"); monoButton.setButtonText("MONO");
         poly.onClick = [this] {
 #if NITRIDE_HOST_VIEW
-            session.setMono(false);syncFromSession();
+            setPlayMode(0);
 #else
             remember(); current.mono=false;publish();syncModes();
 #endif
         };
         monoButton.onClick = [this] {
 #if NITRIDE_HOST_VIEW
-            session.setMono(true);syncFromSession();
+            setPlayMode(1);
 #else
             remember();current.mono=true;publish();syncModes();
 #endif
         };
         addAndMakeVisible(poly); addAndMakeVisible(monoButton);
+#if NITRIDE_HOST_VIEW
+        legatoButton.setButtonText("LEGATO");legatoButton.setName("Legato play mode");legatoButton.onClick=[this]{setPlayMode(2);};
+        addAndMakeVisible(legatoButton);addAndMakeVisible(glidePanel);addAndMakeVisible(autobendPanel);
+#endif
 #if NITRIDE_HOST_VIEW
         envelope.onBegin=[this]{beginControl({attack,decay,sustain,release});};
         envelope.onEnd=[this]{endControl({attack,decay,sustain,release});};
@@ -417,9 +425,13 @@ public:
         text(g, "COUPLING " + juce::String(current.values[coupling] * 100, 0) + "%   /   STRESS " + juce::String(current.values[stress] * 100, 0) + "%",
              {310,428,584,17}, muted(), 8);
         sourceWave(g);
+#if NITRIDE_HOST_VIEW
+        text(g,"SOURCE / SINE FM",{36,190,225,14},muted(),8);
+#else
         text(g, "SOURCE / SINE FM", {36,269,225,18}, muted(), 8);
         text(g, "PLAY MODE", {36,406,225,18}, muted(), 8);
         text(g, "DRAG VALUES TO SHAPE SOURCE", {36,487,225,14}, muted(), 7);
+#endif
         section(g, "TONE", {24,550,344,18}); text(g, "LP / 12 dB", {205,550,163,18}, muted(), 8, juce::Justification::right);
         section(g, "MOTION", {416,550,360,18}); text(g, "SINE > COUPLING", {580,550,196,18}, muted(), 8, juce::Justification::right);
         section(g, "SPACE", {824,550,352,18}); text(g, "DIFFUSION", {1000,550,176,18}, muted(), 8, juce::Justification::right);
@@ -443,8 +455,14 @@ public:
         patchBox.setBounds(300,33,330,34); undo.setBounds(668,33,70,34); compare.setBounds(746,33,94,34);
         keep.setBounds(848,33,70,34); hold.setBounds(968,33,80,34); settings.setBounds(1102,33,74,34);
         field.setBounds(310,145,584,274); ribbon.setBounds(310,448,584,82);
+#if NITRIDE_HOST_VIEW
+        fmValue.setBounds(36,208,226,28);pitchValue.setBounds(36,242,226,28);
+        poly.setBounds(36,280,70,24);monoButton.setBounds(112,280,70,24);legatoButton.setBounds(188,280,74,24);
+        glidePanel.setBounds(36,317,226,85);autobendPanel.setBounds(36,418,226,85);
+#else
         fmValue.setBounds(36,302,226,34); pitchValue.setBounds(36,352,226,34);
         poly.setBounds(36,435,109,30); monoButton.setBounds(153,435,109,30);
+#endif
         envelope.setBounds(942,145,234,147);
         attackValue.setBounds(942,309,234,34); decayValue.setBounds(942,351,234,34);
         sustainValue.setBounds(942,393,234,34); releaseValue.setBounds(942,435,234,34);
@@ -574,8 +592,13 @@ private:
     static juce::String formatCutoff(double hz){return hz>=1000?juce::String(hz/1000,2)+" kHz":juce::String(hz,0)+" Hz";}
     void sourceWave(juce::Graphics& g)
     {
-        const juce::Rectangle<float> p{36,151,226,103};g.setColour(glass());g.fillRoundedRectangle(p,4);juce::Path wave;
-        for(int i=0;i<=140;++i){const auto t=static_cast<float>(i)/140;const auto phase=t*pi*4;const auto sample=std::sin(phase+static_cast<float>(current.values[fm])*std::sin(phase*2));const auto x=p.getX()+12+t*(p.getWidth()-24),y=p.getCentreY()-sample*29;if(i==0)wave.startNewSubPath(x,y);else wave.lineTo(x,y);}
+#if NITRIDE_HOST_VIEW
+        const juce::Rectangle<float> p{36,145,226,40};const auto amplitude=12.0f;
+#else
+        const juce::Rectangle<float> p{36,151,226,103};const auto amplitude=29.0f;
+#endif
+        g.setColour(glass());g.fillRoundedRectangle(p,4);juce::Path wave;
+        for(int i=0;i<=140;++i){const auto t=static_cast<float>(i)/140;const auto phase=t*pi*4;const auto sample=std::sin(phase+static_cast<float>(current.values[fm])*std::sin(phase*2));const auto x=p.getX()+12+t*(p.getWidth()-24),y=p.getCentreY()-sample*amplitude;if(i==0)wave.startNewSubPath(x,y);else wave.lineTo(x,y);}
         g.setColour(signal().withAlpha(.7f));g.strokePath(wave,juce::PathStrokeType(1.1f));
     }
     void publish(){
@@ -644,6 +667,7 @@ private:
         }
         if(lastLibraryRevision!=session.libraryRevision.load())rebuildPresets();
         const auto p=session.readVisible();current={p.name,p.values,p.mono,p.chord};
+        glidePanel.sync(p,restoreEpoch);autobendPanel.sync(p,restoreEpoch);
         applying=true;field.setPosition(static_cast<float>(p.values[coupling]),static_cast<float>(p.values[stress]));ribbon.setResponse(p.values[response]);
         fmValue.setValue(p.values[fm]);pitchValue.setValue(p.values[pitch]);outputValue.setValue(p.values[output]);syncEnvelope();syncModes();
         filter.setPosition(static_cast<float>(std::log(p.values[cutoff]/40)/std::log(450.0)),static_cast<float>(p.values[resonance]/.85));
@@ -663,6 +687,12 @@ private:
         for(const auto index:parameters)if(localEdits[static_cast<size_t>(index)]>0)return;
         session.beginEdit(parameters);for(const auto index:parameters)localEdits[static_cast<size_t>(index)]=1;
         syncFromSession();
+    }
+    void setPlayMode(int mode)
+    {
+        session.beginEdit({Nitride::monoHostIndex,Nitride::hostIndex(Nitride::legato)});
+        session.setMono(mode!=0);session.set(Nitride::legato,mode==2?1:0);
+        session.endEdit({Nitride::monoHostIndex,Nitride::hostIndex(Nitride::legato)});syncFromSession();
     }
     void endControl(std::initializer_list<int> parameters)
     {
@@ -705,7 +735,13 @@ private:
     }
 #endif
     void syncEnvelope(){envelope.setEnvelope({current.values[attack],current.values[decay],current.values[sustain],current.values[release]});attackValue.setValue(current.values[attack]);decayValue.setValue(current.values[decay]);sustainValue.setValue(current.values[sustain]);releaseValue.setValue(current.values[release]);}
-    void syncModes(){poly.setToggleState(!current.mono,juce::dontSendNotification);monoButton.setToggleState(current.mono,juce::dontSendNotification);}
+    void syncModes(){poly.setToggleState(!current.mono,juce::dontSendNotification);
+#if NITRIDE_HOST_VIEW
+        monoButton.setToggleState(current.mono&&current.values[legato]<.5,juce::dontSendNotification);legatoButton.setToggleState(current.mono&&current.values[legato]>=.5,juce::dontSendNotification);
+#else
+        monoButton.setToggleState(current.mono,juce::dontSendNotification);
+#endif
+    }
 #if !NITRIDE_HOST_VIEW
     void setEngine(){engine.setFmIndex(audio[fm].load());engine.setAmplitudeEnvelope(audio[attack].load(),audio[decay].load(),static_cast<float>(audio[sustain].load()),audio[release].load());engine.setNetworkDimensions(static_cast<float>(audio[coupling].load()),static_cast<float>(audio[stress].load()),audio[response].load());engine.setPitchBend(static_cast<float>(audio[pitch].load()+wheel));}
     void renderRange(float* left,float* right,int samples)
@@ -765,6 +801,8 @@ private:
     LiveState& live;
     juce::MidiKeyboardState& keyboardState;
     std::function<void()> showAudioSettings;
+    Nitride::PitchMotionPanel glidePanel,autobendPanel;
+    juce::TextButton legatoButton;
     std::uint64_t lastRevision=0;
     std::uint64_t lastLibraryRevision=0,lastRestoreEpoch=0;
     std::array<int,Nitride::hostParameterCount> localEdits{};

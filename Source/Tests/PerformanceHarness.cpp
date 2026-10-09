@@ -12,11 +12,23 @@ namespace
 {
 using Clock = std::chrono::steady_clock;
 constexpr int workloadVersion = 1;
-struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; };
+struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0; };
 constexpr std::array workloads {
     Workload{"idle",0,0}, Workload{"lead",2,1}, Workload{"pad4",0,4}, Workload{"pad12",0,12},
     Workload{"stress12",0,12,true}, Workload{"automation12",0,12,true,true},
     Workload{"retrigger12",0,12,true,false,true}, Workload{"release12",0,12,false,false,false,true}
+};
+// Paired, identical MIDI performances; negative motion values disable the new
+// effects. Keep the original version-1 matrix unchanged for before/after hashes.
+constexpr std::array pitchWorkloads {
+    Workload{"glide1-off",2,1,false,false,false,false,-1},Workload{"glide1-on",2,1,false,false,false,false,1},
+    Workload{"autobend1-off",2,1,false,false,false,false,-2},Workload{"autobend1-on",2,1,false,false,false,false,2},
+    Workload{"combined1-off",2,1,false,false,false,false,-3},Workload{"combined1-on",2,1,false,false,false,false,3},
+    Workload{"combined4-off",0,4,false,false,false,false,-3},Workload{"combined4-on",0,4,false,false,false,false,3},
+    Workload{"glide12-off",0,12,true,false,false,false,-1},Workload{"glide12-on",0,12,true,false,false,false,1},
+    Workload{"autobend12-off",0,12,true,false,false,false,-2},Workload{"autobend12-on",0,12,true,false,false,false,2},
+    Workload{"combined12-off",0,12,true,false,false,false,-3},Workload{"combined12-on",0,12,true,false,false,false,3},
+    Workload{"tone12-off",0,12,false,false,false,false,-4},Workload{"tone12-on",0,12,false,false,false,false,4}
 };
 struct Options
 {
@@ -24,6 +36,7 @@ struct Options
     double seconds = 2, warmup = .5;
     std::vector<int> rates {48000,96000}, blocks {64,256};
     juce::String only, label, output, compare;
+    bool pitchMotion=false;
 };
 struct Result
 {
@@ -53,6 +66,7 @@ Options parse(int argc, char** argv)
     {
         const juce::String argument(argv[i]);
         if(argument=="--quick") { options.passes=1;options.seconds=.25;options.rates={48000};options.blocks={256};continue; }
+        if(argument=="--pitch-motion"){options.pitchMotion=true;continue;}
         require(i+1<argc,"Missing value for "+argument);const juce::String value(argv[++i]);
         if(argument=="--passes")options.passes=integer(value);
         else if(argument=="--seconds")options.seconds=number(value);
@@ -109,6 +123,13 @@ void runPass(Result& result, const Options& options)
         patch.values[Nitride::motionRate]=8;patch.values[Nitride::motionDepth]=1;
         patch.values[Nitride::spaceMix]=.65;patch.values[Nitride::spaceSize]=1;
     }
+    if(result.workload.pitchMotion!=0)
+    {
+        const auto motion=std::abs(result.workload.pitchMotion);const auto enabled=result.workload.pitchMotion>0;
+        patch.values[Nitride::glideOn]=enabled&&motion!=2?1:0;patch.values[Nitride::glideTime]=.25;patch.values[Nitride::glideCurve]=0;
+        patch.values[Nitride::autobendOn]=enabled&&motion!=1?1:0;patch.values[Nitride::autobendTime]=.25;patch.values[Nitride::autobendDepth]=12;
+        patch.values[Nitride::autobendTarget]=motion==4?4:3;patch.values[Nitride::glideTarget]=motion==4?4:2;
+    }
     session.apply(patch);processor.prepareToPlay(result.rate,result.block);
     juce::AudioBuffer<float> audio(2,result.block);juce::MidiBuffer midi;midi.ensureSize(4096);
     constexpr std::array pitches {48,55,59,62,64,67,71,74,76,79,83,86};
@@ -122,6 +143,7 @@ void runPass(Result& result, const Options& options)
     auto* stress=processor.getState().getParameter("stress");
     auto* response=processor.getState().getParameter("response");
     double passMicros=0;
+    int previousTranspose=0;
     for(int block=0;block<blocks;++block)
     {
         // Input preparation and output auditing are excluded; real processor MIDI
@@ -133,6 +155,13 @@ void runPass(Result& result, const Options& options)
             const auto note=pitches[static_cast<size_t>(voice)];
             midi.addEvent(juce::MidiMessage::noteOff(1,note),result.block/4);
             midi.addEvent(juce::MidiMessage::noteOn(1,note,static_cast<juce::uint8>(96)),result.block/2);
+        }
+        if(result.workload.pitchMotion!=0&&block%interval==0)
+        {
+            constexpr std::array transpositions{7,-5,3,0};const auto transpose=transpositions[static_cast<size_t>((block/interval)%4)];
+            for(int voice=0;voice<result.workload.voices;++voice)midi.addEvent(juce::MidiMessage::noteOff(1,pitches[static_cast<size_t>(voice)]+previousTranspose),result.block/4);
+            for(int voice=0;voice<result.workload.voices;++voice)midi.addEvent(juce::MidiMessage::noteOn(1,pitches[static_cast<size_t>(voice)]+transpose,static_cast<juce::uint8>(96)),result.block/2);
+            previousTranspose=transpose;
         }
         const auto phase=juce::MathConstants<double>::twoPi*static_cast<double>(block*result.block)/result.rate;
         const auto position=static_cast<float>(.5+.45*std::sin(phase));
@@ -167,6 +196,7 @@ juce::var report(const std::vector<Result>& results,const Options& options)
     {
         auto data=object();const auto budget=1.0e6*result.block/result.rate;
         property(data,"key",key(result));property(data,"sampleRate",result.rate);property(data,"blockSize",result.block);property(data,"workload",result.workload.name);
+        property(data,"heldNotes",result.workload.voices);
         property(data,"blocks",static_cast<juce::int64>(result.times.size()));property(data,"audioSeconds",static_cast<double>(result.times.size())*result.block/result.rate);
         property(data,"renderMicros",result.totalMicros);property(data,"budgetMicros",budget);
         property(data,"meanLoadPercent",result.totalMicros/(static_cast<double>(result.times.size())*budget)*100);
@@ -189,7 +219,7 @@ void compare(juce::var& current,const Options& options)
     require(juce::JSON::toString(baseline["settings"])==juce::JSON::toString(current["settings"]),"Baseline passes/duration/warmup differ");
     require(juce::JSON::toString(baseline["machine"])==juce::JSON::toString(current["machine"]),"Baseline machine/compiler/build configuration differ");
     const auto* previous=baseline["cases"].getArray();auto* cases=current.getDynamicObject()->getProperty("cases").getArray();
-    require(previous!=nullptr && cases!=nullptr && previous->size()==cases->size(),"Baseline workload matrix differs");
+    require(previous!=nullptr && cases!=nullptr && previous->size()>=cases->size(),"Baseline does not cover this workload matrix");
     bool identical=true;
     std::cout<<"\nComparison: median pass load (lower is better); positive change means faster.\n";
     for(auto& data:*cases)
@@ -214,14 +244,18 @@ int main(int argc,char** argv)
         std::cout<<"Nitride offline processor benchmark\n"
             "--output report.json --label name --compare baseline.json\n"
             "--passes 3 --seconds 2 --warmup 0.5 --rate 48000 --block 64 --case stress12\n"
-            "--quick runs one short pass at 48 kHz / 256 frames.\n";return 0;
+            "--quick runs one short pass at 48 kHz / 256 frames.\n"
+            "--pitch-motion selects paired Glide/Autobend on/off performances.\n";return 0;
     }
     juce::ScopedJuceInitialiser_GUI initialiser;
     try
     {
         const auto options=parse(argc,argv);std::vector<Result> results;
-        for(const auto rate:options.rates)for(const auto block:options.blocks)for(const auto& workload:workloads)
-            if(options.only.isEmpty() || options.only==workload.name)results.push_back({workload,rate,block});
+        const auto add=[&](const auto& matrix) {
+            for(const auto rate:options.rates)for(const auto block:options.blocks)for(const auto& workload:matrix)
+                if(options.only.isEmpty()||options.only==workload.name)results.push_back({workload,rate,block});
+        };
+        if(options.pitchMotion)add(pitchWorkloads);else add(workloads);
         require(!results.empty(),"Unknown workload: "+options.only);
         for(auto& result:results)result.times.reserve(static_cast<size_t>(std::ceil(options.seconds*result.rate/result.block))*static_cast<size_t>(options.passes));
         std::cout<<"Nitride "<<NITRIDE_BENCH_CONFIG<<" benchmark: "<<juce::SystemStats::getCpuModel()<<", "<<options.passes<<" passes, "<<options.seconds<<" audio seconds per case/pass\n";

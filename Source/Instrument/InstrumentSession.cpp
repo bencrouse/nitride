@@ -6,16 +6,6 @@ namespace Nitride
 {
 namespace
 {
-struct ConditionWrite
-{
-    ConditionWrite(std::atomic_flag& flag, std::atomic<std::uint64_t>& version) : lock(flag), epoch(version)
-    {
-        while(lock.test_and_set(std::memory_order_acquire))std::atomic_signal_fence(std::memory_order_seq_cst);
-        epoch.fetch_add(1,std::memory_order_acq_rel);
-    }
-    ~ConditionWrite(){epoch.fetch_add(1,std::memory_order_release);lock.clear(std::memory_order_release);}
-    std::atomic_flag& lock; std::atomic<std::uint64_t>& epoch;
-};
 juce::String factoryId(int index){return "factory:"+juce::String(index);}
 }
 
@@ -29,27 +19,19 @@ InstrumentSession::~InstrumentSession()=default;
 
 double InstrumentSession::clamp(Parameter p,double value) noexcept
 {
-    constexpr std::array<double,parameterCount> low{0,0,.01,0,-12,.001,.01,0,.02,40,0,.05,0,0,0,-24};
-    constexpr std::array<double,parameterCount> high{1,1,1.6,4,12,4,4,1,8,18000,.85,8,1,.65,1,0};
-    const auto i=static_cast<size_t>(p);
-    return std::isfinite(value)?juce::jlimit(low[i],high[i],value):factoryPatches()[0].values[i];
+    return clampParameter(p,value);
 }
 
 InstrumentSession::Conditions InstrumentSession::readConditions() const
 {
     Conditions result{};
-    for(;;)
-    {
-        const auto before=conditionVersion.load(std::memory_order_acquire);
-        if((before&1u)!=0)continue;
-        for(size_t i=0;i<parameterCount;++i)result.values[i]=values[i].load(std::memory_order_relaxed);
-        result.mono=mono.load();result.chord=chord.load();
-        if(before==conditionVersion.load(std::memory_order_acquire))return result;
-    }
+    // Independently automated controls are published atomically. A snapshot reads
+    // the latest value of each; neither host listeners nor readers wait for a writer.
+    for(size_t i=0;i<parameterCount;++i)result.values[i]=values[i].load(std::memory_order_relaxed);
+    result.mono=mono.load();result.chord=chord.load();return result;
 }
 void InstrumentSession::storeConditions(const Patch& patch) noexcept
 {
-    const ConditionWrite write(conditionWriter,conditionVersion);
     for(size_t i=0;i<parameterCount;++i)values[i].store(clamp(static_cast<Parameter>(i),patch.values[i]),std::memory_order_relaxed);
     mono.store(patch.mono);chord.store(patch.chord);
 }
@@ -61,26 +43,25 @@ void InstrumentSession::storeFromHost(int index,double value) noexcept
 {
     closeCompare();
     if(index<0||index>=hostParameterCount||!std::isfinite(value))return;
-    if(index<parameterCount)
+    if(index!=monoHostIndex)
     {
-        const auto p=static_cast<Parameter>(index);value=clamp(p,value);
-        const auto previous=values[static_cast<size_t>(index)].load();
+        const auto p=conditionIndex(index);value=clamp(p,value);
+        const auto previous=values[static_cast<size_t>(p)].load();
         // UI/factory conditions retain their precise double representation when a
         // float host notification merely echoes the same value. Real automation
         // changes replace it. This protects the approved nonlinear render references.
         const auto tolerance=4*std::numeric_limits<float>::epsilon()*std::max(1.0,std::abs(value));
         if(std::abs(previous-value)<=tolerance)return;
-        const ConditionWrite write(conditionWriter,conditionVersion);values[static_cast<size_t>(index)].store(value);
+        values[static_cast<size_t>(p)].store(value);
     }
-    else{const ConditionWrite write(conditionWriter,conditionVersion);mono.store(value>=.5);}
+    else mono.store(value>=.5);
     revision.fetch_add(1,std::memory_order_release);
 }
 void InstrumentSession::setInternal(int index,double value,bool notify)
 {
     closeCompare();
     {
-        const ConditionWrite write(conditionWriter,conditionVersion);
-        if(index<parameterCount){value=clamp(static_cast<Parameter>(index),value);values[static_cast<size_t>(index)].store(value);}
+        if(index!=monoHostIndex){const auto p=conditionIndex(index);value=clamp(p,value);values[static_cast<size_t>(p)].store(value);}
         else mono.store(value>=.5);
     }
     if(notify&&writeHostParameter)writeHostParameter(index,value);
@@ -88,7 +69,7 @@ void InstrumentSession::setInternal(int index,double value,bool notify)
 }
 void InstrumentSession::set(Parameter p,double value)
 {
-    const auto index=static_cast<int>(p);bool single=false;
+    const auto index=hostIndex(p);bool single=false;
     {const juce::ScopedLock lock(documentLock);single=gestures[static_cast<size_t>(index)]==0;}
     if(single)beginEdit({index});
     {const juce::ScopedLock lock(documentLock);if(editStart)editStart->parameters[static_cast<size_t>(index)]=true;}
@@ -162,7 +143,7 @@ bool InstrumentSession::editChanged() const
     if(!editStart)return false;
     const auto current=readConditions();
     for(size_t i=0;i<parameterCount;++i)
-        if(editStart->parameters[i]&&std::abs(editStart->patch.values[i]-current.values[i])>1.0e-12)return true;
+        if(editStart->parameters[static_cast<size_t>(hostIndex(static_cast<Parameter>(i)))]&&std::abs(editStart->patch.values[i]-current.values[i])>1.0e-12)return true;
     return editStart->parameters[monoHostIndex]&&editStart->patch.mono!=current.mono;
 }
 void InstrumentSession::finishEdit()
@@ -178,7 +159,7 @@ void InstrumentSession::writePatch(const Patch& patch,bool notify)
         {
             const auto own=gestures[static_cast<size_t>(i)]==0;
             if(own&&beginHostGesture)beginHostGesture(i);
-            writeHostParameter(i,i<parameterCount?patch.values[static_cast<size_t>(i)]:(patch.mono?1:0));
+            writeHostParameter(i,i!=monoHostIndex?patch.values[static_cast<size_t>(conditionIndex(i))]:(patch.mono?1:0));
             if(own&&endHostGesture)endHostGesture(i);
         }
     revision.fetch_add(1,std::memory_order_release);
@@ -195,8 +176,8 @@ void InstrumentSession::applyProgram(int index)
     program.store(index);
     // Host program selection may arrive on a render thread: no document/file lock.
     closeCompare();storeConditions(factoryPatches()[static_cast<size_t>(index)]);
-    if(writeHostParameter)for(int i=0;i<hostParameterCount;++i)writeHostParameter(i,i<parameterCount
-        ?factoryPatches()[static_cast<size_t>(index)].values[static_cast<size_t>(i)]:(factoryPatches()[static_cast<size_t>(index)].mono?1:0));
+    if(writeHostParameter)for(int i=0;i<hostParameterCount;++i)writeHostParameter(i,i!=monoHostIndex
+        ?factoryPatches()[static_cast<size_t>(index)].values[static_cast<size_t>(conditionIndex(i))]:(factoryPatches()[static_cast<size_t>(index)].mono?1:0));
     pendingProgram.store(index);restoreEpoch.fetch_add(1);
     revision.fetch_add(1,std::memory_order_release);
 }
@@ -212,7 +193,7 @@ void InstrumentSession::restoreSnapshot(const Snapshot& s)
     for(int i=0;i<hostParameterCount;++i)if(s.parameters[static_cast<size_t>(i)])
     {
         if(beginHostGesture)beginHostGesture(i);
-        setInternal(i,i<parameterCount?s.patch.values[static_cast<size_t>(i)]:(s.patch.mono?1:0),true);
+        setInternal(i,i!=monoHostIndex?s.patch.values[static_cast<size_t>(conditionIndex(i))]:(s.patch.mono?1:0),true);
         if(endHostGesture)endHostGesture(i);
     }
 }
@@ -313,7 +294,7 @@ std::optional<InstrumentSession::Snapshot> InstrumentSession::decodeSnapshot(con
 juce::var InstrumentSession::saveDocument()const
 {
     const juce::ScopedLock lock(documentLock);syncProgram();auto* object=new juce::DynamicObject();
-    object->setProperty("format","nitride-session");object->setProperty("version",2);object->setProperty("current",encodeSnapshot(snapshot()));
+    object->setProperty("format","nitride-session");object->setProperty("version",3);object->setProperty("current",encodeSnapshot(snapshot()));
     juce::Array<juce::var> undo,redo,kept;
     for(const auto& s:history)undo.add(encodeSnapshot(s));
     if(editChanged())
@@ -327,7 +308,8 @@ juce::var InstrumentSession::saveDocument()const
 }
 juce::Result InstrumentSession::restoreDocument(const juce::var& data)
 {
-    if(data["format"].toString()!="nitride-session"||static_cast<int>(data["version"])!=2)return juce::Result::fail("Unsupported session state.");
+    const auto version=static_cast<int>(data["version"]);
+    if(data["format"].toString()!="nitride-session"||(version!=2&&version!=3))return juce::Result::fail("Unsupported session state.");
     const auto current=decodeSnapshot(data["current"]);if(!current)return juce::Result::fail("Invalid sound conditions.");
     std::vector<Snapshot> newHistory,newFuture;std::vector<StoredPreset> newKept;
     for(const auto field:{"undo","redo"})

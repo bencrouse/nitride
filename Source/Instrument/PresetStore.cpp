@@ -12,7 +12,7 @@ juce::File PresetStore::defaultDirectory()
 juce::var PresetStore::encode(const StoredPreset& preset)
 {
     auto* object = new juce::DynamicObject();
-    object->setProperty("format", "nitride-preset"); object->setProperty("version", 1);
+    object->setProperty("format", "nitride-preset"); object->setProperty("version", 2);
     object->setProperty("id", preset.id); object->setProperty("name", preset.patch.name);
     object->setProperty("mono", preset.patch.mono); object->setProperty("chord", preset.patch.chord);
     auto* values = new juce::DynamicObject();
@@ -23,7 +23,8 @@ juce::var PresetStore::encode(const StoredPreset& preset)
 
 std::optional<StoredPreset> PresetStore::decode(const juce::var& data)
 {
-    if (!data.isObject() || data["format"].toString() != "nitride-preset" || static_cast<int>(data["version"]) != 1) return std::nullopt;
+    const auto version=static_cast<int>(data["version"]);
+    if (!data.isObject() || data["format"].toString() != "nitride-preset" || (version!=1&&version!=2)) return std::nullopt;
     StoredPreset preset;
     preset.id = data["id"].toString(); preset.patch.name = data["name"].toString().trim();
     if (preset.id.isEmpty() || preset.id.length() > 128 || preset.patch.name.isEmpty() || preset.patch.name.length() > 256) return std::nullopt;
@@ -31,14 +32,17 @@ std::optional<StoredPreset> PresetStore::decode(const juce::var& data)
     preset.patch.mono = static_cast<bool>(data["mono"]); preset.patch.chord = static_cast<bool>(data["chord"]);
     const auto values = data["values"];
     if (!values.isObject()) return std::nullopt;
-    for (size_t i = 0; i < parameterCount; ++i)
+    const auto count=version==1?legacyParameterCount:parameterCount;
+    for (size_t i = 0; i < static_cast<size_t>(count); ++i)
     {
         const auto value = values[hostParameters[i].id];
         if (!value.isDouble() && !value.isInt() && !value.isInt64()) return std::nullopt;
         const auto number = static_cast<double>(value);
         if (!std::isfinite(number) || number < hostParameters[i].minimum - 1.0e-6 || number > hostParameters[i].maximum + 1.0e-6) return std::nullopt;
+        if(hostParameters[i].kind!=ParameterKind::continuous&&std::abs(number-std::round(number))>1.0e-6)return std::nullopt;
         preset.patch.values[i] = InstrumentSession::clamp(static_cast<Parameter>(i), number);
     }
+    if(version==1&&preset.patch.mono){preset.patch.values[glideOn]=1;preset.patch.values[glideTime]=.025;preset.patch.values[glideCurve]=2;}
     return preset;
 }
 

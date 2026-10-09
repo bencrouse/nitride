@@ -28,7 +28,8 @@ build activity from repeated measurements. `--help` lists the options.
 
 Capture a baseline before editing DSP. For back-to-back A/B checks, preserve its
 executable before rebuilding. Compare reports only with matching machine, compiler,
-configuration, duration, warmup, pass count and workload matrix. Keep other CPU
+configuration, duration, warmup, pass count and requested workloads. Focused runs
+may compare against a covering full-matrix baseline. Keep other CPU
 work out of timing runs. Profile separately; profiled timings are not benchmark results.
 
 ## Method
@@ -144,3 +145,22 @@ the entire deadline and some blocks exceed it. Further optimization and real-hos
 testing are needed before treating that workload as a production acceptance pass.
 Minimum supported hardware and desired voice/sample-rate headroom should define
 the eventual acceptance target; current measurements establish progress and limits.
+
+## Pitch-motion extension / 0.3.0
+
+`--pitch-motion` selects paired Glide/Autobend on/off MIDI performances. The original
+version-1 workload matrix is retained for fingerprint comparisons. Pairs use the
+same chord/retrigger input; four-note chords can reach 12 active voices through
+release tails, so check the report's observed voice counts as well as held-note count.
+
+```sh
+make benchmark PERF_ARGS='--pitch-motion --rate 48000 --block 64 --output build/performance/pitch-48k.json'
+```
+
+The harness exposed an initial ~10% inactive-feature regression, addressed by
+separately compiling constant-ratio and moving-ratio oscillator paths. Retained
+inactive overhead is typically around 1–2%, up to approximately 3% in measured
+cases, with all 32 baseline hashes matching. Combined maximum-stress motion measured
+54.08% budget occupancy at 48 kHz / 64 frames and 103.55% at 96 kHz / 64 frames on
+the M4 Max. See [pitch-motion measurements](PITCH_MOTION.md) for the full paired
+results, method, reproduction commands and current performance limits.

@@ -13,11 +13,12 @@ AU_BUILD_PATH := $(BUILD_DIR)/nitride_artefacts/$(CONFIG)/AU/$(AU_COMPONENT)
 PERF_BUILD_DIR ?= build/performance
 PERF_ARGS ?= --output "$(PERF_BUILD_DIR)/latest.json"
 
-.PHONY: help configure build test benchmark studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
+.PHONY: help configure build test benchmark render-pitch studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
 help:
 	@echo "make build        Build AU + Standalone"
 	@echo "make test         Check native UI, automation/state and DSP"
 	@echo "make benchmark    Measure Release processor rendering; override PERF_ARGS"
+	@echo "make render-pitch Render musical Glide/Autobend comparisons under build/pitch-motion"
 	@echo "make standalone   Build and open the native app"
 	@echo "make studies      Build and open the sound comparison app"
 	@echo "make gestures     Build and open the playable control-surface study"
@@ -44,6 +45,10 @@ benchmark:
 	$(CMAKE) -S . -B "$(PERF_BUILD_DIR)" -DCMAKE_BUILD_TYPE=Release -DJUCE_DIR="$(JUCE_DIR)"
 	$(CMAKE) --build "$(PERF_BUILD_DIR)" --target nitride_perf --parallel $(JOBS)
 	"$(PERF_BUILD_DIR)/nitride_perf_artefacts/Release/nitride_perf" $(PERF_ARGS)
+
+render-pitch: configure
+	$(CMAKE) --build "$(BUILD_DIR)" --target nitride_pitch_tests --config $(CONFIG) --parallel $(JOBS)
+	"$(BUILD_DIR)/nitride_pitch_tests_artefacts/$(CONFIG)/nitride_pitch_tests" --render-demo "$(abspath $(BUILD_DIR))/pitch-motion"
 
 install-au: build
 	mkdir -p "$(AU_INSTALL_DIR)"

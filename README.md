@@ -5,6 +5,11 @@ The approved native interface and audible engine are now connected to a **playab
 stereo AU and Standalone instrument** with host automation, session recall and
 persistent presets. The sound/gesture studies remain as references.
 
+**0.3.0 adds independent Glide and Autobend**, including carrier/modulator,
+Opposed and Pitch + Tone destinations, plus legato play mode. See
+[`docs/PITCH_MOTION.md`](docs/PITCH_MOTION.md) for controls, migration, listening
+comparisons and quantified performance.
+
 ## Play the instrument
 
 ```sh
@@ -19,7 +24,8 @@ details; [`docs/MILESTONE_01.md`](docs/MILESTONE_01.md) records the initial inte
 **Keep** saves a named sound to `~/Library/Application Support/nitride/Presets`.
 **Compare** auditions its reference while retaining your edits. **Undo** restores
 control gestures or patch selections; the **...** menu includes Redo and preset
-import/export. The host can automate all 17 sound controls.
+import/export. The host can automate all 28 controls; the original 17 retain their
+IDs and positions.
 
 ## Shared instrument review
 
@@ -126,7 +132,7 @@ Following Carbide's conventions:
 - macOS 15+, Apple Silicon.
 - AUv2 instrument + Standalone targets.
 - Native custom `LookAndFeel_V4`, sliders, buttons, combo boxes, and JUCE drawing.
-- Processor-owned sound conditions, 17 stable host parameters, versioned session
+- Processor-owned sound conditions, 28 stable host parameters, versioned session
   recall, persistent presets and Compare/Undo/Redo.
 - In-code factory patches in `Source/Instrument/InstrumentSession.h`.
 - Native hosted/UI, automation/state and DSP tests registered with CTest.
@@ -163,10 +169,14 @@ recorded-automation playback are the remaining manual host acceptance checks.
 | `Source/PluginProcessor.*` | Host MIDI/audio, APVTS automation, factory programs and state |
 | `Source/Instrument/*` | Shared conditions, renderer, view and review device wrapper |
 | `Source/Instrument/HostParameters.h` | Stable host parameter IDs and ranges |
+| `Source/Instrument/Parameters.h` | Authoritative typed metadata, defaults, clamping and compatible host mapping |
+| `Source/DSP/PitchMotion.h` | Sample-clock Glide/Autobend trajectories and routing |
+| `Source/Instrument/PitchMotionPanel.*` | Native independent pitch-motion controls |
 | `Source/Instrument/PresetStore.*` | Versioned preset files and atomic writes |
 | `Source/Tests/UiSelfTests.cpp` | Hosted/review equivalence, MIDI and editor ownership checks |
 | `Source/Tests/AutomationStateTests.cpp` | Gestures, automation, session recall and preset workflow |
 | `Source/Tests/PerformanceHarness.cpp` | Repeatable Release processor benchmark and baseline comparison |
+| `Source/Tests/PitchMotionTests.cpp` | Pitch, note priority, FM reference, migration, UI and musical renders |
 | `Source/Tests/AuComponentTests.cpp` | Installed AU automation/state and MusicDevice render test |
 | `Source/Studies/*` | Audible experiments, audition app, renders, DSP checks |
 | `docs/DESIGN.md` | Musical brief, visual direction, open questions |

@@ -1,4 +1,5 @@
 #include "InstrumentView.h"
+#include "PitchMotionPanel.h"
 
 #include <iostream>
 #include <vector>

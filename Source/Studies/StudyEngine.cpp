@@ -97,6 +97,7 @@ void Engine::prepare(double sampleRate)
     clock = 0;
     nextSerial = numericalFaults = 0;
     playing = false;
+    groupOrigin=lastNoteHz=toneAnchorHz=0;
     for (size_t i = 0; i < partialAmplitudes.size(); ++i)
     {
         const auto n = static_cast<int>(i);
@@ -116,6 +117,107 @@ void Engine::prepare(double sampleRate)
             const auto n = static_cast<int>(i);
             indexAmplitudes[row][i] = bessel(n, index) + (n % 2 == 0 ? 1.0 : -1.0) * bessel(n + 1, index);
         }
+    for(size_t n=0;n<rawBessel.size();++n)
+    {
+        for(size_t row=0;row<indexBessel.size();++row)indexBessel[row][n]=bessel(static_cast<int>(n),static_cast<double>(row)/32);
+        for(size_t s=0;s<sourceBessel.size();++s)sourceBessel[s][n]=bessel(static_cast<int>(n),sourceIndex(static_cast<Source>(s)));
+    }
+}
+
+void Engine::setPitchMotion(const PitchSettings& requested) noexcept
+{
+    const auto settings=validPitchSettings(requested);
+    if(pitchOverride&&samePitchSettings(settings,pitchSettings))return;
+    pitchOverride=true;
+    const auto startGlide=settings.glide.enabled&&!pitchSettings.glide.enabled;
+    if(settings.glide.enabled&&settings.glide.target==PitchTarget::tone
+        &&(!pitchSettings.glide.enabled||pitchSettings.glide.target!=PitchTarget::tone))
+    {
+        toneAnchorHz=lastNoteHz;
+    }
+    pitchSettings=settings;
+    for(auto& voice:voices)if(voice.active)
+    {
+        if(startGlide)voice.glide.begin(voice.note,voice.frequency,settings.glide.seconds,settings.glide.curve,rate);
+        voice.glide.retime(settings.glide.seconds,settings.glide.curve);voice.autobend.retime(settings.autobend.seconds);
+        voice.glideRouting.set(settings.glide.enabled,settings.glide.target,rate);
+        voice.autobendRouting.set(settings.autobend.enabled,settings.autobend.target,rate);
+    }
+}
+void Engine::beginNoteGroup() noexcept
+{
+    groupOrigin=lastNoteHz;
+    if(std::none_of(voices.begin(),voices.end(),[](const auto& v){return v.active;}))toneAnchorHz=0;
+}
+Engine::PitchSnapshot Engine::getPitchSnapshot(int note) const noexcept
+{
+    const Voice* selected=nullptr;
+    for(const auto& v:voices)if(v.active&&(note<0||v.note==note)&&(!selected||v.serial>selected->serial))selected=&v;
+    if(!selected)return{};
+    return{selected->note,selected->carrierHz,selected->modulatorHz,selected->glide.frequency(),selected->autoOffset};
+}
+
+void Engine::updateVoicePitch(Voice& voice) noexcept
+{
+    if(voice.velocitySamples>0){voice.velocity+=voice.velocityStep;if(--voice.velocitySamples==0)voice.velocity=voice.targetVelocity;}
+    if(!pitchSettings.glide.enabled&&!pitchSettings.autobend.enabled&&!voice.splitPhase&&voice.glideRouting.silent()&&voice.autobendRouting.silent())
+    {
+        voice.frequency=voice.glide.destination();voice.carrierHz=voice.modulatorHz=voice.frequency*pitchMultiplier;
+        voice.tonePitch=0;voice.carrierBand=1;voice.autobend.advance();return;
+    }
+    voice.glide.advance();voice.autobend.advance();
+    const auto& g=voice.glideRouting.advance();const auto& a=voice.autobendRouting.advance();
+    const auto target=voice.glide.destination(),current=voice.glide.frequency();
+    const auto glideRatio=current/target;
+    const auto needsGlideOffset=(!pitchIsZero(g[0])&&!samePitchValue(g[0],1))||(!pitchIsZero(g[1])&&!samePitchValue(g[1],1));
+    const auto glideOffset=needsGlideOffset?12*std::log2(glideRatio):0;
+    // Depth changes are dezippered on held voices; new strikes initialize at full depth.
+    voice.autoDepth+=std::min(1.0,1/(rate*.003))*(pitchSettings.autobend.depth-voice.autoDepth);
+    voice.autoOffset=voice.autoDepth*voice.autobend.value();
+    const auto glideHz=[&](double weight) {
+        if(samePitchValue(weight,1))return current;if(pitchIsZero(weight))return target;
+        if(samePitchValue(weight,-1))return target/glideRatio;
+        return target*std::exp2(glideOffset*weight/12);
+    };
+    voice.carrierHz=glideHz(g[0])*pitchMultiplier;
+    voice.modulatorHz=glideHz(g[1])*pitchMultiplier;
+    if(!pitchIsZero(voice.autoOffset))
+    {
+        if(!pitchIsZero(a[0]))voice.carrierHz*=std::exp2(voice.autoOffset*a[0]/12);
+        if(!pitchIsZero(a[1]))voice.modulatorHz*=std::exp2(voice.autoOffset*a[1]/12);
+    }
+    voice.frequency=voice.glideRouting.silent()?target:current;
+    if(!voice.splitPhase&&!samePitchValue(voice.carrierHz,voice.modulatorHz)){voice.splitPhase=true;voice.modulatorPhase=voice.phase;}
+    const auto bandLimitedMotion=voice.splitPhase||(pitchSettings.glide.enabled&&pitchSettings.glide.curve!=GlideCurve::classic)
+        ||(pitchSettings.autobend.enabled&&!pitchIsZero(pitchSettings.autobend.depth));
+    voice.carrierBand=bandLimitedMotion?std::clamp((rate*.47-voice.carrierHz)/(rate*.08),0.0,1.0):1;
+    voice.tonePitch=(!pitchIsZero(g[2])&&toneAnchorHz>0?12*std::log2(current/toneAnchorHz)*g[2]:0)+voice.autoOffset*a[2];
+    if(voice.splitPhase&&(!samePitchValue(voice.previousCarrierHz,voice.carrierHz)||!samePitchValue(voice.previousModulatorHz,voice.modulatorHz)))
+    {
+        for(size_t n=0;n<voice.positiveBands.size();++n)
+        {
+            const auto band=[&](double hz){return std::clamp((rate*.47-std::abs(hz))/(rate*.08),0.0,1.0);};
+            voice.positiveBands[n]=band(voice.carrierHz+2*static_cast<double>(n)*voice.modulatorHz);
+            voice.negativeBands[n]=band(voice.carrierHz-2*static_cast<double>(n)*voice.modulatorHz);
+        }
+        voice.previousCarrierHz=voice.carrierHz;voice.previousModulatorHz=voice.modulatorHz;
+    }
+}
+double Engine::splitReference(const Voice& voice) const noexcept
+{
+    // Band-limited FM sidebands for independent carrier/modulator phases. A short
+    // trig recurrence evaluates the same Bessel expansion without 25 sine calls.
+    const auto carrierSin=std::sin(voice.phase),carrierCos=std::cos(voice.phase);
+    const auto stepSin=std::sin(voice.modulatorPhase*2),stepCos=std::cos(voice.modulatorPhase*2);
+    double sine=0,cosine=1,result=rawBessel[0]*carrierSin*voice.positiveBands[0];
+    for(size_t n=1;n<rawBessel.size();++n)
+    {
+        const auto nextSin=sine*stepCos+cosine*stepSin;
+        cosine=cosine*stepCos-sine*stepSin;sine=nextSin;
+        if(n<12)result+=rawBessel[n]*(carrierSin*cosine+carrierCos*sine)*voice.positiveBands[n];
+        result+=(n%2==0?1:-1)*rawBessel[n]*(carrierSin*cosine-carrierCos*sine)*voice.negativeBands[n];
+    }
+    return result;
 }
 
 void Engine::setFmIndex(double index) noexcept
@@ -140,7 +242,8 @@ void Engine::setAmount(float amount) noexcept
 
 void Engine::setPitchBend(float semitones) noexcept
 {
-    targetBend = std::isfinite(semitones) ? std::clamp(static_cast<double>(semitones), -12.0, 12.0) : 0.0;
+    // Product tuning remains +/-12; allow its sum with the independent MIDI wheel.
+    targetBend = std::isfinite(semitones) ? std::clamp(static_cast<double>(semitones), -24.0, 24.0) : 0.0;
 }
 
 void Engine::setNetworkDimensions(float coupling, float stress, double responseSeconds) noexcept
@@ -180,7 +283,7 @@ Engine::NetworkSnapshot Engine::getNetworkSnapshot() const noexcept
     double real = 0.0, imaginary = 0.0;
     for (size_t i = 0; i < state.offsets.size(); ++i)
     {
-        snapshot.offsets[i] = static_cast<float>(state.offsets[i]);
+        snapshot.offsets[i] = static_cast<float>(wrap(state.offsets[i]+(selected->splitPhase&&i!=0?(selected->modulatorPhase-selected->phase)*networkHarmonics[i]:0)));
         real += std::cos(state.offsets[i]);
         imaginary += std::sin(state.offsets[i]);
     }
@@ -220,7 +323,7 @@ void Engine::stop() noexcept
     allNotesOff();
 }
 
-void Engine::noteOn(int note, float velocity, Articulation articulation) noexcept
+void Engine::noteOn(int note, float velocity, Articulation articulation,bool overlapping,bool returning) noexcept
 {
     if (velocity <= 0.0f) { noteOff(note); return; }
     auto* voice = &voices.front();
@@ -238,16 +341,39 @@ void Engine::noteOn(int note, float velocity, Articulation articulation) noexcep
                 retrigger = true;
                 break;
             }
-    if (!retrigger) *voice = {};
-    voice->attackStart = voice->envelope;
-    voice->age = voice->releaseAge = 0.0;
+    const auto origin=retrigger?voice->frequency:groupOrigin;
+    const auto stolen=voice->active&&pitchOverride&&(pitchSettings.glide.enabled||pitchSettings.autobend.enabled)?voice->lastSample:0;
+    if (!retrigger)
+    {
+        *voice={};voice->stolenSample=stolen;voice->stealLength=std::max(1,static_cast<int>(std::ceil(internalRate*.002)));
+        if(!pitchIsZero(stolen))voice->stealSamples=voice->stealLength;
+    }
+    const auto preserveEnvelope=retrigger&&(returning||(overlapping&&pitchSettings.legato));
+    if(!preserveEnvelope){voice->attackStart=voice->envelope;voice->age=voice->releaseAge=0;}
     voice->released = false;
     voice->active = true;
     voice->articulation = articulation;
     voice->note = std::clamp(note, 0, 127);
     if (!retrigger) voice->frequency = 440.0 * std::exp2(static_cast<double>(voice->note - 69) / 12.0);
-    voice->velocity = std::clamp(static_cast<double>(velocity), 0.0, 1.0);
-    voice->network.impulse = voice->stressedNetwork.impulse = voice->expressiveNetwork.impulse = voice->velocity;
+    voice->targetVelocity=std::clamp(static_cast<double>(velocity),0.0,1.0);
+    if(preserveEnvelope)
+    {
+        voice->velocitySamples=std::max(1,static_cast<int>(std::ceil(rate*.003)));
+        voice->velocityStep=(voice->targetVelocity-voice->velocity)/voice->velocitySamples;
+    }
+    else{voice->velocity=voice->targetVelocity;voice->velocitySamples=0;}
+    if(!preserveEnvelope)voice->network.impulse = voice->stressedNetwork.impulse = voice->expressiveNetwork.impulse = voice->velocity;
+    if(pitchOverride)
+    {
+        const auto slide=pitchSettings.glide.enabled&&(!pitchSettings.glide.legatoOnly||overlapping||returning);
+        voice->glide.begin(voice->note,slide?origin:0,pitchSettings.glide.seconds,pitchSettings.glide.curve,rate);
+        if(!retrigger){voice->glideRouting.reset(pitchSettings.glide.enabled,pitchSettings.glide.target);voice->autobendRouting.reset(pitchSettings.autobend.enabled,pitchSettings.autobend.target);}
+        voice->autoDepth=pitchSettings.autobend.depth;
+        if(pitchSettings.autobend.enabled&&!returning&&(!pitchSettings.autobend.phraseOnly||!overlapping))
+            voice->autobend.trigger(pitchSettings.autobend.seconds,rate);
+        if(toneAnchorHz<=0)toneAnchorHz=voice->glide.destination();
+        lastNoteHz=voice->glide.frequency();
+    }
     if (!retrigger)
         for (size_t i = 0; i < voice->network.links.size(); ++i)
             voice->network.links[i] = voice->stressedNetwork.links[i] = voice->expressiveNetwork.links[i] = networkSigns[i] * 0.55;
@@ -455,6 +581,7 @@ double Engine::noteCoupledDelaySample(Voice& voice, double env, double fundament
     return returned * 1.2;
 }
 
+template<bool Split>
 double Engine::networkSample(Voice& voice, NetworkState& state, double env, double fundamental, double a, double stress,
                              double learning, double phaseSpeed) noexcept
 {
@@ -462,8 +589,9 @@ double Engine::networkSample(Voice& voice, NetworkState& state, double env, doub
     std::array<double, 6> sine {}, cosine {}, torque {};
     for (size_t i = 0; i < sine.size(); ++i)
     {
-        sine[i] = std::sin(state.offsets[i]);
-        cosine[i] = std::cos(state.offsets[i]);
+        const auto offset=state.offsets[i]+(Split&&i!=0?(voice.modulatorPhase-voice.phase)*networkHarmonics[i]:0);
+        sine[i] = std::sin(offset);
+        cosine[i] = std::cos(offset);
     }
     for (size_t edge = 0; edge < networkEdges.size(); ++edge)
     {
@@ -493,24 +621,30 @@ double Engine::networkSample(Voice& voice, NetworkState& state, double env, doub
         const auto force = drift + coupling * torque[i] / 3.0 - a * anchor * sine[i] + impulse + feedback;
         state.offsets[i] = wrap(state.offsets[i] + phaseStep * force * phaseSpeed);
         // The carrier uses its phase directly; only nodes 1–5 are FM modulators.
-        if (i != 0) wave[i] = std::sin(voice.phase * networkHarmonics[i] + state.offsets[i]);
+        if (i != 0)
+        {
+            wave[i]=std::sin((Split?voice.modulatorPhase:voice.phase)*networkHarmonics[i]+state.offsets[i]);
+            if constexpr(Split)wave[i]*=std::clamp((rate*.47-voice.modulatorHz*networkHarmonics[i])/(rate*.08),0.0,1.0);
+        }
     }
     // The adaptive links participate in FM generation as well as phase synchronization.
     // This is one evolving voice, rather than a network processing a finished FM signal.
     const auto modulator = wave[1] + a * (0.25 * state.links[1] * wave[2] + 0.5 * state.links[6] * wave[3]
         + 0.35 * state.links[7] * wave[4] + 0.25 * state.links[8] * wave[5]);
     const auto carrier = voice.phase + state.offsets[0];
-    const auto result = std::sin(carrier + currentIndex * (1.0 + 2.4 * stress) * modulator
+    auto result = std::sin(carrier + currentIndex * (1.0 + 2.4 * stress) * modulator
         + a * (1.4 + 7.5 * stress) * state.signal);
+    if(!samePitchValue(voice.carrierBand,1))result*=voice.carrierBand;
     const auto folded = std::sin(result * std::numbers::pi * (0.5 + 2.5 * stress));
     state.signal = ((1.0 - stress) * result + stress * folded) * excitation;
     return result;
 }
 
+template<bool Split>
 double Engine::voiceSample(Voice& voice) noexcept
 {
     const auto env = envelope(voice);
-    const auto fundamental = voice.frequency * pitchMultiplier;
+    const auto fundamental = pitchOverride?voice.carrierHz:voice.frequency*pitchMultiplier;
     const auto amount = smoothedAmount;
     const auto spectralActive = modeWeights[2] > 0.00000001;
     // The Nyquist mask depends on pitch, not on network evolution. Cache the exact
@@ -522,13 +656,13 @@ double Engine::voiceSample(Voice& voice) noexcept
             voice.referenceBands[i] = std::clamp((rate * 0.47 - fundamental * static_cast<double>(2 * i + 1)) / (rate * 0.08), 0.0, 1.0);
         voice.bandPitchBits = pitchBits;
     }
-    double reference = 0.0, deformed = 0.0;
+    double reference = Split?splitReference(voice):0.0, deformed = 0.0;
     for (size_t i = 0; i < partialAmplitudes.size(); ++i)
     {
         const auto harmonic = static_cast<double>(2 * i + 1);
         const auto frequency = fundamental * partialRatios[i];
         const auto referenceBand = voice.referenceBands[i];
-        if (referenceBand != 0.0)
+        if (!Split&&referenceBand != 0.0)
             reference += partialAmplitudes[i] * std::sin(voice.phase * harmonic) * referenceBand;
         if (spectralActive)
         {
@@ -543,13 +677,13 @@ double Engine::voiceSample(Voice& voice) noexcept
     const auto phaseDelay = modeWeights[4] > 0.00000001 ? phaseDelaySample(voice, env, fundamental) : 0.0;
     const auto noteDelay = modeWeights[5] > 0.00000001 ? noteCoupledDelaySample(voice, env, fundamental) : 0.0;
     const auto network = modeWeights[6] > 0.00000001
-        ? networkSample(voice, voice.network, env, fundamental, amount, 0.0, networkLearning) : 0.0;
+        ? networkSample<Split>(voice, voice.network, env, fundamental, amount, 0.0, networkLearning) : 0.0;
     const auto extendedAmount = std::min(1.0, amount * 2.0);
     const auto stress = std::max(0.0, amount * 2.0 - 1.0);
     const auto drivenNetwork = modeWeights[7] > 0.00000001
-        ? networkSample(voice, voice.stressedNetwork, env, fundamental, extendedAmount, stress, networkLearning) : 0.0;
+        ? networkSample<Split>(voice, voice.stressedNetwork, env, fundamental, extendedAmount, stress, networkLearning) : 0.0;
     const auto expressive = modeWeights[8] > 0.00000001
-        ? networkSample(voice, voice.expressiveNetwork, env, fundamental, couplingDimension, stressDimension,
+        ? networkSample<Split>(voice, voice.expressiveNetwork, env, fundamental, couplingDimension, stressDimension,
                          expressiveLearning, expressivePhaseSpeed) : 0.0;
     const auto bodySound = reference * (1.0 - amount) + amount * body;
     // Blend back to the source rather than forcibly resetting accumulated partial phases.
@@ -563,7 +697,8 @@ double Engine::voiceSample(Voice& voice) noexcept
     const auto presence = std::max(couplingDimension, stressDimension * 0.5);
     const auto expressiveSound = reference * (1.0 - presence) + presence * expressive;
     voice.phase = wrap(voice.phase + twoPi * fundamental / internalRate);
-    const auto sample = (reference * modeWeights[0] + bodySound * modeWeights[1] + spectralSound * modeWeights[2]
+    if constexpr(Split)voice.modulatorPhase=wrap(voice.modulatorPhase+twoPi*voice.modulatorHz/internalRate);
+    auto sample = (reference * modeWeights[0] + bodySound * modeWeights[1] + spectralSound * modeWeights[2]
         + interactionSound * modeWeights[3] + phaseDelaySound * modeWeights[4] + noteDelaySound * modeWeights[5]
         + networkSound * modeWeights[6] + drivenNetworkSound * modeWeights[7] + expressiveSound * modeWeights[8])
         * env * voice.velocity;
@@ -573,10 +708,12 @@ double Engine::voiceSample(Voice& voice) noexcept
         voice = {};
         return 0.0;
     }
+    if(voice.stealSamples>0){sample+=voice.stolenSample*static_cast<double>(voice.stealSamples--)/voice.stealLength;}
+    if(pitchOverride&&(pitchSettings.glide.enabled||pitchSettings.autobend.enabled))voice.lastSample=sample;
     return sample;
 }
 
-void Engine::render(float* left, float* right, int samples) noexcept
+void Engine::render(float* left, float* right, int samples,double* tonePitch) noexcept
 {
     for (int sample = 0; sample < samples; ++sample)
     {
@@ -623,18 +760,35 @@ void Engine::render(float* left, float* right, int samples) noexcept
             for (size_t i = 0; i < interactionDamping.size(); ++i)
                 interactionDamping[i] = std::exp(-(1.8 + static_cast<double>(i) * 2.0 + smoothedAmount * 1.5) / internalRate);
         for (auto& voice : voices)
-            if (voice.active && voice.articulation == Articulation::lead)
+            if (!pitchOverride&&voice.active && voice.articulation == Articulation::lead)
             {
                 const auto targetFrequency = 440.0 * std::exp2(static_cast<double>(voice.note - 69) / 12.0);
                 voice.frequency += smoothing * (targetFrequency - voice.frequency);
             }
+        bool split=false;const Voice* latest=nullptr;
+        if(pitchOverride)for(auto& voice:voices)if(voice.active)
+        {
+            updateVoicePitch(voice);split|=voice.splitPhase;
+            if(!latest||voice.serial>latest->serial)latest=&voice;
+        }
+        if(latest)lastNoteHz=latest->frequency;
+        if(tonePitch)tonePitch[sample]=latest?latest->tonePitch:0;
+        if(split)for(size_t n=0;n<rawBessel.size();++n)
+        {
+            if(indexOverride)
+            {
+                const auto position=currentIndex*32;const auto lower=std::min(static_cast<size_t>(position),indexBessel.size()-2);const auto blend=position-static_cast<double>(lower);
+                rawBessel[n]=indexBessel[lower][n]*(1-blend)+indexBessel[lower+1][n]*blend;
+            }
+            else rawBessel[n]=sourceBessel[0][n]*(1-sourceBlend)+sourceBessel[1][n]*sourceBlend;
+        }
         for (size_t i = 0; i < modeWeights.size(); ++i)
             modeWeights[i] += smoothing * ((i == static_cast<size_t>(treatment) ? 1.0 : 0.0) - modeWeights[i]);
         double output = 0.0;
         for (int step = 0; step < oversampling; ++step)
         {
             double sum = 0.0;
-            for (auto& voice : voices) if (voice.active) sum += voiceSample(voice);
+            for (auto& voice : voices) if (voice.active) sum += voice.splitPhase?voiceSample<true>(voice):voiceSample<false>(voice);
             for (auto& pole : downsampleFilter)
             {
                 pole += decimationCoefficient * (sum - pole);

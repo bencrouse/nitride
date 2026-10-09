@@ -30,6 +30,8 @@ public:
     Nitride::InstrumentSession& getInstrumentSession() noexcept { return session; }
     void applyPreset(int);
     juce::AudioProcessorValueTreeState& getState() noexcept { return apvts; }
+    // Diagnostic access while processing is stopped, or from the render thread.
+    SoundStudies::Engine::PitchSnapshot getPitchSnapshot(int note=-1) const noexcept { return renderer.pitchSnapshot(note); }
 
 private:
     Nitride::InstrumentSession session;
