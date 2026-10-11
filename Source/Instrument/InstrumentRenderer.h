@@ -1,6 +1,7 @@
 #pragma once
 
 #include "InstrumentSession.h"
+#include "../DSP/Engine.h"
 
 namespace Nitride
 {
@@ -40,7 +41,8 @@ private:
     int physicalKeys=0,groupKeys=0,monoNote=-1;
     bool monoMode=false;
     std::array<bool, 32> sustainPedal {};
-    juce::MidiBuffer editorMidi;
+    std::array<EditorMidiBridge::Command,EditorMidiBridge::blockBudget> editorCommands{};
+    std::uint64_t editorEpoch=0;
     juce::SmoothedValue<float> cutoffSmooth, resonanceSmooth, gainSmooth;
     double rate = 48000, lfoPhase = 0, wheel = 0;
 };

@@ -58,7 +58,7 @@ void PitchMotionPanel::configureSlider(juce::Slider& slider,Parameter parameter,
 }
 void PitchMotionPanel::set(Parameter parameter,double value)
 {
-    if(updating)return;session.set(parameter,value);sync(session.readVisible(),session.restoreEpoch.load());
+    if(updating)return;session.setIfCurrent(parameter,value,epoch);sync(session.readVisible(),session.restoreEpoch.load());
 }
 void PitchMotionPanel::sync(const Patch& patch,std::uint64_t restoreEpoch)
 {

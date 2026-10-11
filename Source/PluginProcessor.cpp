@@ -98,6 +98,7 @@ void NitrideAudioProcessor::applyPreset(int index) { session.applyProgram(index)
 
 void NitrideAudioProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
+    const juce::ScopedLock transaction(session.stateTransactionLock());
     juce::XmlElement state("NITRIDE_INSTRUMENT");
     state.setAttribute("version",3);
     const auto document=session.saveDocument();
@@ -123,6 +124,7 @@ juce::ValueTree NitrideAudioProcessor::parameterStateFor(const Nitride::Patch& p
 
 void NitrideAudioProcessor::setStateInformation(const void* data,int size)
 {
+    const juce::ScopedLock transaction(session.stateTransactionLock());
     if(size<=0||size>4*1024*1024)return;
     if(auto state=getXmlFromBinary(data,size);state&&state->hasTagName("NITRIDE_INSTRUMENT"))
     {

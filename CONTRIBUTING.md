@@ -1,5 +1,18 @@
 # Contributing
 
+## Local validation
+
+Run `make check` during development and `make check-full` for clean Debug/Release,
+ASan/TSan and installed-AU integration checks. CMake downloads checksum-pinned
+JUCE 8.0.15 by default; `JUCE_DIR` is an explicit matching-checkout override.
+See `docs/HARDENING.md` for profiles, artifacts, callback contracts and limitations.
+
+Audio and compatibility expectations under `Source/Tests/Fixtures/` are preserved
+inputs. Normal tests must never regenerate them. Intentional sound/contract changes
+require an explicit reviewed baseline update. Production UI is under
+`Source/Instrument`; production DSP is under `Source/DSP`. Keep editor keyboard
+listeners message-thread-only and route commands through `EditorMidiBridge`.
+
 ## Principles
 
 - Start with the musical gesture and native UI before implementing the voice engine.

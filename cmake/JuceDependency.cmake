@@ -1,0 +1,25 @@
+# Match the approved 0.3.0 dependency; upgrades are explicit sound/build changes.
+set(NITRIDE_JUCE_REVISION "91ad83ae34a81e0833b1a2b0866f54846370ae53")
+set(NITRIDE_JUCE_ARCHIVE_SHA256 "04f8d5055382582c757be9da069ea98338005f98248facd9c2804435ac853e70")
+set(JUCE_DIR "" CACHE PATH "Optional explicit JUCE checkout override")
+option(NITRIDE_ALLOW_UNPINNED_JUCE "Allow a clearly identified experimental JUCE override" OFF)
+if(JUCE_DIR)
+    if(NOT EXISTS "${JUCE_DIR}/CMakeLists.txt")
+        message(FATAL_ERROR "JUCE_DIR does not contain a JUCE checkout")
+    endif()
+    execute_process(COMMAND git -C "${JUCE_DIR}" rev-parse HEAD OUTPUT_VARIABLE juce_revision OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE revision_status)
+    execute_process(COMMAND git -C "${JUCE_DIR}" diff HEAD --quiet RESULT_VARIABLE dirty_status)
+    if(NOT NITRIDE_ALLOW_UNPINNED_JUCE AND (NOT revision_status EQUAL 0 OR NOT dirty_status EQUAL 0 OR NOT juce_revision STREQUAL NITRIDE_JUCE_REVISION))
+        message(FATAL_ERROR "JUCE override must be a clean ${NITRIDE_JUCE_REVISION} checkout. Use NITRIDE_ALLOW_UNPINNED_JUCE only for experiments.")
+    endif()
+    message(STATUS "Explicit JUCE override: ${JUCE_DIR} (${juce_revision})")
+    add_subdirectory("${JUCE_DIR}" JUCE)
+else()
+    include(FetchContent)
+    FetchContent_Declare(nitride_juce
+        URL "https://codeload.github.com/juce-framework/JUCE/tar.gz/${NITRIDE_JUCE_REVISION}"
+        URL_HASH "SHA256=${NITRIDE_JUCE_ARCHIVE_SHA256}"
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    FetchContent_MakeAvailable(nitride_juce)
+    message(STATUS "Pinned JUCE 8.0.15: ${NITRIDE_JUCE_REVISION}")
+endif()

@@ -1,15 +1,5 @@
 #include "InstrumentView.h"
-#include "PitchMotionPanel.h"
-
-#include <iostream>
-#include <vector>
-
-namespace
-{
-#include "NativeGestureControls.inc"
-#define NITRIDE_HOST_VIEW 1
-#include "../Studies/InstrumentReview.inc"
-}
+#include "InstrumentPanel.h"
 
 namespace Nitride
 {
@@ -23,7 +13,7 @@ public:
         setSize(content.getWidth(), content.getHeight());
     }
     void resized() override { content.setBounds(getLocalBounds()); }
-    InstrumentReview content;
+    InstrumentPanel content;
 };
 
 InstrumentView::InstrumentView(InstrumentSession& session, std::function<void()> audioSettings)

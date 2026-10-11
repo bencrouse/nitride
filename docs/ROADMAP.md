@@ -25,6 +25,10 @@ before musical development can continue.
 - Feature work in 0.3.0: independent Glide/Autobend, destination routing, legato
   and mono return-note behavior, compatible automation/state migration and paired
   performance measurements. See [pitch motion](PITCH_MOTION.md).
+- Bounded local hardening: pinned independent builds, preserved historical/audio
+  fixtures, bounded editor handoff, generation-aware recall, allocation/concurrency
+  checks, production UI/DSP ownership and local sanitizer validation. See
+  [hardening results](HARDENING.md).
 
 See [milestone 2](MILESTONE_02.md) and [performance measurements](PERFORMANCE.md).
 Current performance is usable at 48 kHz, but maximum polyphony at 96 kHz still has
@@ -40,26 +44,29 @@ Strengthen the development foundation before adding more sound-affecting behavio
 - Completed in 0.3.0: remove the condition-writer spin-wait. Host parameter updates
   now publish independent scalar atomics without waiting. A coherent whole-bank
   transaction protocol remains a possible follow-up beyond per-control snapshots.
-- Exercise simultaneous UI edits, host automation, program changes and playback.
-- Check the audio path for allocations and unbounded waits. Average rendering cost
-  alone does not establish reliable deadline behavior.
+- Completed: exercise active playback with real APVTS writes, recall and editor
+  lifecycle changes; test ownership collisions and bounded overflow recovery.
+- Completed: self-verifying local allocation instrumentation and focused ASan/TSan.
+  Residual JUCE callback allocations/locks and whole-bank ordering are documented
+  explicitly in `HARDENING.md`.
 
 ### Reproducible regression protection
 
-- Add macOS CI for builds, regression suites and AU validation.
-- Pin JUCE and support a clean checkout build independently of the sibling Carbide
-  checkout.
-- Commit historical session/preset fixtures to protect compatibility.
-- Add independent reference audio captures for representative performances. The
+- Completed: local `make check` / `make check-full` profiles for builds, regression,
+  installed-AU validation, benchmark smoke and sanitizer checks.
+- Completed: checksum-pinned JUCE 8.0.15 acquisition independent of Carbide.
+- Completed: preserved historical session/preset fixtures and frozen host contract.
+- Completed: independent reference audio captures for representative performances. The
   existing hosted/review comparison shares the underlying engine and primarily
   protects integration; independent captures also protect against DSP sound changes.
-- Keep timing comparisons on controlled hardware. CI should verify benchmark
-  functionality and sound correctness without noisy shared-runner CPU thresholds.
+- Keep timing comparisons on controlled hardware. Local checks verify benchmark
+  functionality and sound correctness; timing reports quantify changes separately.
 
 ### Maintainability, incrementally
 
-- Move production UI out of conditional study `.inc` code into ordinary components.
-- Establish clear production ownership for DSP currently housed in `StudyEngine`.
+- Completed: production UI uses normal components and no study `.inc` dependency.
+- Completed: production-owned `Source/DSP/Engine.*` / `nitride_dsp`; studies consume
+  compatibility aliases. Deeper study scheduler/treatment decomposition remains incremental.
 - Completed in 0.3.0: centralize typed parameter metadata and explicit host mapping
   in `Parameters.h`, preserving published IDs and legacy ordering.
 - Retain the processor/session/view separation and regression coverage while making

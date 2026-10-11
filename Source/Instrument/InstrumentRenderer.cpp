@@ -8,7 +8,7 @@ void InstrumentRenderer::prepare(double sampleRate)
     held = {}; deferred = {}; sustainPedal = {};
     groupHeld={};keyCounts={};presses={};velocities={};nextPress=0;physicalKeys=groupKeys=0;monoNote=-1;monoMode=session.audioMono();
     wheel = lfoPhase = 0;
-    editorMidi.ensureSize(8192);
+    editorEpoch=session.editorMidi.epoch();
     engine.setTreatment(SoundStudies::Treatment::expressiveNetwork);
     updateEngine();
     engine.prepare(sampleRate);
@@ -17,7 +17,6 @@ void InstrumentRenderer::prepare(double sampleRate)
     cutoffSmooth.setCurrentAndTargetValue(static_cast<float>(session.audioValue(cutoff)));
     resonanceSmooth.setCurrentAndTargetValue(static_cast<float>(session.audioValue(resonance)));
     gainSmooth.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(static_cast<float>(session.audioValue(output))));
-    session.keyboard.allNotesOff(1); session.keyboard.allNotesOff(16);
     publish();
 }
 
@@ -181,30 +180,29 @@ void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuff
     }
     cutoffSmooth.setTargetValue(static_cast<float>(session.audioValue(cutoff)));
     resonanceSmooth.setTargetValue(static_cast<float>(session.audioValue(resonance)));
-    editorMidi.clear();
-    if (injectEditorNotes) session.keyboard.processNextMidiBuffer(editorMidi, 0, audio.getNumSamples(), true);
+    const auto epoch=session.editorMidi.epoch();
+    if(editorEpoch!=epoch){for(int channel=16;channel<32;++channel)releaseChannel(channel);editorEpoch=epoch;}
+    const auto editorCount=injectEditorNotes?session.editorMidi.drain(editorCommands):0;
     auto* left = audio.getWritePointer(0);
     auto* right = audio.getWritePointer(audio.getNumChannels() > 1 ? 1 : 0);
     int offset = 0;
     auto host = midi.begin();
-    auto editor = editorMidi.begin();
+    std::uint32_t editor=0;
     int groupPosition=-1;
-    while (host != midi.end() || editor != editorMidi.end())
+    while (host != midi.end() || editor < editorCount)
     {
-        const auto fromEditor = editor != editorMidi.end()
-            && (host == midi.end() || (*editor).samplePosition < (*host).samplePosition);
-        const auto metadata = fromEditor ? *editor++ : *host++;
-        const auto position = juce::jlimit(offset, audio.getNumSamples(), metadata.samplePosition);
+        const auto fromEditor=editor<editorCount&&(host==midi.end()||(*host).samplePosition>0);
+        if(fromEditor&&editorCommands[editor].epoch!=editorEpoch){++editor;continue;}
+        const auto position=fromEditor?offset:juce::jlimit(offset,audio.getNumSamples(),(*host).samplePosition);
         renderRange(left + offset, right + offset, position - offset);
         if(position!=groupPosition){beginMidiGroup();groupPosition=position;}
         // Large SysEx is not part of this instrument's input protocol. Avoid materializing
         // an allocating MidiMessage on the audio thread for those messages.
-        if (metadata.numBytes <= 3)
+        if(fromEditor)
         {
-            const auto message = metadata.getMessage();
-            if (!fromEditor) session.keyboard.processNextMidiEvent(message);
-            handleMidi(message, fromEditor);
+            const auto& command=editorCommands[editor++];handleMidi(juce::MidiMessage(command.bytes.data(),3),true);
         }
+        else{const auto metadata=*host++;if(metadata.numBytes<=3)handleMidi(metadata.getMessage(),false);}
         offset = position;
     }
     renderRange(left + offset, right + offset, audio.getNumSamples() - offset);
@@ -235,6 +233,12 @@ void InstrumentRenderer::publish()
     int external = 0;
     for (size_t i = 0; i < 31 * 128; ++i) external += held[i] || deferred[i] ? 1 : 0;
     session.live.externalKeys.store(external);
+    for(size_t note=0;note<128;++note)
+    {
+        std::uint16_t down=0,sounding=0;
+        for(size_t channel=0;channel<16;++channel){const auto i=channel*128+note;if(held[i])down|=static_cast<std::uint16_t>(1u<<channel);if(held[i]||deferred[i])sounding|=static_cast<std::uint16_t>(1u<<channel);}
+        session.editorMidi.hostHeld[note].store(down,std::memory_order_relaxed);session.editorMidi.hostSounding[note].store(sounding,std::memory_order_relaxed);
+    }
     session.live.faults.store(engine.getNumericalFaults());
     session.live.publish(engine.getNetworkSnapshot());
 }
@@ -244,6 +248,7 @@ void InstrumentRenderer::reset() noexcept
     held = {}; deferred = {}; sustainPedal = {};
     groupHeld={};keyCounts={};physicalKeys=groupKeys=0;monoNote=-1;
     engine.allNotesOff();
+    session.editorMidi.reset();editorEpoch=session.editorMidi.epoch();
     publish();
 }
 }

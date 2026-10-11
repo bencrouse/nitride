@@ -1,8 +1,9 @@
 #pragma once
 
 #include <juce_audio_utils/juce_audio_utils.h>
-#include "../Studies/StudyEngine.h"
+#include "../DSP/EngineData.h"
 #include "Parameters.h"
+#include "EditorMidiBridge.h"
 #include <array>
 #include <atomic>
 #include <cmath>
@@ -46,7 +47,7 @@ struct LiveState
     std::atomic<float> level {0}, coherence {1}, peak {0};
     std::atomic<int> voices {0}, externalKeys {0};
     std::atomic<std::uint64_t> faults {0};
-    void publish(const SoundStudies::Engine::NetworkSnapshot& s) noexcept
+    void publish(const DSP::NetworkSnapshot& s) noexcept
     {
         for(size_t i=0;i<offsets.size();++i)offsets[i].store(s.offsets[i],std::memory_order_relaxed);
         for(size_t i=0;i<links.size();++i)links[i].store(s.links[i],std::memory_order_relaxed);
@@ -54,13 +55,15 @@ struct LiveState
     }
 };
 
-class InstrumentSession
+class InstrumentSession : private juce::MidiKeyboardState::Listener
 {
 public:
     explicit InstrumentSession(juce::File presetDirectory = {});
-    ~InstrumentSession();
+    ~InstrumentSession() override;
     static double clamp(Parameter,double) noexcept;
     void set(Parameter,double);
+    bool setIfCurrent(Parameter,double,std::uint64_t generation);
+    bool setGroupIfCurrent(std::initializer_list<std::pair<Parameter,double>>,std::uint64_t generation);
     void setMono(bool);
     void storeFromHost(int,double) noexcept;
     void apply(const Patch&);
@@ -95,6 +98,13 @@ public:
     juce::var saveDocument() const;
     juce::Result restoreDocument(const juce::var&);
     void establishRestoredPatch(const Patch&,int programIndex);
+    void attachEditor();
+    void detachEditor();
+    bool auditionNote(int note) const noexcept;
+    bool synchronizeEditorInput(); // Message thread; acknowledge an audio reset.
+    std::uint64_t editorInputGeneration() const noexcept {return inputGeneration;}
+    // Non-render state/gesture transactions; host scalar listeners never take it.
+    juce::CriticalSection& stateTransactionLock() const noexcept {return documentLock;}
 
     // Bound once by the processor, absent in the independent review app. Parameter
     // listeners never enter the document lock, file store, or UI history.
@@ -105,10 +115,16 @@ public:
     std::atomic<bool> mono {false}, chord {true};
     std::atomic<int> program {0};
     std::atomic<std::uint64_t> revision {0}, restoreEpoch {0}, libraryRevision {0};
+    // Message-thread-owned input only. Never touched or notified by the renderer.
     juce::MidiKeyboardState keyboard;
+    EditorMidiBridge editorMidi;
     LiveState live;
 
 private:
+    void handleNoteOn(juce::MidiKeyboardState*,int channel,int note,float velocity) override;
+    void handleNoteOff(juce::MidiKeyboardState*,int channel,int note,float) override;
+    std::uint64_t inputGeneration=1;
+    bool rebuildingInput=false;
     struct Conditions { std::array<double,parameterCount> values; bool mono,chord; };
     struct Snapshot
     {

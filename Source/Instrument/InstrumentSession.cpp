@@ -13,9 +13,26 @@ InstrumentSession::InstrumentSession(juce::File directory)
     : store(std::make_unique<PresetStore>(directory==juce::File{}?PresetStore::defaultDirectory():directory))
 {
     currentName=factoryPatches()[0].name;selectedId=factoryId(0);reference=factoryPatches()[0];
-    storeConditions(reference);userPresets=store->loadAll();
+    storeConditions(reference);userPresets=store->loadAll();keyboard.addListener(this);
 }
-InstrumentSession::~InstrumentSession()=default;
+InstrumentSession::~InstrumentSession(){keyboard.removeListener(this);}
+void InstrumentSession::handleNoteOn(juce::MidiKeyboardState*,int channel,int note,float velocity)
+{
+    if(rebuildingInput)return;
+    if(synchronizeEditorInput()){rebuildingInput=true;keyboard.noteOn(channel,note,velocity);rebuildingInput=false;}
+    editorMidi.push(static_cast<std::uint8_t>(0x90|((channel-1)&15)),static_cast<std::uint8_t>(note),static_cast<std::uint8_t>(juce::jlimit(1,127,juce::roundToInt(velocity*127))));
+}
+void InstrumentSession::handleNoteOff(juce::MidiKeyboardState*,int channel,int note,float)
+{if(rebuildingInput)return;synchronizeEditorInput();editorMidi.push(static_cast<std::uint8_t>(0x80|((channel-1)&15)),static_cast<std::uint8_t>(note),0);}
+bool InstrumentSession::synchronizeEditorInput()
+{
+    const auto generation=editorMidi.epoch();if(inputGeneration==generation)return false;
+    keyboard.reset();inputGeneration=generation;return true;
+}
+void InstrumentSession::attachEditor(){keyboard.reset();editorMidi.reset();inputGeneration=editorMidi.epoch();}
+void InstrumentSession::detachEditor(){keyboard.reset();editorMidi.reset();inputGeneration=editorMidi.epoch();}
+bool InstrumentSession::auditionNote(int note) const noexcept
+{return editorMidi.hostSounding[static_cast<size_t>(note)].load(std::memory_order_relaxed)!=0||keyboard.isNoteOn(15,note);}
 
 double InstrumentSession::clamp(Parameter p,double value) noexcept
 {
@@ -69,6 +86,7 @@ void InstrumentSession::setInternal(int index,double value,bool notify)
 }
 void InstrumentSession::set(Parameter p,double value)
 {
+    const juce::ScopedLock transaction(documentLock);
     const auto index=hostIndex(p);bool single=false;
     {const juce::ScopedLock lock(documentLock);single=gestures[static_cast<size_t>(index)]==0;}
     if(single)beginEdit({index});
@@ -80,6 +98,18 @@ void InstrumentSession::setMono(bool value)
     beginEdit({monoHostIndex});
     {const juce::ScopedLock lock(documentLock);if(editStart)editStart->parameters[monoHostIndex]=true;}
     setInternal(monoHostIndex,value?1:0,true);endEdit({monoHostIndex});
+}
+bool InstrumentSession::setIfCurrent(Parameter p,double value,std::uint64_t generation)
+{
+    const juce::ScopedLock lock(documentLock);
+    if(generation!=restoreEpoch.load(std::memory_order_acquire))return false;
+    set(p,value);return true;
+}
+bool InstrumentSession::setGroupIfCurrent(std::initializer_list<std::pair<Parameter,double>> updates,std::uint64_t generation)
+{
+    const juce::ScopedLock lock(documentLock);
+    if(generation!=restoreEpoch.load(std::memory_order_acquire))return false;
+    for(const auto& update:updates)set(update.first,update.second);return true;
 }
 
 void InstrumentSession::syncProgram() const

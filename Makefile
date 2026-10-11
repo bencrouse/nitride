@@ -2,7 +2,7 @@ SHELL := /bin/zsh
 CMAKE ?= $(shell command -v cmake)
 BUILD_DIR ?= build
 CONFIG ?= Debug
-JUCE_DIR ?= $(abspath ../carbide/JUCE)
+JUCE_DIR ?=
 JOBS ?= 6
 AU_TYPE ?= aumu
 AU_SUBTYPE ?= NT01
@@ -13,10 +13,12 @@ AU_BUILD_PATH := $(BUILD_DIR)/nitride_artefacts/$(CONFIG)/AU/$(AU_COMPONENT)
 PERF_BUILD_DIR ?= build/performance
 PERF_ARGS ?= --output "$(PERF_BUILD_DIR)/latest.json"
 
-.PHONY: help configure build test benchmark render-pitch studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
+.PHONY: help configure build test check check-full benchmark render-pitch studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
 help:
 	@echo "make build        Build AU + Standalone"
 	@echo "make test         Check native UI, automation/state and DSP"
+	@echo "make check        Run the reproducible local regression workflow"
+	@echo "make check-full   Run clean builds, diagnostics and installed AU checks locally"
 	@echo "make benchmark    Measure Release processor rendering; override PERF_ARGS"
 	@echo "make render-pitch Render musical Glide/Autobend comparisons under build/pitch-motion"
 	@echo "make standalone   Build and open the native app"
@@ -39,11 +41,17 @@ build: configure
 	$(CMAKE) --build "$(BUILD_DIR)" --config $(CONFIG) --parallel $(JOBS)
 
 test: build
-	$(CMAKE) --build "$(BUILD_DIR)" --target test
+	ctest --test-dir "$(BUILD_DIR)" -C $(CONFIG) --output-on-failure
+
+check:
+	python3 scripts/check.py
+
+check-full:
+	python3 scripts/check.py --full
 
 benchmark:
 	$(CMAKE) -S . -B "$(PERF_BUILD_DIR)" -DCMAKE_BUILD_TYPE=Release -DJUCE_DIR="$(JUCE_DIR)"
-	$(CMAKE) --build "$(PERF_BUILD_DIR)" --target nitride_perf --parallel $(JOBS)
+	$(CMAKE) --build "$(PERF_BUILD_DIR)" --target nitride_perf --config Release --parallel $(JOBS)
 	"$(PERF_BUILD_DIR)/nitride_perf_artefacts/Release/nitride_perf" $(PERF_ARGS)
 
 render-pitch: configure
@@ -53,14 +61,17 @@ render-pitch: configure
 install-au: build
 	mkdir -p "$(AU_INSTALL_DIR)"
 	cp -R "$(AU_BUILD_PATH)" "$(AU_INSTALL_DIR)/"
+	codesign --force --sign - --timestamp=none "$(AU_INSTALL_DIR)/$(AU_COMPONENT)"
 	touch "$(AU_INSTALL_DIR)/$(AU_COMPONENT)"
 
 validate-au:
-	auval -v $(AU_TYPE) $(AU_SUBTYPE) $(AU_MANUFACTURER)
+	launchctl asuser $(shell id -u) /usr/bin/auval -v $(AU_TYPE) $(AU_SUBTYPE) $(AU_MANUFACTURER)
 
-reload-au: install-au validate-au
+reload-au: install-au
+	$(MAKE) validate-au
 
 standalone: build
+	codesign --force --sign - --timestamp=none "$(BUILD_DIR)/nitride_artefacts/$(CONFIG)/Standalone/nitride.app"
 	open "$(BUILD_DIR)/nitride_artefacts/$(CONFIG)/Standalone/nitride.app"
 
 studies: configure

@@ -10,6 +10,10 @@ Opposed and Pitch + Tone destinations, plus legato play mode. See
 [`docs/PITCH_MOTION.md`](docs/PITCH_MOTION.md) for controls, migration, listening
 comparisons and quantified performance.
 
+Local development checks are available through **`make check`** and
+**`make check-full`**. They use pinned JUCE, preserved compatibility/audio fixtures
+and focused real-time/sanitizer checks. See [`docs/HARDENING.md`](docs/HARDENING.md).
+
 ## Play the instrument
 
 ```sh
@@ -138,8 +142,8 @@ Following Carbide's conventions:
 - Native hosted/UI, automation/state and DSP tests registered with CTest.
 - Makefile configure / build / test / install / auval / standalone workflow.
 
-The default JUCE path reuses `../carbide/JUCE` without modifying it. Override it
-when moving the project or using another checkout:
+The default build downloads checksum-pinned JUCE 8.0.15, independent of Carbide.
+An explicit override must point at the matching clean checkout:
 
 ```sh
 make build JUCE_DIR=/absolute/path/to/JUCE
@@ -168,15 +172,20 @@ recorded-automation playback are the remaining manual host acceptance checks.
 | `Source/PluginEditor.*` | Hosts the shared approved instrument view |
 | `Source/PluginProcessor.*` | Host MIDI/audio, APVTS automation, factory programs and state |
 | `Source/Instrument/*` | Shared conditions, renderer, view and review device wrapper |
-| `Source/Instrument/HostParameters.h` | Stable host parameter IDs and ranges |
+| `Source/Instrument/HostParameters.h` | Compatibility include for parameter metadata |
 | `Source/Instrument/Parameters.h` | Authoritative typed metadata, defaults, clamping and compatible host mapping |
 | `Source/DSP/PitchMotion.h` | Sample-clock Glide/Autobend trajectories and routing |
+| `Source/DSP/Engine.*` | Production-owned shared DSP |
+| `Source/Instrument/InstrumentPanel.*` | Production native panel |
+| `Source/Instrument/EditorMidiBridge.h` | Bounded editor-to-render command handoff |
 | `Source/Instrument/PitchMotionPanel.*` | Native independent pitch-motion controls |
 | `Source/Instrument/PresetStore.*` | Versioned preset files and atomic writes |
 | `Source/Tests/UiSelfTests.cpp` | Hosted/review equivalence, MIDI and editor ownership checks |
 | `Source/Tests/AutomationStateTests.cpp` | Gestures, automation, session recall and preset workflow |
 | `Source/Tests/PerformanceHarness.cpp` | Repeatable Release processor benchmark and baseline comparison |
 | `Source/Tests/PitchMotionTests.cpp` | Pitch, note priority, FM reference, migration, UI and musical renders |
+| `Source/Tests/RegressionFixtures.cpp` | Preserved sound, historical state and host contract checks |
+| `Source/Tests/RealtimeSafetyTests.cpp` | Allocation, ownership, overflow and active concurrency checks |
 | `Source/Tests/AuComponentTests.cpp` | Installed AU automation/state and MusicDevice render test |
 | `Source/Studies/*` | Audible experiments, audition app, renders, DSP checks |
 | `docs/DESIGN.md` | Musical brief, visual direction, open questions |

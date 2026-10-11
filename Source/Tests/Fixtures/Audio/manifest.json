@@ -1,0 +1,1197 @@
+{
+  "producer": "b22e504d2ff0441f15bbcdca6de2a0e55cfdaf26",
+  "juce": "91ad83ae34a81e0833b1a2b0866f54846370ae53",
+  "compiler": "21.0.0 (clang-2100.3.34.2)",
+  "os": "Mac OSX 27.0.1",
+  "format": "nitride-float32-le-stereo",
+  "sampleRate": 48000,
+  "blockSize": 128,
+  "controls": [
+    {
+      "position": 0,
+      "id": "coupling",
+      "kind": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 1,
+      "id": "stress",
+      "kind": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 2,
+      "id": "response",
+      "kind": 0,
+      "min": 0.01,
+      "max": 1.6,
+      "skew": 0.35,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 3,
+      "id": "fm_depth",
+      "kind": 0,
+      "min": 0.0,
+      "max": 4.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 4,
+      "id": "pitch",
+      "kind": 0,
+      "min": -12.0,
+      "max": 12.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 5,
+      "id": "amp_attack",
+      "kind": 0,
+      "min": 0.001,
+      "max": 4.0,
+      "skew": 0.3,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 6,
+      "id": "amp_decay",
+      "kind": 0,
+      "min": 0.01,
+      "max": 4.0,
+      "skew": 0.35,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 7,
+      "id": "amp_sustain",
+      "kind": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 8,
+      "id": "amp_release",
+      "kind": 0,
+      "min": 0.02,
+      "max": 8.0,
+      "skew": 0.35,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 9,
+      "id": "cutoff",
+      "kind": 0,
+      "min": 40.0,
+      "max": 18000.0,
+      "skew": 0.3,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 10,
+      "id": "resonance",
+      "kind": 0,
+      "min": 0.0,
+      "max": 0.85,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 11,
+      "id": "motion_rate",
+      "kind": 0,
+      "min": 0.05,
+      "max": 8.0,
+      "skew": 0.4,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 12,
+      "id": "motion_depth",
+      "kind": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 13,
+      "id": "space_mix",
+      "kind": 0,
+      "min": 0.0,
+      "max": 0.65,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 14,
+      "id": "space_size",
+      "kind": 0,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 15,
+      "id": "output",
+      "kind": 0,
+      "min": -24.0,
+      "max": 0.0,
+      "skew": 1.0,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 16,
+      "id": "mono",
+      "kind": 1,
+      "min": 0,
+      "max": 1,
+      "skew": 1,
+      "hint": 1,
+      "choices": ""
+    },
+    {
+      "position": 17,
+      "id": "glide_enabled",
+      "kind": 1,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": ""
+    },
+    {
+      "position": 18,
+      "id": "glide_time",
+      "kind": 0,
+      "min": 0.001,
+      "max": 5.0,
+      "skew": 0.3,
+      "hint": 2,
+      "choices": ""
+    },
+    {
+      "position": 19,
+      "id": "glide_target",
+      "kind": 2,
+      "min": 0.0,
+      "max": 4.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": "Carrier|Modulators|All|Opposed|Pitch + Tone"
+    },
+    {
+      "position": 20,
+      "id": "glide_legato",
+      "kind": 1,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": ""
+    },
+    {
+      "position": 21,
+      "id": "glide_curve",
+      "kind": 2,
+      "min": 0.0,
+      "max": 2.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": "Smooth|Linear|Classic"
+    },
+    {
+      "position": 22,
+      "id": "autobend_enabled",
+      "kind": 1,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": ""
+    },
+    {
+      "position": 23,
+      "id": "autobend_time",
+      "kind": 0,
+      "min": 0.001,
+      "max": 5.0,
+      "skew": 0.3,
+      "hint": 2,
+      "choices": ""
+    },
+    {
+      "position": 24,
+      "id": "autobend_depth",
+      "kind": 0,
+      "min": -36.0,
+      "max": 36.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": ""
+    },
+    {
+      "position": 25,
+      "id": "autobend_target",
+      "kind": 2,
+      "min": 0.0,
+      "max": 4.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": "Carrier|Modulators|All|Opposed|Pitch + Tone"
+    },
+    {
+      "position": 26,
+      "id": "autobend_phrase",
+      "kind": 1,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": ""
+    },
+    {
+      "position": 27,
+      "id": "legato",
+      "kind": 1,
+      "min": 0.0,
+      "max": 1.0,
+      "skew": 1.0,
+      "hint": 2,
+      "choices": ""
+    }
+  ],
+  "performances": [
+    {
+      "name": "pad",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "01 / Soft pad",
+        "mono": false,
+        "chord": true,
+        "values": {
+          "coupling": 0.55,
+          "stress": 0.08,
+          "response": 0.35,
+          "fm_depth": 1.65,
+          "pitch": 0.0,
+          "amp_attack": 0.65,
+          "amp_decay": 0.7,
+          "amp_sustain": 0.72,
+          "amp_release": 1.4,
+          "cutoff": 5500.0,
+          "resonance": 0.18,
+          "motion_rate": 0.25,
+          "motion_depth": 0.08,
+          "space_mix": 0.25,
+          "space_size": 0.7,
+          "output": -6.0,
+          "glide_enabled": 0.0,
+          "glide_time": 0.15,
+          "glide_target": 2.0,
+          "glide_legato": 0.0,
+          "glide_curve": 0.0,
+          "autobend_enabled": 0.0,
+          "autobend_time": 0.18,
+          "autobend_depth": 12.0,
+          "autobend_target": 2.0,
+          "autobend_phrase": 0.0,
+          "legato": 0.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            48,
+            94
+          ]
+        },
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            55,
+            94
+          ]
+        },
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            59,
+            94
+          ]
+        },
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            62,
+            94
+          ]
+        },
+        {
+          "sample": 28813,
+          "bytes": [
+            176,
+            64,
+            127
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            48,
+            0
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            55,
+            0
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            59,
+            0
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            62,
+            0
+          ]
+        },
+        {
+          "sample": 76813,
+          "bytes": [
+            176,
+            64,
+            0
+          ]
+        }
+      ],
+      "hash": "38555a07d95db582",
+      "samples": 384000,
+      "audio": "pad.f32"
+    },
+    {
+      "name": "keys",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "02 / Glass keys",
+        "mono": false,
+        "chord": false,
+        "values": {
+          "coupling": 0.6,
+          "stress": 0.2,
+          "response": 0.035,
+          "fm_depth": 2.7,
+          "pitch": 0.0,
+          "amp_attack": 0.004,
+          "amp_decay": 0.65,
+          "amp_sustain": 0.2,
+          "amp_release": 0.45,
+          "cutoff": 12000.0,
+          "resonance": 0.1,
+          "motion_rate": 0.5,
+          "motion_depth": 0.0,
+          "space_mix": 0.12,
+          "space_size": 0.4,
+          "output": -6.0,
+          "glide_enabled": 0.0,
+          "glide_time": 0.15,
+          "glide_target": 2.0,
+          "glide_legato": 0.0,
+          "glide_curve": 0.0,
+          "autobend_enabled": 0.0,
+          "autobend_time": 0.18,
+          "autobend_depth": 12.0,
+          "autobend_target": 2.0,
+          "autobend_phrase": 0.0,
+          "legato": 0.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            60,
+            94
+          ]
+        },
+        {
+          "sample": 19213,
+          "bytes": [
+            144,
+            67,
+            66
+          ]
+        },
+        {
+          "sample": 24013,
+          "bytes": [
+            128,
+            60,
+            0
+          ]
+        },
+        {
+          "sample": 38413,
+          "bytes": [
+            144,
+            72,
+            114
+          ]
+        },
+        {
+          "sample": 43213,
+          "bytes": [
+            128,
+            67,
+            0
+          ]
+        },
+        {
+          "sample": 48013,
+          "bytes": [
+            224,
+            96,
+            93
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            224,
+            0,
+            64
+          ]
+        },
+        {
+          "sample": 67213,
+          "bytes": [
+            128,
+            72,
+            0
+          ]
+        }
+      ],
+      "hash": "8f5e611b66baf802",
+      "samples": 384000,
+      "audio": "keys.f32"
+    },
+    {
+      "name": "lead",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "03 / Contact lead",
+        "mono": true,
+        "chord": false,
+        "values": {
+          "coupling": 0.75,
+          "stress": 0.4,
+          "response": 0.025,
+          "fm_depth": 2.7,
+          "pitch": 0.0,
+          "amp_attack": 0.006,
+          "amp_decay": 0.16,
+          "amp_sustain": 0.62,
+          "amp_release": 0.16,
+          "cutoff": 15000.0,
+          "resonance": 0.2,
+          "motion_rate": 0.75,
+          "motion_depth": 0.0,
+          "space_mix": 0.08,
+          "space_size": 0.3,
+          "output": -6.0,
+          "glide_enabled": 1.0,
+          "glide_time": 0.025,
+          "glide_target": 2.0,
+          "glide_legato": 0.0,
+          "glide_curve": 2.0,
+          "autobend_enabled": 0.0,
+          "autobend_time": 0.18,
+          "autobend_depth": 12.0,
+          "autobend_target": 2.0,
+          "autobend_phrase": 0.0,
+          "legato": 0.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            60,
+            94
+          ]
+        },
+        {
+          "sample": 19213,
+          "bytes": [
+            144,
+            67,
+            66
+          ]
+        },
+        {
+          "sample": 24013,
+          "bytes": [
+            128,
+            60,
+            0
+          ]
+        },
+        {
+          "sample": 38413,
+          "bytes": [
+            144,
+            72,
+            114
+          ]
+        },
+        {
+          "sample": 43213,
+          "bytes": [
+            128,
+            67,
+            0
+          ]
+        },
+        {
+          "sample": 48013,
+          "bytes": [
+            224,
+            96,
+            93
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            224,
+            0,
+            64
+          ]
+        },
+        {
+          "sample": 67213,
+          "bytes": [
+            128,
+            72,
+            0
+          ]
+        }
+      ],
+      "hash": "8b435380a3238d1b",
+      "samples": 384000,
+      "audio": "lead.f32"
+    },
+    {
+      "name": "hit",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "04 / Hard hit",
+        "mono": false,
+        "chord": false,
+        "values": {
+          "coupling": 0.9,
+          "stress": 0.7,
+          "response": 0.012,
+          "fm_depth": 2.7,
+          "pitch": 0.0,
+          "amp_attack": 0.003,
+          "amp_decay": 0.16,
+          "amp_sustain": 0.0,
+          "amp_release": 0.22,
+          "cutoff": 15000.0,
+          "resonance": 0.15,
+          "motion_rate": 0.5,
+          "motion_depth": 0.0,
+          "space_mix": 0.05,
+          "space_size": 0.3,
+          "output": -6.0,
+          "glide_enabled": 0.0,
+          "glide_time": 0.15,
+          "glide_target": 2.0,
+          "glide_legato": 0.0,
+          "glide_curve": 0.0,
+          "autobend_enabled": 0.0,
+          "autobend_time": 0.18,
+          "autobend_depth": 12.0,
+          "autobend_target": 2.0,
+          "autobend_phrase": 0.0,
+          "legato": 0.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            60,
+            94
+          ]
+        },
+        {
+          "sample": 19213,
+          "bytes": [
+            144,
+            67,
+            66
+          ]
+        },
+        {
+          "sample": 24013,
+          "bytes": [
+            128,
+            60,
+            0
+          ]
+        },
+        {
+          "sample": 38413,
+          "bytes": [
+            144,
+            72,
+            114
+          ]
+        },
+        {
+          "sample": 43213,
+          "bytes": [
+            128,
+            67,
+            0
+          ]
+        },
+        {
+          "sample": 48013,
+          "bytes": [
+            224,
+            96,
+            93
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            224,
+            0,
+            64
+          ]
+        },
+        {
+          "sample": 67213,
+          "bytes": [
+            128,
+            72,
+            0
+          ]
+        }
+      ],
+      "hash": "bb2ddf29cc84d6c1",
+      "samples": 384000,
+      "audio": "hit.f32"
+    },
+    {
+      "name": "stress",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "01 / Soft pad",
+        "mono": false,
+        "chord": true,
+        "values": {
+          "coupling": 1.0,
+          "stress": 1.0,
+          "response": 0.01,
+          "fm_depth": 4.0,
+          "pitch": 0.0,
+          "amp_attack": 0.65,
+          "amp_decay": 0.7,
+          "amp_sustain": 0.72,
+          "amp_release": 0.3,
+          "cutoff": 5500.0,
+          "resonance": 0.18,
+          "motion_rate": 0.25,
+          "motion_depth": 0.08,
+          "space_mix": 0.25,
+          "space_size": 0.7,
+          "output": -6.0,
+          "glide_enabled": 0.0,
+          "glide_time": 0.15,
+          "glide_target": 2.0,
+          "glide_legato": 0.0,
+          "glide_curve": 0.0,
+          "autobend_enabled": 0.0,
+          "autobend_time": 0.18,
+          "autobend_depth": 12.0,
+          "autobend_target": 2.0,
+          "autobend_phrase": 0.0,
+          "legato": 0.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            48,
+            94
+          ]
+        },
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            55,
+            94
+          ]
+        },
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            59,
+            94
+          ]
+        },
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            62,
+            94
+          ]
+        },
+        {
+          "sample": 28813,
+          "bytes": [
+            176,
+            64,
+            127
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            48,
+            0
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            55,
+            0
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            59,
+            0
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            128,
+            62,
+            0
+          ]
+        },
+        {
+          "sample": 76813,
+          "bytes": [
+            176,
+            64,
+            0
+          ]
+        }
+      ],
+      "hash": "f3499dba2a448b6c",
+      "samples": 384000,
+      "audio": "stress.f32"
+    },
+    {
+      "name": "combined",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "03 / Contact lead",
+        "mono": true,
+        "chord": false,
+        "values": {
+          "coupling": 0.75,
+          "stress": 0.4,
+          "response": 0.025,
+          "fm_depth": 2.7,
+          "pitch": 0.0,
+          "amp_attack": 0.006,
+          "amp_decay": 0.16,
+          "amp_sustain": 0.62,
+          "amp_release": 0.16,
+          "cutoff": 15000.0,
+          "resonance": 0.2,
+          "motion_rate": 0.75,
+          "motion_depth": 0.0,
+          "space_mix": 0.08,
+          "space_size": 0.3,
+          "output": -6.0,
+          "glide_enabled": 1.0,
+          "glide_time": 0.18,
+          "glide_target": 2.0,
+          "glide_legato": 0.0,
+          "glide_curve": 0.0,
+          "autobend_enabled": 1.0,
+          "autobend_time": 0.22,
+          "autobend_depth": 12.0,
+          "autobend_target": 3.0,
+          "autobend_phrase": 0.0,
+          "legato": 0.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            60,
+            94
+          ]
+        },
+        {
+          "sample": 19213,
+          "bytes": [
+            144,
+            67,
+            66
+          ]
+        },
+        {
+          "sample": 24013,
+          "bytes": [
+            128,
+            60,
+            0
+          ]
+        },
+        {
+          "sample": 38413,
+          "bytes": [
+            144,
+            72,
+            114
+          ]
+        },
+        {
+          "sample": 43213,
+          "bytes": [
+            128,
+            67,
+            0
+          ]
+        },
+        {
+          "sample": 48013,
+          "bytes": [
+            224,
+            96,
+            93
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            224,
+            0,
+            64
+          ]
+        },
+        {
+          "sample": 67213,
+          "bytes": [
+            128,
+            72,
+            0
+          ]
+        }
+      ],
+      "hash": "42fb00fb64c2569d",
+      "samples": 384000,
+      "audio": "combined.f32"
+    },
+    {
+      "name": "tone",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "03 / Contact lead",
+        "mono": true,
+        "chord": false,
+        "values": {
+          "coupling": 0.75,
+          "stress": 0.4,
+          "response": 0.025,
+          "fm_depth": 2.7,
+          "pitch": 0.0,
+          "amp_attack": 0.006,
+          "amp_decay": 0.16,
+          "amp_sustain": 0.62,
+          "amp_release": 0.16,
+          "cutoff": 1200.0,
+          "resonance": 0.55,
+          "motion_rate": 0.75,
+          "motion_depth": 0.0,
+          "space_mix": 0.08,
+          "space_size": 0.3,
+          "output": -6.0,
+          "glide_enabled": 1.0,
+          "glide_time": 0.18,
+          "glide_target": 4.0,
+          "glide_legato": 0.0,
+          "glide_curve": 0.0,
+          "autobend_enabled": 1.0,
+          "autobend_time": 0.22,
+          "autobend_depth": 12.0,
+          "autobend_target": 4.0,
+          "autobend_phrase": 0.0,
+          "legato": 0.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            60,
+            94
+          ]
+        },
+        {
+          "sample": 19213,
+          "bytes": [
+            144,
+            67,
+            66
+          ]
+        },
+        {
+          "sample": 24013,
+          "bytes": [
+            128,
+            60,
+            0
+          ]
+        },
+        {
+          "sample": 38413,
+          "bytes": [
+            144,
+            72,
+            114
+          ]
+        },
+        {
+          "sample": 43213,
+          "bytes": [
+            128,
+            67,
+            0
+          ]
+        },
+        {
+          "sample": 48013,
+          "bytes": [
+            224,
+            96,
+            93
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            224,
+            0,
+            64
+          ]
+        },
+        {
+          "sample": 67213,
+          "bytes": [
+            128,
+            72,
+            0
+          ]
+        }
+      ],
+      "hash": "435a250e96d3e9ec",
+      "samples": 384000,
+      "audio": "tone.f32"
+    },
+    {
+      "name": "legato",
+      "patch": {
+        "format": "nitride-preset",
+        "version": 2,
+        "id": "reference",
+        "name": "03 / Contact lead",
+        "mono": true,
+        "chord": false,
+        "values": {
+          "coupling": 0.75,
+          "stress": 0.4,
+          "response": 0.025,
+          "fm_depth": 2.7,
+          "pitch": 0.0,
+          "amp_attack": 0.006,
+          "amp_decay": 0.16,
+          "amp_sustain": 0.62,
+          "amp_release": 0.16,
+          "cutoff": 15000.0,
+          "resonance": 0.2,
+          "motion_rate": 0.75,
+          "motion_depth": 0.0,
+          "space_mix": 0.08,
+          "space_size": 0.3,
+          "output": -6.0,
+          "glide_enabled": 1.0,
+          "glide_time": 0.18,
+          "glide_target": 2.0,
+          "glide_legato": 0.0,
+          "glide_curve": 0.0,
+          "autobend_enabled": 1.0,
+          "autobend_time": 0.22,
+          "autobend_depth": -7.0,
+          "autobend_target": 3.0,
+          "autobend_phrase": 1.0,
+          "legato": 1.0
+        }
+      },
+      "events": [
+        {
+          "sample": 13,
+          "bytes": [
+            144,
+            60,
+            94
+          ]
+        },
+        {
+          "sample": 19213,
+          "bytes": [
+            144,
+            67,
+            66
+          ]
+        },
+        {
+          "sample": 24013,
+          "bytes": [
+            128,
+            60,
+            0
+          ]
+        },
+        {
+          "sample": 38413,
+          "bytes": [
+            144,
+            72,
+            114
+          ]
+        },
+        {
+          "sample": 43213,
+          "bytes": [
+            128,
+            67,
+            0
+          ]
+        },
+        {
+          "sample": 48013,
+          "bytes": [
+            224,
+            96,
+            93
+          ]
+        },
+        {
+          "sample": 57613,
+          "bytes": [
+            224,
+            0,
+            64
+          ]
+        },
+        {
+          "sample": 67213,
+          "bytes": [
+            128,
+            72,
+            0
+          ]
+        }
+      ],
+      "hash": "72f1a76154ddcdfd",
+      "samples": 384000,
+      "audio": "legato.f32"
+    }
+  ]
+}

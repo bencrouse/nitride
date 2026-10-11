@@ -37,12 +37,16 @@ int main(int argc,char** argv)
         if(!dump&&parameterIds.size()!=Nitride::hostParameterCount)throw std::runtime_error("Installed AU does not publish the current automation contract");
         AudioUnitParameterID couplingId=0;bool foundCoupling=false;
         AudioUnitParameterID depthId=0,autobendId=0;bool foundDepth=false,foundAutobend=false;
-        constexpr std::array<std::pair<const char*,AudioUnitParameterID>,17> legacyIds {{
+        constexpr std::array<std::pair<const char*,AudioUnitParameterID>,28> legacyIds {{
             {"Mono",3357411},{"Pitch",106677056},{"Tone resonance",157452366},{"FM depth",294406475},
             {"Amplitude release",426656908},{"Space size",504585114},{"Tone cutoff",798419949},{"Amplitude decay",894767487},
             {"Output",1141971201},{"Motion depth",1149422842},{"Space mix",1193923491},{"Stress",1255494068},
-            {"Motion rate",1284417481},{"Coupling",1777075325},{"Amplitude sustain",1779138216},{"Response",1807160385},{"Amplitude attack",1896459555}
+            {"Motion rate",1284417481},{"Coupling",1777075325},{"Amplitude sustain",1779138216},{"Response",1807160385},{"Amplitude attack",1896459555},
+            {"Autobend",201379178},{"Autobend depth",439255852},{"Legato envelopes",1040905678},{"Autobend phrase only",1078391664},
+            {"Autobend destination",1186448968},{"Glide time",1300260647},{"Glide",1606803623},{"Glide legato only",1629576104},
+            {"Glide curve",1638037461},{"Glide destination",1855248235},{"Autobend time",1885038916}
         }};
+        std::array<bool,legacyIds.size()> foundIds{};
         for(const auto id:parameterIds)
         {
             AudioUnitParameterInfo info{};UInt32 infoSize=sizeof(info);
@@ -54,10 +58,12 @@ int main(int argc,char** argv)
             if(std::string(name.data())=="Autobend depth"){depthId=id;foundDepth=true;}
             if(std::string(name.data())=="Autobend"){autobendId=id;foundAutobend=true;}
             if(dump)std::cout<<name.data()<<"\t"<<id<<'\n';
-            if(!dump)for(const auto& legacy:legacyIds)if(std::string(name.data())==legacy.first&&id!=legacy.second)throw std::runtime_error("A legacy AU parameter ID changed");
+            if(!dump)for(size_t i=0;i<legacyIds.size();++i)if(std::string(name.data())==legacyIds[i].first)
+            {if(id!=legacyIds[i].second)throw std::runtime_error("A frozen AU parameter ID changed");foundIds[i]=true;}
             if((info.flags&kAudioUnitParameterFlag_CFNameRelease)!=0&&info.cfNameString!=nullptr)CFRelease(info.cfNameString);
         }
         if(dump)return 0;
+        for(const auto found:foundIds)if(!found)throw std::runtime_error("A frozen AU parameter name disappeared");
         if(!foundCoupling)throw std::runtime_error("AU Coupling automation parameter missing");
         if(!foundDepth||!foundAutobend)throw std::runtime_error("AU Autobend controls missing");
         // JUCE's AU continuous-parameter API uses 0..1; value strings display

@@ -239,7 +239,12 @@ public:
 #else
     InstrumentReview() :
 #endif
-        field(live), ribbon(live), keyboard(keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard),
+        field(live), ribbon(live),
+#if NITRIDE_HOST_VIEW
+        keyboard(state),
+#else
+        keyboard(keyboardState, juce::MidiKeyboardComponent::horizontalKeyboard),
+#endif
         fmValue("FM depth", 0, 4, 1.65), pitchValue("Pitch", -12, 12, 0),
         attackValue("Attack", .001, 4, .65, true), decayValue("Decay", .01, 4, .7, true),
         sustainValue("Sustain", 0, 1, .72), releaseValue("Release", .02, 8, 1.4, true),
@@ -263,6 +268,7 @@ public:
             { "04 / Hard hit", {.90,.70,.012,2.7,0,.003,.16,0,.22,15000,.15,.5,0,.05,.3,-6}, false, false }
         };
 #if NITRIDE_HOST_VIEW
+        session.attachEditor();editorGeneration=session.editorMidi.epoch();
         rebuildPresets();
 #else
         for (size_t i = 0; i < patches.size(); ++i) patchBox.addItem(patches[i].name, static_cast<int>(i) + 1);
@@ -317,7 +323,13 @@ public:
 #else
         keep.setTooltip("Keep the current patch in this review session");
 #endif
-        field.onShape = [this](float c, float s) { if(!acceptControlChange())return;if (!touching) remember(); set(coupling, c); set(stress, s); };
+        field.onShape = [this](float c, float s) { if(!acceptControlChange())return;if (!touching) remember();
+#if NITRIDE_HOST_VIEW
+            session.setGroupIfCurrent({{Nitride::coupling,c},{Nitride::stress,s}},lastRestoreEpoch);syncFromSession();
+#else
+            set(coupling,c);set(stress,s);
+#endif
+        };
         field.onBegin = [this] { touching = true; if(current.values[sustain]<.01&&!notes.isEmpty())endAudition(); startAudition(); };
         field.onEnd = [this] { touching = false; if (!hold.getToggleState()) endAudition(); };
         ribbon.onResponse = [this](double seconds) { if(acceptControlChange())set(response, seconds); };
@@ -368,7 +380,13 @@ public:
 #else
         envelope.onBegin = [this] { remember(); };
 #endif
-        envelope.onChange = [this](std::array<double, 4> v) { if(!acceptControlChange())return;for (size_t i = 0; i < v.size(); ++i) set(static_cast<Parameter>(attack + i), v[i]); syncEnvelope(); };
+        envelope.onChange = [this](std::array<double, 4> v) { if(!acceptControlChange())return;
+#if NITRIDE_HOST_VIEW
+            session.setGroupIfCurrent({{Nitride::attack,v[0]},{Nitride::decay,v[1]},{Nitride::sustain,v[2]},{Nitride::release,v[3]}},lastRestoreEpoch);syncFromSession();
+#else
+            for(size_t i=0;i<v.size();++i)set(static_cast<Parameter>(attack+i),v[i]);syncEnvelope();
+#endif
+        };
         addAndMakeVisible(envelope);
         for (auto* panel : { &filter, &motion, &space }) { panel->onBegin = [this] { remember(); }; addAndMakeVisible(*panel); }
 #if NITRIDE_HOST_VIEW
@@ -376,9 +394,27 @@ public:
         motion.onBegin=[this]{beginControl({motionRate,motionDepth});};motion.onEnd=[this]{endControl({motionRate,motionDepth});};
         space.onBegin=[this]{beginControl({spaceMix,spaceSize});};space.onEnd=[this]{endControl({spaceMix,spaceSize});};
 #endif
-        filter.onChange = [this](float x, float y) { if(!acceptControlChange())return;set(cutoff, 40 * std::pow(450.0, x)); set(resonance, y * .85); };
-        motion.onChange = [this](float x, float y) { if(!acceptControlChange())return;set(motionRate, .05 * std::pow(160.0, x)); set(motionDepth, y); };
-        space.onChange = [this](float x, float y) { if(!acceptControlChange())return;set(spaceMix, x * .65); set(spaceSize, y); };
+        filter.onChange = [this](float x,float y){if(!acceptControlChange())return;
+#if NITRIDE_HOST_VIEW
+            session.setGroupIfCurrent({{Nitride::cutoff,40*std::pow(450.0,x)},{Nitride::resonance,y*.85}},lastRestoreEpoch);syncFromSession();
+#else
+            set(cutoff,40*std::pow(450.0,x));set(resonance,y*.85);
+#endif
+        };
+        motion.onChange = [this](float x,float y){if(!acceptControlChange())return;
+#if NITRIDE_HOST_VIEW
+            session.setGroupIfCurrent({{Nitride::motionRate,.05*std::pow(160.0,x)},{Nitride::motionDepth,y}},lastRestoreEpoch);syncFromSession();
+#else
+            set(motionRate,.05*std::pow(160.0,x));set(motionDepth,y);
+#endif
+        };
+        space.onChange = [this](float x,float y){if(!acceptControlChange())return;
+#if NITRIDE_HOST_VIEW
+            session.setGroupIfCurrent({{Nitride::spaceMix,x*.65},{Nitride::spaceSize,y}},lastRestoreEpoch);syncFromSession();
+#else
+            set(spaceMix,x*.65);set(spaceSize,y);
+#endif
+        };
         keyboard.setAvailableRange(48, 84); keyboard.setKeyPressBaseOctave(4); keyboard.setOctaveForMiddleC(4);
 #if NITRIDE_HOST_VIEW
         keyboard.setMidiChannel(15);
@@ -403,6 +439,7 @@ public:
         stopTimer(); endAudition();
 #if NITRIDE_HOST_VIEW
         session.endAllEdits();
+        session.detachEditor();
 #endif
 #if !NITRIDE_HOST_VIEW
         deviceManager.removeMidiInputDeviceCallback({}, &collector); shutdownAudio();
@@ -611,7 +648,7 @@ private:
     }
     void set(Parameter p,double value){current.values[static_cast<size_t>(p)]=value;
 #if NITRIDE_HOST_VIEW
-        session.set(static_cast<Nitride::Parameter>(p),value);
+        session.setIfCurrent(static_cast<Nitride::Parameter>(p),value,lastRestoreEpoch);
         const auto editedPatch=session.read();current={editedPatch.name,editedPatch.values,editedPatch.mono,editedPatch.chord};
         compare.setToggleState(false,juce::dontSendNotification);undo.setEnabled(session.canUndo());
 #else
@@ -752,7 +789,11 @@ private:
     void startAudition(bool capture=false)
     {
         if(!notes.isEmpty())return;
+#if NITRIDE_HOST_VIEW
+        if(capture)for(int n=0;n<128;++n)if(session.auditionNote(n))notes.add(n);
+#else
         if(capture)for(int n=0;n<128;++n)for(int c=1;c<16;++c)if(keyboardState.isNoteOn(c,n)){notes.add(n);break;}
+#endif
         if(notes.isEmpty()){if(live.externalKeys.load()!=0)return;notes=current.chord&&!current.mono?juce::Array<int>{48,55,59,62}:juce::Array<int>{60};}
         for(const auto n:notes)keyboardState.noteOn(16,n,.74f);
     }
@@ -787,6 +828,11 @@ private:
     void timerCallback() override{
 #if NITRIDE_HOST_VIEW
         const auto revision=session.revision.load(std::memory_order_acquire);
+        if(editorGeneration!=session.editorMidi.epoch())
+        {
+            editorGeneration=session.editorMidi.epoch();keyboardState.reset();notes.clear();hold.setToggleState(false,juce::dontSendNotification);touching=false;
+        }
+        keyboard.repaint();
         if(revision!=lastRevision||lastLibraryRevision!=session.libraryRevision.load())syncFromSession();
         deviceStatus="AUDIO PROCESSOR";
 #else
@@ -805,6 +851,7 @@ private:
     juce::TextButton legatoButton;
     std::uint64_t lastRevision=0;
     std::uint64_t lastLibraryRevision=0,lastRestoreEpoch=0;
+    std::uint64_t editorGeneration=0;
     std::array<int,Nitride::hostParameterCount> localEdits{};
     std::vector<juce::String> presetIds;
     std::unique_ptr<juce::FileChooser> fileChooser;
@@ -817,7 +864,11 @@ private:
 #if !NITRIDE_HOST_VIEW
     juce::MidiKeyboardState keyboardState;
 #endif
+#if NITRIDE_HOST_VIEW
+    Nitride::InstrumentKeyboard keyboard;
+#else
     juce::MidiKeyboardComponent keyboard;
+#endif
 #if !NITRIDE_HOST_VIEW
     juce::MidiMessageCollector collector;
     juce::MidiBuffer midi;

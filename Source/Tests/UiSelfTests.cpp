@@ -52,7 +52,7 @@ void referenceMatches()
     {
         InstrumentReview legacy;
         const auto expected=legacy.renderReference(program,48000,samples,block);
-        NitrideAudioProcessor processor;processor.applyPreset(program);processor.prepareToPlay(48000,block);
+        NitrideAudioProcessor processor(juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-ui-"+juce::Uuid().toString()));processor.applyPreset(program);processor.prepareToPlay(48000,block);
         double difference=0;
         for(int offset=0;offset<samples;offset+=block)
         {
@@ -82,7 +82,7 @@ int main(int argc,char** argv)
     try
     {
         referenceMatches();
-        NitrideAudioProcessor processor;processor.applyPreset(2);processor.prepareToPlay(48000,256);
+        NitrideAudioProcessor processor(juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-ui-"+juce::Uuid().toString()));processor.applyPreset(2);processor.prepareToPlay(48000,256);
         juce::AudioBuffer<float> audio(2,256);juce::MidiBuffer midi;
         midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),64);processor.processBlock(audio,midi);
         require(audio.getMagnitude(0,64)<0.0000001f,"Host MIDI note began before its sample offset");
@@ -120,7 +120,7 @@ int main(int argc,char** argv)
         require(processor.getInstrumentSession().live.voices.load()==0,"Field audition survived closing its editor");
 
         juce::MemoryBlock state;processor.getStateInformation(state);
-        NitrideAudioProcessor restored;restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+        NitrideAudioProcessor restored(juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-ui-"+juce::Uuid().toString()));restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
         require(std::abs(restored.getInstrumentSession().values[Nitride::fm].load()-3.2)<.001,"Basic condition recall lost the edited source");
         require(restored.getCurrentProgram()==1,"Basic condition recall lost the current program");
 

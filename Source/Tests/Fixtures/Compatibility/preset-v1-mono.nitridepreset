@@ -1,0 +1,26 @@
+{
+  "format": "nitride-preset",
+  "version": 1,
+  "id": "historical",
+  "name": "Historical mono",
+  "mono": true,
+  "chord": false,
+  "values": {
+    "coupling": 0.75,
+    "stress": 0.4,
+    "response": 0.025,
+    "fm_depth": 3.25,
+    "pitch": 5.0,
+    "amp_attack": 0.006,
+    "amp_decay": 0.16,
+    "amp_sustain": 0.62,
+    "amp_release": 0.16,
+    "cutoff": 15000.0,
+    "resonance": 0.2,
+    "motion_rate": 0.75,
+    "motion_depth": 0.0,
+    "space_mix": 0.08,
+    "space_size": 0.3,
+    "output": -6.0
+  }
+}

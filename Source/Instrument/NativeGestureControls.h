@@ -1,21 +1,23 @@
-// Product copy of the approved native gestures. The older study remains a frozen
-// comparison; both the AU and review app compile these controls through InstrumentView.cpp.
+#pragma once
+#include "InstrumentSession.h"
+namespace Nitride::UI
+{
 constexpr auto pi = juce::MathConstants<float>::pi;
-juce::Colour chassis() { return juce::Colour(0xff151817); }
-juce::Colour paper() { return juce::Colour(0xffe7e8e1); }
-juce::Colour ink() { return juce::Colour(0xffe5dfd2); }
-juce::Colour muted() { return juce::Colour(0xff969b8f); }
-juce::Colour glass() { return juce::Colour(0xff0d100f); }
-juce::Colour signal() { return juce::Colour(0xffd9d8ca); }
-juce::Colour accent() { return juce::Colour(0xfff87946); }
-juce::Font mono(float size = 10) { return juce::Font(juce::FontOptions("Menlo", size, juce::Font::plain)); }
-void text(juce::Graphics& g, const juce::String& caption, juce::Rectangle<int> bounds,
+inline juce::Colour chassis() { return juce::Colour(0xff151817); }
+inline juce::Colour paper() { return juce::Colour(0xffe7e8e1); }
+inline juce::Colour ink() { return juce::Colour(0xffe5dfd2); }
+inline juce::Colour muted() { return juce::Colour(0xff969b8f); }
+inline juce::Colour glass() { return juce::Colour(0xff0d100f); }
+inline juce::Colour signal() { return juce::Colour(0xffd9d8ca); }
+inline juce::Colour accent() { return juce::Colour(0xfff87946); }
+inline juce::Font mono(float size = 10) { return juce::Font(juce::FontOptions("Menlo", size, juce::Font::plain)); }
+inline void text(juce::Graphics& g, const juce::String& caption, juce::Rectangle<int> bounds,
           juce::Colour colour = ink(), float size = 10, juce::Justification alignment = juce::Justification::left)
 {
     g.setColour(colour); g.setFont(mono(size)); g.drawText(caption, bounds, alignment, false);
 }
-double responseFromPosition(double position) { return .01 * std::pow(160.0, juce::jlimit(0.0, 1.0, position)); }
-double responsePosition(double seconds) { return std::log(juce::jlimit(.01, 1.6, seconds) / .01) / std::log(160.0); }
+inline double responseFromPosition(double position) { return .01 * std::pow(160.0, juce::jlimit(0.0, 1.0, position)); }
+inline double responsePosition(double seconds) { return std::log(juce::jlimit(.01, 1.6, seconds) / .01) / std::log(160.0); }
 using LiveState = Nitride::LiveState;
 
 class PlayingField final : public juce::Component
@@ -198,3 +200,4 @@ private:
     double response=.075,started=0;
     bool holding=false,dragging=false;
 };
+}

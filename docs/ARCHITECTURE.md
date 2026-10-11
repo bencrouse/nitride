@@ -1,5 +1,13 @@
 # Architecture
 
+The bounded local hardening pass is recorded in `HARDENING.md`. Production UI now
+uses normal `InstrumentPanel`/control components; shared DSP is owned by
+`Source/DSP/Engine.*` and `nitride_dsp`. Editor keyboard/listener state is owned by
+the message thread, with fixed-capacity command transport to the renderer and
+separate atomic host-key display masks. Recall/gesture transactions have a
+generation-validated model write boundary. Preserved audio/compatibility inputs
+and local Debug/Release/ASan/TSan profiles protect subsequent changes.
+
 Nitride follows Carbide's native JUCE architecture. The approved view and audible
 engine are connected to the AU, with host automation and persistent returnability.
 `PITCH_MOTION.md` describes the current pitch-motion extension and measurements;
@@ -67,7 +75,8 @@ clock. The shared engine integrates independent carrier/modulator phases at 4×;
 its constant-ratio and moving-ratio synthesis paths are separately compiled.
 The renderer owns last-note-priority mono selection, key ownership/press counts and
 the latest-voice policy for the shared Tone filter. Native pitch controls are normal
-compiled components; the surrounding approved view retains its study-based include.
+compiled components; `InstrumentPanel` and normal control headers own the surrounding
+approved view without a study implementation include.
 
 ## Drawing and interaction
 
@@ -76,9 +85,9 @@ supporting graphs are control illustrations; network traces use live model-state
 snapshots. The view polls atomic publication at 30 Hz, with a reduced-motion option.
 The older pale and object studies remain reference apps.
 
-## Future DSP boundary
+## Shared DSP boundary
 
-The core lives in `Source/Studies/StudyEngine.*` and is linked into the shared
+The core lives in `Source/DSP/Engine.*` and is linked into the shared
 instrument rendering path. MIDI owners are distinguished between host and editor;
 events are processed at sample offsets. The renderer owns mutable DSP and effects,
 while views receive atomic metrics. Production sound-quality/performance work and
@@ -100,5 +109,5 @@ render the actual editor to a PNG without desktop capture permissions:
 ./build/nitride_ui_tests_artefacts/Debug/nitride_ui_tests --snapshot /absolute/path/to/ui.png
 ```
 
-`make reload-au` builds, copies, and validates the component. JUCE defaults to the
-existing sibling checkout at `../carbide/JUCE`; all build output is under `build/`.
+`make reload-au` builds, copies, ad-hoc seals and validates the component sequentially.
+JUCE defaults to a checksum-pinned download; all build output is under `build/`.
