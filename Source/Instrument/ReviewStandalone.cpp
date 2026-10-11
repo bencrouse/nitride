@@ -35,13 +35,30 @@ public:
     }
     void beginPreview() { view.beginPreview(); }
     bool checkInteractions() { return view.checkInteractions(); }
-    void beginAudioCheck() { view.beginPreview(); }
+    void beginAudioCheck(const juce::String& outputDevice={})
+    {
+        if(outputDevice.isNotEmpty())
+        {
+            auto setup=deviceManager.getAudioDeviceSetup();setup.outputDeviceName=outputDevice;
+            const auto error=deviceManager.setAudioDeviceSetup(setup,false);
+            if(error.isNotEmpty())std::cerr<<"Audio-check device setup: "<<error<<'\n';
+        }
+        if(auto* device=deviceManager.getCurrentAudioDevice())
+            std::cout<<"Audio-check device: "<<device->getName()<<", open "<<device->isOpen()<<", playing "<<device->isPlaying()<<'\n';
+        else std::cerr<<"Audio check has no current device\n";
+        view.beginPreview();
+    }
     void changeAudioCheck()
     {
         session.set(Nitride::coupling,.95);session.set(Nitride::stress,.8);session.set(Nitride::response,.035);
         session.setMono(true);session.set(Nitride::legato,1);session.set(Nitride::glideOn,1);session.set(Nitride::glideTime,.2);session.set(Nitride::glideCurve,0);
         session.set(Nitride::autobendOn,1);session.set(Nitride::autobendDepth,12);session.set(Nitride::autobendTarget,3);session.keyboard.noteOn(16,72,.74f);
         session.set(Nitride::cutoff,800);session.set(Nitride::filterAmount,3);session.set(Nitride::filterAttack,.15);
+        for(size_t i=0;i<Nitride::lfoParameters.size();++i)
+        {
+            const auto& lane=Nitride::lfoParameters[i];session.set(lane.enabled,1);session.set(lane.depth,i==0?2:i==1?1:i==2?1:.25);
+            session.set(lane.sync,1);session.set(lane.division,9+static_cast<int>(i));session.set(lane.wave,static_cast<double>(i%5));
+        }
     }
     bool finishAudioCheck()
     {
@@ -89,9 +106,9 @@ public:
         window=std::make_unique<Window>(testPresets);
         auto* component=static_cast<ReviewStandalone*>(window->getContentComponent());
         if(commandLine=="--interaction-check") {setApplicationReturnValue(component->checkInteractions()?0:1);quit();}
-        if(commandLine=="--audio-check")
+        if(commandLine=="--audio-check"||commandLine.startsWith("--audio-check-output "))
         {
-            component->beginAudioCheck();
+            component->beginAudioCheck(commandLine.startsWith("--audio-check-output ")?commandLine.fromFirstOccurrenceOf("--audio-check-output ",false,false).trim().unquoted():juce::String{});
             juce::Timer::callAfterDelay(1800,[this,component]{component->changeAudioCheck();
                 juce::Timer::callAfterDelay(1800,[this,component]{const auto passed=component->finishAudioCheck();
                     juce::Timer::callAfterDelay(1800,[this,component,passed]{setApplicationReturnValue(component->checkReleased()&&passed?0:1);quit();});});});

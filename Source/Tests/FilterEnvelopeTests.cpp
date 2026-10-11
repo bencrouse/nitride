@@ -150,7 +150,7 @@ void stateAndUi()
     for(int version:{1,2})
     {
         auto old=PresetStore::encode(*decoded);old.getDynamicObject()->setProperty("version",version);
-        const auto legacy=PresetStore::decode(old);require(legacy&&std::abs(legacy->patch.values[filterAmount])<1e-12,"Old preset unexpectedly enabled filter envelope");
+        require(!PresetStore::decode(old),"Unsupported old preset was accepted");
     }
     auto* hostAmount=p.getState().getParameter("filter_amount");hostAmount->setValueNotifyingHost(hostAmount->convertTo0to1(2));
     for(int i=0;i<10;++i)juce::MessageManager::getInstance()->runDispatchLoopUntil(20);
@@ -158,4 +158,4 @@ void stateAndUi()
     editor.reset();directory.deleteRecursively();
 }
 }
-void runFilterEnvelopeTests(){stages();ownership();sound();extremes();stateAndUi();std::cout<<"Filter envelope timing, polarity, shared ownership, legato, block timing, extreme routing, automation, UI, history and migration passed\n";}
+void runFilterEnvelopeTests(){stages();ownership();sound();extremes();stateAndUi();std::cout<<"Filter envelope timing, polarity, shared ownership, legato, block timing, extreme routing, automation, UI, history and schema validation passed\n";}

@@ -2,6 +2,11 @@
 
 ## Local validation
 
+Since 0.5.0, Motion/state development is greenfield: no legacy migration gate.
+`CurrentRegressionTests.cpp` checks deterministic current factory sounds and
+zero-depth neutrality; `LfoTests.cpp` covers the six-lane modulation bank.
+Historical captures remain archival, unchanged. See `docs/LFO.md`.
+
 Run `make check` during development and `make check-full` for clean Debug/Release,
 ASan/TSan and installed-AU integration checks. CMake downloads checksum-pinned
 JUCE 8.0.15 by default; `JUCE_DIR` is an explicit matching-checkout override.
@@ -35,21 +40,22 @@ make reload-au
 ```
 
 The AU and review app share `InstrumentSession`, `InstrumentRenderer` and
-`InstrumentView`. Preserve the frozen review-render comparisons when changing that
-path. `docs/MILESTONE_02.md` describes automation, session/preset scope and checks.
+`InstrumentView`. Keep their integration and current-schema regression checks
+passing. `docs/MILESTONE_02.md` records the earlier session/preset milestone.
 Treat `Source/Instrument/Parameters.h` as the authoritative automation/condition
-contract. Preserve the original 17 host positions, mono at index 16, and all IDs;
-append new controls with a new version hint. Keep host parameter listeners
-independent of document/file operations and unbounded waits.
+contract. The project currently assumes a greenfield state/automation schema.
+Keep host parameter listeners independent of document/file operations and unbounded waits.
 
 `make test` covers hosted MIDI/render equivalence, automation/state/preset workflow
 and DSP regressions. After AU integration changes, also run
 `./build/nitride_au_component_tests` against the installed component. Native UI
 changes can be checked through the review app's `--interaction-check` and
-`--audio-check` modes; interaction tests use a temporary preset library.
+`--audio-check` modes; interaction tests use a temporary preset library. If a device
+is unavailable, use `--audio-check-output "MacBook Pro Speakers"` to select an
+app-local output without changing the system default.
 
 The pitch suite covers Glide/Autobend, note priority, independent FM and band
-suppression, migration and native controls. `make render-pitch` creates matched
+suppression, current state and native controls. `make render-pitch` creates matched
 musical listening examples. `docs/PITCH_MOTION.md` specifies the feature behavior
 and measured limits. AU continuous values use the normalized API even when value
 strings display physical units; indexed destinations use their discrete indices.

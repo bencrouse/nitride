@@ -12,7 +12,7 @@ namespace
 {
 using Clock = std::chrono::steady_clock;
 constexpr int workloadVersion = 1;
-struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0; };
+struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0; };
 constexpr std::array workloads {
     Workload{"idle",0,0}, Workload{"lead",2,1}, Workload{"pad4",0,4}, Workload{"pad12",0,12},
     Workload{"stress12",0,12,true}, Workload{"automation12",0,12,true,true},
@@ -37,13 +37,19 @@ constexpr std::array filterWorkloads {
     Workload{"filter-close-off",0,4,false,false,true,false,0,-2},Workload{"filter-close-on",0,4,false,false,true,false,0,2},
     Workload{"filter-tone-off",0,12,true,false,false,false,4,-1},Workload{"filter-tone-on",0,12,true,false,false,false,4,1}
 };
+constexpr std::array lfoWorkloads {
+    Workload{"lfo1-off",2,1,false,false,false,false,0,0,-1},Workload{"lfo1-on",2,1,false,false,false,false,0,0,1},
+    Workload{"lfo4-off",0,4,false,false,false,false,0,0,-1},Workload{"lfo4-on",0,4,false,false,false,false,0,0,1},
+    Workload{"lfo12-off",0,12,true,false,false,false,0,0,-1},Workload{"lfo12-on",0,12,true,false,false,false,0,0,1},
+    Workload{"lfo-hold12-off",0,12,true,false,false,false,0,0,-2},Workload{"lfo-hold12-on",0,12,true,false,false,false,0,0,2}
+};
 struct Options
 {
     int passes = 3;
     double seconds = 2, warmup = .5;
     std::vector<int> rates {48000,96000}, blocks {64,256};
     juce::String only, label, output, compare;
-    bool pitchMotion=false,filterEnvelope=false;
+    bool pitchMotion=false,filterEnvelope=false,lfo=false,allowSoundChange=false;
 };
 struct Result
 {
@@ -75,6 +81,8 @@ Options parse(int argc, char** argv)
         if(argument=="--quick") { options.passes=1;options.seconds=.25;options.rates={48000};options.blocks={256};continue; }
         if(argument=="--pitch-motion"){options.pitchMotion=true;continue;}
         if(argument=="--filter-envelope"){options.filterEnvelope=true;continue;}
+        if(argument=="--lfo"){options.lfo=true;continue;}
+        if(argument=="--allow-sound-change"){options.allowSoundChange=true;continue;}
         require(i+1<argc,"Missing value for "+argument);const juce::String value(argv[++i]);
         if(argument=="--passes")options.passes=integer(value);
         else if(argument=="--seconds")options.seconds=number(value);
@@ -88,7 +96,7 @@ Options parse(int argc, char** argv)
         else throw std::runtime_error("Unknown option: "+argument.toStdString());
     }
     require(options.passes>=1 && options.passes<=20,"Passes must be 1–20");
-    require(!(options.pitchMotion&&options.filterEnvelope),"Select only one feature matrix");
+    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)<=1,"Select only one feature matrix");
     require(options.seconds<=120 && options.warmup<=10,"Duration out of range");
     for(const auto rate:options.rates)require(rate>=11025 && rate<=192000,"Sample rate out of range");
     for(const auto block:options.blocks)require(block>=16 && block<=4096,"Block size out of range");
@@ -129,7 +137,7 @@ void runPass(Result& result, const Options& options)
         patch.values[Nitride::coupling]=1;patch.values[Nitride::stress]=1;patch.values[Nitride::response]=.01;
         patch.values[Nitride::fm]=4;patch.values[Nitride::attack]=.004;patch.values[Nitride::sustain]=.8;
         patch.values[Nitride::cutoff]=18000;patch.values[Nitride::resonance]=.85;
-        patch.values[Nitride::motionRate]=8;patch.values[Nitride::motionDepth]=1;
+        patch.values[Nitride::couplingLfoRate]=8;patch.values[Nitride::couplingLfoDepth]=1;
         patch.values[Nitride::spaceMix]=.65;patch.values[Nitride::spaceSize]=1;
     }
     if(result.workload.pitchMotion!=0)
@@ -146,6 +154,16 @@ void runPass(Result& result, const Options& options)
         patch.values[Nitride::filterAttack]=.02;patch.values[Nitride::filterDecay]=.1;
         patch.values[Nitride::filterSustain]=.3;patch.values[Nitride::filterRelease]=.4;
         patch.values[Nitride::filterAmount]=result.workload.filterEnvelope>0?(closing?-3:3):0;
+    }
+    if(result.workload.lfo!=0)
+    {
+        patch.values[Nitride::cutoff]=1200;patch.values[Nitride::fm]=2;
+        for(size_t i=0;i<Nitride::lfoParameters.size();++i)
+        {
+            const auto& lane=Nitride::lfoParameters[i];patch.values[lane.enabled]=result.workload.lfo>0?1:0;
+            patch.values[lane.depth]=i==0?12:i==1?2:i==2?3:.65;patch.values[lane.rate]=2+static_cast<double>(i)*.5;
+            patch.values[lane.wave]=std::abs(result.workload.lfo)==2?4:static_cast<double>(i%5);
+        }
     }
     session.apply(patch);processor.prepareToPlay(result.rate,result.block);
     juce::AudioBuffer<float> audio(2,result.block);juce::MidiBuffer midi;midi.ensureSize(4096);
@@ -250,7 +268,8 @@ void compare(juce::var& current,const Options& options)
         identical &= audioSame;
         std::cout<<std::setw(28)<<data["key"].toString()<<"  "<<std::setw(6)<<before<<" -> "<<std::setw(6)<<after<<"%  "<<std::showpos<<change<<std::noshowpos<<"%  audio "<<(audioSame?"identical":"CHANGED")<<'\n';
     }
-    property(current,"baseline",options.compare);require(identical,"Audio fingerprint changed; do not accept this optimization without investigating");
+    property(current,"baseline",options.compare);property(current,"intentionalSoundChange",options.allowSoundChange);
+    require(identical||options.allowSoundChange,"Audio fingerprint changed; do not accept this optimization without investigating");
 }
 }
 
@@ -263,7 +282,9 @@ int main(int argc,char** argv)
             "--passes 3 --seconds 2 --warmup 0.5 --rate 48000 --block 64 --case stress12\n"
             "--quick runs one short pass at 48 kHz / 256 frames.\n"
             "--pitch-motion selects paired Glide/Autobend on/off performances.\n"
-            "--filter-envelope selects paired shared filter envelope on/off performances.\n";return 0;
+            "--filter-envelope selects paired shared filter envelope on/off performances.\n"
+            "--lfo selects paired six-lane Motion on/off performances.\n"
+            "--allow-sound-change records intentional greenfield sound changes during comparison.\n";return 0;
     }
     juce::ScopedJuceInitialiser_GUI initialiser;
     try
@@ -273,7 +294,7 @@ int main(int argc,char** argv)
             for(const auto rate:options.rates)for(const auto block:options.blocks)for(const auto& workload:matrix)
                 if(options.only.isEmpty()||options.only==workload.name)results.push_back({workload,rate,block});
         };
-        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else add(workloads);
+        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else add(workloads);
         require(!results.empty(),"Unknown workload: "+options.only);
         for(auto& result:results)result.times.reserve(static_cast<size_t>(std::ceil(options.seconds*result.rate/result.block))*static_cast<size_t>(options.passes));
         std::cout<<"Nitride "<<NITRIDE_BENCH_CONFIG<<" benchmark: "<<juce::SystemStats::getCpuModel()<<", "<<options.passes<<" passes, "<<options.seconds<<" audio seconds per case/pass\n";

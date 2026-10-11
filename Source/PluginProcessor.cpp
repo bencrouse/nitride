@@ -2,14 +2,6 @@
 #include "PluginEditor.h"
 #include "Instrument/PresetStore.h"
 
-namespace
-{
-constexpr std::array<const char*, Nitride::legacyParameterCount> stateNames {
-    "coupling","stress","response","fm","pitch","attack","decay","sustain","release",
-    "cutoff","resonance","motionRate","motionDepth","spaceMix","spaceSize","output"
-};
-}
-
 NitrideAudioProcessor::NitrideAudioProcessor(juce::File presetDirectory)
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       session(std::move(presetDirectory)),apvts(*this,nullptr,"NITRIDE_PARAMETERS",createParameterLayout()),renderer(session)
@@ -78,7 +70,18 @@ const juce::String NitrideAudioProcessor::getName() const { return JucePlugin_Na
 
 void NitrideAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
-    renderer.process(buffer, midi);
+    Nitride::DSP::Transport transport;
+    if(auto* playhead=getPlayHead())if(const auto position=playhead->getPosition())
+    {
+        if(const auto bpm=position->getBpm()){transport.bpm=*bpm;transport.hasTempo=true;}
+        if(const auto ppq=position->getPpqPosition()){transport.ppq=*ppq;transport.hasPosition=true;}
+        if(const auto bar=position->getPpqPositionOfLastBarStart()){transport.barStart=*bar;transport.hasBarStart=true;}
+        if(const auto count=position->getBarCount()){transport.barCount=*count;transport.hasBarCount=true;}
+        transport.playing=position->getIsPlaying();
+        if(const auto signature=position->getTimeSignature();signature&&signature->numerator>0&&signature->denominator>0)
+            transport.beatsPerBar=signature->numerator*4.0/signature->denominator;
+    }
+    renderer.process(buffer, midi,true,transport);
     // Instrument input is consumed, not passed through to another MIDI destination.
     midi.clear();
 }
@@ -100,7 +103,7 @@ void NitrideAudioProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     const juce::ScopedLock transaction(session.stateTransactionLock());
     juce::XmlElement state("NITRIDE_INSTRUMENT");
-    state.setAttribute("version",4);
+    state.setAttribute("version",5);
     const auto document=session.saveDocument();
     state.createNewChildElement("DOCUMENT")->addTextElement(juce::JSON::toString(document,true));
     // The document's edited conditions are the authority even while Compare is
@@ -129,21 +132,11 @@ void NitrideAudioProcessor::setStateInformation(const void* data,int size)
     if(auto state=getXmlFromBinary(data,size);state&&state->hasTagName("NITRIDE_INSTRUMENT"))
     {
         const auto version=state->getIntAttribute("version");
-        if(version==2||version==3||version==4)
+        if(version==5)
         {
             const auto* document=state->getChildByName("DOCUMENT");if(document==nullptr)return;
             const auto json=juce::JSON::parse(document->getAllSubText());
             if(session.restoreDocument(json).failed())return;
-        }
-        else if(version==1)
-        {
-            const auto index=juce::jlimit(0,getNumPrograms()-1,state->getIntAttribute("program"));
-            auto patch=Nitride::factoryPatches()[static_cast<size_t>(index)];
-            for(size_t i=0;i<stateNames.size();++i)patch.values[i]=Nitride::InstrumentSession::clamp(static_cast<Nitride::Parameter>(i),state->getDoubleAttribute(stateNames[i],patch.values[i]));
-            patch.mono=state->getBoolAttribute("mono",patch.mono);patch.chord=state->getBoolAttribute("chord",patch.chord);
-            patch.values[Nitride::glideOn]=patch.mono?1:0;
-            if(patch.mono){patch.values[Nitride::glideTime]=.025;patch.values[Nitride::glideCurve]=2;}
-            session.establishRestoredPatch(patch,index);
         }
         else return;
         apvts.replaceState(parameterStateFor(session.read()));

@@ -35,7 +35,7 @@ public:
     void noteOn(int note, float velocity, Articulation articulation = Articulation::pad, bool overlapping = false, bool returning = false) noexcept;
     void noteOff(int note) noexcept;
     void allNotesOff() noexcept;
-    void render(float* left, float* right, int samples, double* tonePitch = nullptr) noexcept;
+    void render(float* left, float* right, int samples, double* tonePitch = nullptr,const Nitride::DSP::ModulationFrame* modulation=nullptr) noexcept;
     using PitchSnapshot=Nitride::DSP::PitchSnapshot;
     PitchSnapshot getPitchSnapshot(int note=-1) const noexcept;
     float getAmount() const noexcept { return static_cast<float>(smoothedAmount); }
@@ -136,7 +136,7 @@ private:
     double targetIndex = 2.7;
     std::array<double, 4> envelopeTarget { 0.006, 0.16, 0.62, 0.16 };
     std::array<double, 4> envelopeValues { 0.006, 0.16, 0.62, 0.16 };
-    double targetBend = 0.0, smoothedBend = 0.0, pitchMultiplier = 1.0;
+    double targetBend = 0.0, smoothedBend = 0.0, pitchMultiplier = 1.0,lastLfoPitch=0;
     double networkLearning = 0.0, networkImpulseDecay = 0.0;
     double targetCoupling = 0.65, targetStress = 0.2, targetResponse = 0.025;
     double couplingDimension = 0.65, stressDimension = 0.2, responseDimension = 0.025;

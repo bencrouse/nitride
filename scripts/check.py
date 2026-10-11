@@ -59,7 +59,7 @@ def main():
         run(["ctest", "--preset", preset, *selection], log=reports / (profile + "-tests.log"), env=env)
         if profile == "release":
             benchmark = directory / "nitride_perf_artefacts/Release/nitride_perf"
-            for suffix, options in [("ordinary", []), ("pitch", ["--pitch-motion"]), ("filter", ["--filter-envelope"])]:
+            for suffix, options in [("ordinary", []), ("pitch", ["--pitch-motion"]), ("filter", ["--filter-envelope"]), ("lfo", ["--lfo"])]:
                 run([str(benchmark), "--quick", *options, "--output", str(reports / (suffix + ".json"))], log=reports / (suffix + "-benchmark.log"))
             component_dir = Path.home() / "Library/Audio/Plug-Ins/Components"
             component_dir.mkdir(parents=True, exist_ok=True)

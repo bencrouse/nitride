@@ -3,6 +3,7 @@
 #include "InstrumentSession.h"
 #include "../DSP/Engine.h"
 #include "../DSP/FilterEnvelope.h"
+#include "../DSP/Lfo.h"
 
 namespace Nitride
 {
@@ -13,7 +14,7 @@ class InstrumentRenderer
 public:
     explicit InstrumentRenderer(InstrumentSession& state) : session(state) {}
     void prepare(double sampleRate);
-    void process(juce::AudioBuffer<float>&, juce::MidiBuffer&, bool injectEditorNotes = true);
+    void process(juce::AudioBuffer<float>&, juce::MidiBuffer&, bool injectEditorNotes = true,const DSP::Transport& transport={});
     void reset() noexcept;
     SoundStudies::Engine::PitchSnapshot pitchSnapshot(int note=-1) const noexcept { return engine.getPitchSnapshot(note); }
     double filterEnvelopeLevel() const noexcept {return filterEnvelope.level();}
@@ -36,6 +37,7 @@ private:
     std::array<std::array<double, 2>, 2> tone {};
     DSP::FilterEnvelope filterEnvelope;
     juce::SmoothedValue<double> filterAmountSmooth;
+    DSP::LfoBank lfos;
     // Separate owners prevent closing an editor/key from releasing a host note
     // on the same channel and pitch.
     std::array<bool, 32 * 128> held {}, deferred {};
@@ -50,6 +52,6 @@ private:
     std::array<EditorMidiBridge::Command,EditorMidiBridge::blockBudget> editorCommands{};
     std::uint64_t editorEpoch=0;
     juce::SmoothedValue<float> cutoffSmooth, resonanceSmooth, gainSmooth;
-    double rate = 48000, lfoPhase = 0, wheel = 0;
+    double rate = 48000, wheel = 0;
 };
 }

@@ -94,6 +94,7 @@ void Engine::prepare(double sampleRate)
     envelopeValues = envelopeTarget;
     smoothedBend = targetBend = 0.0;
     pitchMultiplier = 1.0;
+    lastLfoPitch=0;
     clock = 0;
     nextSerial = numericalFaults = 0;
     playing = false;
@@ -163,7 +164,8 @@ void Engine::updateVoicePitch(Voice& voice) noexcept
     if(!pitchSettings.glide.enabled&&!pitchSettings.autobend.enabled&&!voice.splitPhase&&voice.glideRouting.silent()&&voice.autobendRouting.silent())
     {
         voice.frequency=voice.glide.destination();voice.carrierHz=voice.modulatorHz=voice.frequency*pitchMultiplier;
-        voice.tonePitch=0;voice.carrierBand=1;voice.autobend.advance();return;
+        voice.tonePitch=0;voice.carrierBand=pitchIsZero(lastLfoPitch)?1:std::clamp((rate*.47-voice.carrierHz)/(rate*.08),0.0,1.0);
+        voice.autobend.advance();return;
     }
     voice.glide.advance();voice.autobend.advance();
     const auto& g=voice.glideRouting.advance();const auto& a=voice.autobendRouting.advance();
@@ -188,7 +190,7 @@ void Engine::updateVoicePitch(Voice& voice) noexcept
     }
     voice.frequency=voice.glideRouting.silent()?target:current;
     if(!voice.splitPhase&&!samePitchValue(voice.carrierHz,voice.modulatorHz)){voice.splitPhase=true;voice.modulatorPhase=voice.phase;}
-    const auto bandLimitedMotion=voice.splitPhase||(pitchSettings.glide.enabled&&pitchSettings.glide.curve!=GlideCurve::classic)
+    const auto bandLimitedMotion=!pitchIsZero(lastLfoPitch)||voice.splitPhase||(pitchSettings.glide.enabled&&pitchSettings.glide.curve!=GlideCurve::classic)
         ||(pitchSettings.autobend.enabled&&!pitchIsZero(pitchSettings.autobend.depth));
     voice.carrierBand=bandLimitedMotion?std::clamp((rate*.47-voice.carrierHz)/(rate*.08),0.0,1.0):1;
     voice.tonePitch=(!pitchIsZero(g[2])&&toneAnchorHz>0?12*std::log2(current/toneAnchorHz)*g[2]:0)+voice.autoOffset*a[2];
@@ -713,7 +715,7 @@ double Engine::voiceSample(Voice& voice) noexcept
     return sample;
 }
 
-void Engine::render(float* left, float* right, int samples,double* tonePitch) noexcept
+void Engine::render(float* left, float* right, int samples,double* tonePitch,const Nitride::DSP::ModulationFrame* modulation) noexcept
 {
     for (int sample = 0; sample < samples; ++sample)
     {
@@ -737,8 +739,17 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch) no
             for (size_t i = 0; i < envelopeValues.size(); ++i) envelopeValues[i] += smoothing * (envelopeTarget[i] - envelopeValues[i]);
         const auto previousBend = smoothedBend;
         smoothedBend += smoothing * (targetBend - smoothedBend);
-        if (std::bit_cast<std::uint64_t>(previousBend) != std::bit_cast<std::uint64_t>(smoothedBend))
-            pitchMultiplier = std::exp2(smoothedBend / 12.0);
+        const auto lfoPitch=modulation?modulation[sample].pitch:0;
+        if (std::bit_cast<std::uint64_t>(previousBend) != std::bit_cast<std::uint64_t>(smoothedBend)||!samePitchValue(lfoPitch,lastLfoPitch))
+            pitchMultiplier = std::exp2(std::clamp(smoothedBend+lfoPitch,-48.0,48.0) / 12.0);
+        lastLfoPitch=lfoPitch;
+        const auto baseIndex=currentIndex,baseCoupling=couplingDimension,baseStress=stressDimension;
+        if(modulation)
+        {
+            currentIndex=std::clamp(baseIndex+modulation[sample].fm,0.0,4.0);
+            couplingDimension=std::clamp(baseCoupling+modulation[sample].coupling,0.0,1.0);
+            stressDimension=std::clamp(baseStress+modulation[sample].stress,0.0,1.0);
+        }
         for (size_t i = 0; i < partialRatios.size(); ++i)
         {
             partialRatios[i] = static_cast<double>(2 * i + 1) + smoothedAmount * partialSpreads[i];
@@ -800,6 +811,7 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch) no
         const auto result = static_cast<float>(0.8 * std::tanh(output * 0.16 / 0.8));
         left[sample] = result;
         right[sample] = result;
+        currentIndex=baseIndex;couplingDimension=baseCoupling;stressDimension=baseStress;
         if (playing) ++clock;
     }
 }

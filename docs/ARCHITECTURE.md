@@ -1,5 +1,11 @@
 # Architecture
 
+Current Motion/state architecture is described in `LFO.md`: six independent
+sample-clock LFO lanes, captured host timing, render-only modulation offsets and
+scalable scoped-history parameter lists. Since 0.5.0 the project deliberately
+uses a greenfield preset/state schema; older compatibility descriptions below
+record earlier milestones, not a current migration guarantee.
+
 The bounded local hardening pass is recorded in `HARDENING.md`. Production UI now
 uses normal `InstrumentPanel`/control components; shared DSP is owned by
 `Source/DSP/Engine.*` and `nitride_dsp`. Editor keyboard/listener state is owned by

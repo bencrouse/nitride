@@ -37,17 +37,13 @@ int main(int argc,char** argv)
         if(!dump&&parameterIds.size()!=Nitride::hostParameterCount)throw std::runtime_error("Installed AU does not publish the current automation contract");
         AudioUnitParameterID couplingId=0;bool foundCoupling=false;
         AudioUnitParameterID depthId=0,autobendId=0;bool foundDepth=false,foundAutobend=false;
-        constexpr std::array<std::pair<const char*,AudioUnitParameterID>,33> legacyIds {{
-            {"Mono",3357411},{"Pitch",106677056},{"Tone resonance",157452366},{"FM depth",294406475},
-            {"Amplitude release",426656908},{"Space size",504585114},{"Tone cutoff",798419949},{"Amplitude decay",894767487},
-            {"Output",1141971201},{"Motion depth",1149422842},{"Space mix",1193923491},{"Stress",1255494068},
-            {"Motion rate",1284417481},{"Coupling",1777075325},{"Amplitude sustain",1779138216},{"Response",1807160385},{"Amplitude attack",1896459555},
-            {"Autobend",201379178},{"Autobend depth",439255852},{"Legato envelopes",1040905678},{"Autobend phrase only",1078391664},
-            {"Autobend destination",1186448968},{"Glide time",1300260647},{"Glide",1606803623},{"Glide legato only",1629576104},
-            {"Glide curve",1638037461},{"Glide destination",1855248235},{"Autobend time",1885038916},
-            {"Filter attack",1084803311},{"Filter decay",314395699},{"Filter sustain",240114780},
-            {"Filter release",1035117120},{"Filter envelope amount",1078209279}
-        }};
+        const auto hash=[](const char* text){std::uint32_t value=0;while(*text)value=31*value+static_cast<unsigned char>(*text++);return value&0x7fffffffu;};
+        std::array<std::pair<const char*,AudioUnitParameterID>,Nitride::hostParameterCount> legacyIds{};
+        for(int h=0;h<Nitride::hostParameterCount;++h)
+        {
+            if(h==Nitride::monoHostIndex)legacyIds[static_cast<size_t>(h)]={"Mono",hash("mono")};
+            else{const auto& p=Nitride::hostParameters[static_cast<size_t>(Nitride::conditionIndex(h))];legacyIds[static_cast<size_t>(h)]={p.name,hash(p.id)};}
+        }
         std::array<bool,legacyIds.size()> foundIds{};
         for(const auto id:parameterIds)
         {
@@ -61,11 +57,11 @@ int main(int argc,char** argv)
             if(std::string(name.data())=="Autobend"){autobendId=id;foundAutobend=true;}
             if(dump)std::cout<<name.data()<<"\t"<<id<<'\n';
             if(!dump)for(size_t i=0;i<legacyIds.size();++i)if(std::string(name.data())==legacyIds[i].first)
-            {if(id!=legacyIds[i].second)throw std::runtime_error("A frozen AU parameter ID changed");foundIds[i]=true;}
+            {if(id!=legacyIds[i].second)throw std::runtime_error("Current AU parameter ID differs from its declared metadata");foundIds[i]=true;}
             if((info.flags&kAudioUnitParameterFlag_CFNameRelease)!=0&&info.cfNameString!=nullptr)CFRelease(info.cfNameString);
         }
         if(dump)return 0;
-        for(const auto found:foundIds)if(!found)throw std::runtime_error("A frozen AU parameter name disappeared");
+        for(const auto found:foundIds)if(!found)throw std::runtime_error("A current AU parameter name disappeared");
         if(!foundCoupling)throw std::runtime_error("AU Coupling automation parameter missing");
         if(!foundDepth||!foundAutobend)throw std::runtime_error("AU Autobend controls missing");
         // JUCE's AU continuous-parameter API uses 0..1; value strings display
@@ -78,6 +74,7 @@ int main(int argc,char** argv)
         check(AudioUnitSetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,.82f,0),"Host parameter write");
         constexpr AudioUnitParameterID filterAmountId=1078209279;
         check(AudioUnitSetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,.75f,0),"Filter envelope amount write");
+        const auto lfoId=hash("lfo_stress_depth");check(AudioUnitSetParameter(instance.unit,lfoId,kAudioUnitScope_Global,0,.65f,0),"LFO depth write");
         AudioUnitParameterValue retained=0;check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Host parameter read");
         if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("AU did not retain host automation value");
         CFPropertyListRef savedState=nullptr;UInt32 stateSize=sizeof(savedState);
@@ -92,6 +89,8 @@ int main(int argc,char** argv)
         if(std::abs(retained-normalizedDepth)>.0001f)throw std::runtime_error("Installed AU lost Autobend depth during state restore: "+std::to_string(retained));
         check(AudioUnitGetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,&retained),"Restored filter amount");
         if(std::abs(retained-.75f)>.0001f)throw std::runtime_error("Installed AU lost filter envelope during state restore");
+        check(AudioUnitGetParameter(instance.unit,lfoId,kAudioUnitScope_Global,0,&retained),"Restored LFO depth");
+        if(std::abs(retained-.65f)>.0001f)throw std::runtime_error("Installed AU lost LFO depth during state restore");
         std::cout<<"Installed AU automation/state verified\n"<<std::flush;
         AudioStreamBasicDescription format{};
         format.mSampleRate=48000;format.mFormatID=kAudioFormatLinearPCM;

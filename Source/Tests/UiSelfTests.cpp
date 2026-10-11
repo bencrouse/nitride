@@ -1,11 +1,5 @@
 #include "PluginEditor.h"
 
-// Freeze the pre-integration review algorithm as an independent reference.
-// It is compiled without an application entry point or an audio device.
-#define NITRIDE_INSTRUMENT_REVIEW 1
-#define NITRIDE_REFERENCE_CAPTURE 1
-#include "../Studies/GestureApplication.cpp"
-
 #include <stdexcept>
 
 namespace
@@ -50,8 +44,8 @@ void referenceMatches()
     constexpr int block=257,samples=48000;
     for(int program=0;program<4;++program)
     {
-        InstrumentReview legacy;
-        const auto expected=legacy.renderReference(program,48000,samples,block);
+        Nitride::InstrumentSession review;review.apply(Nitride::factoryPatches()[static_cast<size_t>(program)]);
+        Nitride::InstrumentRenderer renderer(review);renderer.prepare(48000);
         NitrideAudioProcessor processor(juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-ui-"+juce::Uuid().toString()));processor.applyPreset(program);processor.prepareToPlay(48000,block);
         double difference=0;
         for(int offset=0;offset<samples;offset+=block)
@@ -63,15 +57,16 @@ void referenceMatches()
                 if(patch.chord&&!patch.mono)for(const auto note:{48,55,59,62})midi.addEvent(juce::MidiMessage::noteOn(1,note,.74f),0);
                 else midi.addEvent(juce::MidiMessage::noteOn(1,60,.74f),0);
             }
+            juce::AudioBuffer<float> expected(2,size);auto reviewMidi=midi;renderer.process(expected,reviewMidi,false);
             processor.processBlock(audio,midi);
             for(int c=0;c<2;++c)for(int i=0;i<size;++i)
             {
                 const auto value=audio.getSample(c,i);require(std::isfinite(value),"Non-finite hosted audio");
-                difference=std::max(difference,std::abs(static_cast<double>(value-expected[static_cast<size_t>(c)][static_cast<size_t>(offset+i)])));
+                difference=std::max(difference,std::abs(static_cast<double>(value-expected.getSample(c,i))));
             }
         }
         if(difference>=0.00001)std::cerr<<"Reference difference, program "<<program<<": "<<difference<<'\n';
-        require(difference<0.00001,"Hosted rendering changed the approved review sound");
+        require(difference<0.00001,"Hosted and review rendering differ");
     }
 }
 }

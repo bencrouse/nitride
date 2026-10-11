@@ -27,6 +27,7 @@ inline const std::array<Patch, 4>& factoryPatches()
     static const auto patches=[] {
         const auto make=[](const char* name,std::array<double,legacyParameterCount> old,bool mono,bool chord) {
             Patch p;p.name=name;std::copy(old.begin(),old.end(),p.values.begin());p.mono=mono;p.chord=chord;
+            p.values[couplingLfoDepth]=0; // New Motion bank starts neutral; no legacy mode.
             if(mono){p.values[glideOn]=1;p.values[glideTime]=.025;p.values[glideCurve]=2;}
             return p;
         };
@@ -47,6 +48,8 @@ struct LiveState
     std::atomic<float> level {0}, coherence {1}, peak {0};
     std::atomic<int> voices {0}, externalKeys {0};
     std::atomic<std::uint64_t> faults {0};
+    std::array<std::atomic<float>,6> lfoPhases{};
+    std::atomic<float> lfoBpm{120};std::atomic<bool> lfoHostTempo{false};
     void publish(const DSP::NetworkSnapshot& s) noexcept
     {
         for(size_t i=0;i<offsets.size();++i)offsets[i].store(s.offsets[i],std::memory_order_relaxed);

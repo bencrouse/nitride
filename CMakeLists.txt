@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "Supported product architecture")
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum product macOS")
-project(nitride VERSION 0.4.0 LANGUAGES C CXX)
+project(nitride VERSION 0.5.0 LANGUAGES C CXX)
 
 if(NOT APPLE)
     message(FATAL_ERROR "nitride currently targets macOS only.")
@@ -51,6 +51,7 @@ target_sources(nitride PRIVATE
     Source/Instrument/PresetStore.cpp
     Source/Instrument/PitchMotionPanel.cpp
     Source/Instrument/InstrumentPanel.cpp
+    Source/Instrument/MotionPanel.cpp
 )
 target_include_directories(nitride PRIVATE Source)
 target_compile_definitions(nitride PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
@@ -111,6 +112,7 @@ target_sources(nitride_review PRIVATE
     Source/Instrument/PresetStore.cpp
     Source/Instrument/PitchMotionPanel.cpp
     Source/Instrument/InstrumentPanel.cpp
+    Source/Instrument/MotionPanel.cpp
 )
 target_compile_definitions(nitride_review PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 target_link_libraries(nitride_review PRIVATE nitride_study_engine juce::juce_audio_utils
@@ -133,7 +135,7 @@ if(NITRIDE_BUILD_TESTS)
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_ui_tests COMMAND nitride_ui_tests)
     juce_add_console_app(nitride_automation_tests PRODUCT_NAME "nitride_automation_tests")
-    target_sources(nitride_automation_tests PRIVATE Source/Tests/AutomationStateTests.cpp Source/Tests/FilterEnvelopeTests.cpp)
+    target_sources(nitride_automation_tests PRIVATE Source/Tests/AutomationStateTests.cpp Source/Tests/FilterEnvelopeTests.cpp Source/Tests/LfoTests.cpp)
     target_include_directories(nitride_automation_tests PRIVATE Source)
     target_compile_definitions(nitride_automation_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
     add_dependencies(nitride_automation_tests nitride)
@@ -149,7 +151,7 @@ if(NITRIDE_BUILD_TESTS)
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_pitch_tests COMMAND nitride_pitch_tests)
     juce_add_console_app(nitride_reference_tests PRODUCT_NAME "nitride_reference_tests")
-    target_sources(nitride_reference_tests PRIVATE Source/Tests/RegressionFixtures.cpp)
+    target_sources(nitride_reference_tests PRIVATE Source/Tests/CurrentRegressionTests.cpp)
     target_include_directories(nitride_reference_tests PRIVATE Source)
     target_compile_definitions(nitride_reference_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 NITRIDE_AUDIO_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/Source/Tests/Fixtures/Audio")
     add_dependencies(nitride_reference_tests nitride)

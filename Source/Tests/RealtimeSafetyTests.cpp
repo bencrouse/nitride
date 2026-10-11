@@ -56,8 +56,19 @@ void lifetime(const juce::File& directory)
 }
 void concurrency(const juce::File& directory)
 {
+    struct TestPlayhead final:juce::AudioPlayHead
+    {
+        mutable double ppq=0;
+        juce::Optional<PositionInfo> getPosition()const override
+        {
+            PositionInfo p;p.setBpm(150);p.setPpqPosition(ppq);p.setIsPlaying(true);p.setTimeSignature(TimeSignature{3,4});
+            ppq+=64*150.0/(48000*60);return p;
+        }
+    } playhead;
     NitrideAudioProcessor p(directory);p.applyPreset(2);p.prepareToPlay(48000,64);auto& s=p.getInstrumentSession();
+    p.setPlayHead(&playhead);
     s.set(Nitride::filterAmount,3);s.set(Nitride::cutoff,800);
+    for(const auto& lane:Nitride::lfoParameters){s.set(lane.enabled,1);s.set(lane.depth,.2);s.set(lane.wave,4);s.set(lane.sync,1);}
     juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;midi.ensureSize(4096);midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),0);
     process(p,audio,midi);juce::MemoryBlock state;p.getStateInformation(state);
     std::atomic<bool> stop=false,ready=false;
@@ -66,12 +77,14 @@ void concurrency(const juce::File& directory)
     while(!ready.load())std::this_thread::yield();
     auto* depth=p.getState().getParameter("autobend_depth");auto* coupling=p.getState().getParameter("coupling");
     auto* filterDepth=p.getState().getParameter("filter_amount");auto* filterAttack=p.getState().getParameter("filter_attack");
+    auto* lfoDepth=p.getState().getParameter("lfo_stress_depth");auto* lfoWave=p.getState().getParameter("lfo_pitch_wave");
     for(int i=0;i<100;++i)
     {
         const auto generation=s.restoreEpoch.load();
         s.keyboard.noteOn(15,64,.8f);s.keyboard.noteOff(15,64,0);
         coupling->setValueNotifyingHost(static_cast<float>(i%10)/10);depth->setValueNotifyingHost(depth->convertTo0to1(static_cast<float>(i%25)-12));
         filterDepth->setValueNotifyingHost(filterDepth->convertTo0to1(static_cast<float>(i%9)-4));filterAttack->setValueNotifyingHost(static_cast<float>(i%10)/10);
+        lfoDepth->setValueNotifyingHost(static_cast<float>(i%10)/10);lfoWave->setValueNotifyingHost(static_cast<float>(i%5)/4);
         p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
         require(!s.setIfCurrent(Nitride::fm,4,generation),"Old gesture overwrote completed recall");
         require(!s.setGroupIfCurrent({{Nitride::coupling,1},{Nitride::stress,1}},generation),"Old grouped gesture overwrote recall");

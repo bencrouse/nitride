@@ -34,7 +34,7 @@ void event(NitrideAudioProcessor& processor,const juce::MidiMessage& message)
 Patch motionPatch()
 {
     auto p=factoryPatches()[2];p.name="Pitch test";p.values[glideOn]=0;p.values[glideCurve]=0;p.values[glideTime]=.1;
-    p.values[autobendOn]=0;p.values[autobendTime]=.1;p.values[motionDepth]=0;p.values[spaceMix]=0;
+    p.values[autobendOn]=0;p.values[autobendTime]=.1;p.values[couplingLfoDepth]=0;p.values[spaceMix]=0;
     return p;
 }
 void pitchBehavior(const juce::File& directory)
@@ -241,14 +241,11 @@ void integration(const juce::File& directory)
     near(reloaded.getInstrumentSession().read().values[autobendDepth],9,0,"Disk preset lost pitch motion");
     auto legacy=PresetStore::encode({"legacy",factoryPatches()[2]});legacy.getDynamicObject()->setProperty("version",1);
     for(size_t i=legacyParameterCount;i<hostParameters.size();++i)legacy["values"].getDynamicObject()->removeProperty(hostParameters[i].id);
-    const auto migrated=PresetStore::decode(legacy);require(migrated.has_value(),"Legacy preset could not migrate");
-    near(migrated->patch.values[glideOn],1,0,"Legacy mono glide was not enabled");near(migrated->patch.values[glideCurve],2,0,"Legacy mono curve changed");near(migrated->patch.values[autobendOn],0,0,"Migration enabled Autobend");
-    near(migrated->patch.values[glideTime],.025,0,"Legacy mono glide time changed");
+    require(!PresetStore::decode(legacy),"Unsupported old preset was accepted");
     auto oldDocument=s.saveDocument();oldDocument.getDynamicObject()->setProperty("version",2);
     oldDocument.getDynamicObject()->setProperty("undo",juce::Array<juce::var>{});oldDocument.getDynamicObject()->setProperty("redo",juce::Array<juce::var>{});oldDocument.getDynamicObject()->setProperty("kept",juce::Array<juce::var>{});
     oldDocument["current"].getDynamicObject()->setProperty("patch",legacy);oldDocument["current"].getDynamicObject()->setProperty("reference",legacy);
-    require(restored.getInstrumentSession().restoreDocument(oldDocument).wasOk(),"Milestone-2 session could not migrate embedded legacy conditions");
-    near(restored.getInstrumentSession().read().values[glideTime],.025,0,"Migrated session lost Classic Glide");
+    require(restored.getInstrumentSession().restoreDocument(oldDocument).failed(),"Unsupported old session was accepted");
     std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());editor->addToDesktop(0);editor->setVisible(true);
     auto* depth=child<juce::Slider>(*editor,"Autobend depth");auto* destination=child<juce::ComboBox>(*editor,"Glide destination");
     require(depth&&destination,"Native pitch controls missing");depth->setValue(-5,juce::sendNotificationSync);

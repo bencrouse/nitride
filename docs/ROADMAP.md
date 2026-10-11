@@ -32,6 +32,10 @@ before musical development can continue.
 - Feature work in 0.4.0: dedicated shared-filter ADSR and signed octave Amount,
   compatible state/automation, ownership-aware gating and measured on/off workloads.
   See [filter envelope](FILTER_ENVELOPE.md).
+- Feature work in 0.5.0: six independent global LFO lanes, five waveforms,
+  musical tempo sync and selectable pitch/FM/cutoff/amplitude/network modulation.
+  Preset/state design is now greenfield, without legacy migration requirements.
+  See [Motion](LFO.md).
 
 See [milestone 2](MILESTONE_02.md) and [performance measurements](PERFORMANCE.md).
 Current performance is usable at 48 kHz, but maximum polyphony at 96 kHz still has
@@ -84,13 +88,13 @@ Confirm the feature list, then implement changes affecting modulation, note beha
 parameter ranges or expression before final preset voicing.
 
 Implemented: independent Glide/Autobend and a dedicated filter ADSR for the existing
-shared Tone filter. Filter Amount defaults to zero to preserve earlier sounds.
+shared Tone filter, plus the six-lane Motion bank. New modulation starts neutral.
 
 Pure workflow improvements—browser conveniences, shortcuts and naming—can happen
 alongside preset development.
 
 **Exit condition:** the intended sound-design and performance controls are available,
-their behavior is covered by meaningful checks, and existing sessions remain usable.
+their behavior is covered by meaningful checks, and current-schema sessions round-trip.
 
 ## 3. Explore a small reference preset collection
 
@@ -146,7 +150,7 @@ practical at their intended polyphony and supported performance settings.
 
 ## Open decisions and review points
 
-- Glide/Autobend and filter ADSR are implemented; any further minor-feature list is not yet
+- Glide/Autobend, filter ADSR and expanded LFOs are implemented; any further feature list is not yet
   specified. Changes to voice architecture or major sound behavior could alter
   the sequence above.
 - Hardware, polyphony and headroom acceptance targets are not yet specified.

@@ -7,7 +7,7 @@ void InstrumentRenderer::prepare(double sampleRate)
     rate = sampleRate;
     held = {}; deferred = {}; sustainPedal = {};
     groupHeld={};keyCounts={};presses={};velocities={};nextPress=0;physicalKeys=groupKeys=soundingKeys=0;monoNote=-1;monoMode=session.audioMono();
-    wheel = lfoPhase = 0;
+    wheel = 0;lfos.prepare(sampleRate);
     editorEpoch=session.editorMidi.epoch();
     engine.setTreatment(SoundStudies::Treatment::expressiveNetwork);
     filterEnvelope.prepare(sampleRate);
@@ -153,15 +153,20 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
     while (offset < samples)
     {
         const auto size = std::min(32, samples - offset);
-        const auto modulation = std::sin(lfoPhase) * session.audioValue(motionDepth) * .18;
-        engine.setNetworkDimensions(static_cast<float>(juce::jlimit(0.0, 1.0, session.audioValue(coupling) + modulation)),
-            static_cast<float>(session.audioValue(stress)), session.audioValue(response));
+        std::array<DSP::ModulationFrame,32> engineModulation{};
+        std::array<double,32> cutoffModulation{},amplitudeModulation{};
+        const auto engineActive=lfos.engineActive();
+        for(int i=0;i<size;++i)
+        {
+            const auto values=lfos.next();const auto n=static_cast<size_t>(i);
+            engineModulation[n]={values[0],values[1],values[4],values[5]};cutoffModulation[n]=values[2];amplitudeModulation[n]=values[3];
+        }
         std::array<double,32> toneMotion{};
-        engine.render(left+offset,right+offset,size,toneMotion.data());
+        engine.render(left+offset,right+offset,size,toneMotion.data(),engineActive?engineModulation.data():nullptr);
         for(int i=0;i<size;++i)
         {
             const auto base=static_cast<double>(cutoffSmooth.getNextValue());
-            auto shift=toneMotion[static_cast<size_t>(i)];
+            auto shift=toneMotion[static_cast<size_t>(i)]+12*cutoffModulation[static_cast<size_t>(i)];
             const auto envelopeLevel=filterEnvelope.next(),amount=filterAmountSmooth.getNextValue();
             if(std::abs(amount)>0)shift+=12*amount*envelopeLevel;
             const auto frequency=std::min(SoundStudies::pitchIsZero(shift)?base:std::max(10.0,base*std::exp2(shift/12)),rate*.42);
@@ -171,20 +176,26 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
                 auto& t=tone[static_cast<size_t>(channel)];const auto v1=a*(t[0]+g*(input-t[1]));const auto v2=t[1]+g*v1;
                 t[0]=2*v1-t[0];t[1]=2*v2-t[1];return static_cast<float>(v2);
             };
-            left[offset+i]=filterSample(left[offset+i],0);if(right!=left)right[offset+i]=filterSample(right[offset+i],1);
+            const auto amplitude=static_cast<float>(amplitudeModulation[static_cast<size_t>(i)]);
+            left[offset+i]=filterSample(left[offset+i],0)*amplitude;if(right!=left)right[offset+i]=filterSample(right[offset+i],1)*amplitude;
         }
-        lfoPhase += juce::MathConstants<double>::twoPi * session.audioValue(motionRate) * size / rate;
-        lfoPhase = std::fmod(lfoPhase, juce::MathConstants<double>::twoPi);
         offset += size;
     }
 }
 
-void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuffer& midi, bool injectEditorNotes)
+void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuffer& midi, bool injectEditorNotes,const DSP::Transport& transport)
 {
     const juce::ScopedNoDenormals noDenormals;
     audio.clear();
     if (audio.getNumChannels() == 0 || audio.getNumSamples() == 0) return;
     updateEngine();
+    std::array<DSP::LfoSettings,DSP::lfoCount> settings{};
+    for(size_t i=0;i<settings.size();++i)
+    {
+        const auto& p=lfoParameters[i];settings[i]={session.audioValue(p.enabled)>=.5,session.audioValue(p.sync)>=.5,
+            static_cast<DSP::LfoWave>(static_cast<int>(session.audioValue(p.wave))),session.audioValue(p.rate),session.audioValue(p.depth),static_cast<int>(session.audioValue(p.division))};
+    }
+    lfos.configure(settings,transport,session.audioValue(lfoTempo));
     if(monoMode!=session.audioMono())
     {
         monoMode=session.audioMono();engine.allNotesOff();monoNote=-1;
@@ -258,6 +269,8 @@ void InstrumentRenderer::publish()
         session.editorMidi.hostHeld[note].store(down,std::memory_order_relaxed);session.editorMidi.hostSounding[note].store(sounding,std::memory_order_relaxed);
     }
     session.live.faults.store(engine.getNumericalFaults());
+    for(size_t i=0;i<DSP::lfoCount;++i)session.live.lfoPhases[i].store(static_cast<float>(lfos.phase(i)),std::memory_order_relaxed);
+    session.live.lfoBpm.store(static_cast<float>(lfos.bpm()));session.live.lfoHostTempo.store(lfos.hostTempo());
     session.live.publish(engine.getNetworkSnapshot());
 }
 
@@ -266,6 +279,7 @@ void InstrumentRenderer::reset() noexcept
     held = {}; deferred = {}; sustainPedal = {};
     groupHeld={};keyCounts={};physicalKeys=groupKeys=soundingKeys=0;monoNote=-1;
     filterEnvelope.reset();
+    lfos.prepare(rate);
     engine.allNotesOff();
     session.editorMidi.reset();editorEpoch=session.editorMidi.epoch();
     publish();

@@ -1,6 +1,7 @@
 #include "PluginEditor.h"
 #include "Instrument/PresetStore.h"
 #include "FilterEnvelopeTests.h"
+#include "LfoTests.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -51,6 +52,7 @@ int main()
     try
     {
         runFilterEnvelopeTests();
+        runLfoTests();
         TestDirectory directory;
         NitrideAudioProcessor processor(directory.folder);
         auto& session=processor.getInstrumentSession();auto& parameters=processor.getState();
@@ -182,12 +184,12 @@ int main()
         // The v1 numeric conditions from milestone 1 remain loadable.
         juce::XmlElement v1("NITRIDE_INSTRUMENT");v1.setAttribute("version",1);v1.setAttribute("program",2);v1.setAttribute("fm",2.125);v1.setAttribute("motionRate",.8);
         juce::MemoryBlock legacy;juce::AudioProcessor::copyXmlToBinary(v1,legacy);portable.setStateInformation(legacy.getData(),static_cast<int>(legacy.getSize()));
-        require(portable.getCurrentProgram()==2&&std::abs(portable.getInstrumentSession().read().values[Nitride::fm]-2.125)<.001,"Milestone-1 migration failed");
+        require(sameSound(portable.getInstrumentSession().read(),kept),"Unsupported old state damaged current sound");
         const auto beforeInvalid=portable.getInstrumentSession().read();const std::array<char,4> garbage{'n','o','p','e'};
         portable.setStateInformation(garbage.data(),4);require(sameSound(portable.getInstrumentSession().read(),beforeInvalid),"Malformed state damaged the current sound");
         auto malformed=Nitride::PresetStore::encode({juce::Uuid().toString(),kept});malformed.getDynamicObject()->setProperty("version",99);
         require(!Nitride::PresetStore::decode(malformed),"Unsupported preset version was accepted");
-        std::cout<<"Milestone 2 passed: stable host parameters, gestures, automation/UI sync, compare-safe state, history, persistent/portable presets, migration and malformed-state rejection.\n";
+        std::cout<<"Session checks passed: host parameters, gestures, automation/UI sync, compare-safe state, history, persistent/portable presets and malformed/unsupported-state rejection.\n";
         return 0;
     }
     catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
