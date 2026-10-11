@@ -29,6 +29,9 @@ before musical development can continue.
   fixtures, bounded editor handoff, generation-aware recall, allocation/concurrency
   checks, production UI/DSP ownership and local sanitizer validation. See
   [hardening results](HARDENING.md).
+- Feature work in 0.4.0: dedicated shared-filter ADSR and signed octave Amount,
+  compatible state/automation, ownership-aware gating and measured on/off workloads.
+  See [filter envelope](FILTER_ENVELOPE.md).
 
 See [milestone 2](MILESTONE_02.md) and [performance measurements](PERFORMANCE.md).
 Current performance is usable at 48 kHz, but maximum polyphony at 96 kHz still has
@@ -79,6 +82,9 @@ extraction and other cleanup can proceed alongside feature work.
 
 Confirm the feature list, then implement changes affecting modulation, note behavior,
 parameter ranges or expression before final preset voicing.
+
+Implemented: independent Glide/Autobend and a dedicated filter ADSR for the existing
+shared Tone filter. Filter Amount defaults to zero to preserve earlier sounds.
 
 Pure workflow improvements—browser conveniences, shortcuts and naming—can happen
 alongside preset development.
@@ -140,7 +146,7 @@ practical at their intended polyphony and supported performance settings.
 
 ## Open decisions and review points
 
-- Glide/Autobend are implemented; the remaining minor-feature list is not yet
+- Glide/Autobend and filter ADSR are implemented; any further minor-feature list is not yet
   specified. Changes to voice architecture or major sound behavior could alter
   the sequence above.
 - Hardware, polyphony and headroom acceptance targets are not yet specified.

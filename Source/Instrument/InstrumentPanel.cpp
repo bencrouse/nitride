@@ -14,6 +14,8 @@ public:
         :session(s),live(s.live),audioSettings(std::move(settingsCallback)),glidePanel(s,false),autobendPanel(s,true),field(live),ribbon(live),keyboard(s),
         fmValue("FM depth",0,4,1.65),pitchValue("Pitch",-12,12,0),attackValue("Attack",.001,4,.65,true),decayValue("Decay",.01,4,.7,true),
         sustainValue("Sustain",0,1,.72),releaseValue("Release",.02,8,1.4,true),outputValue("Output",-24,0,-6),
+        filterAttackValue("Attack",.001,4,.01,true),filterDecayValue("Decay",.01,4,.3,true),filterSustainValue("Sustain",0,1,.5),
+        filterReleaseValue("Release",.02,8,.4,true),filterAmountValue("Amount",-6,6,0),filterEnvelope("Filter envelope"),
         filter(XYControl::Kind::filter),motion(XYControl::Kind::motion),space(XYControl::Kind::space)
     {
         setLookAndFeel(&look);
@@ -45,6 +47,19 @@ public:
         fmValue.format=[](double v){return juce::String(v,2);};pitchValue.format=[](double v){return(v>0?"+":"")+juce::String(v,1)+" st";};
         for(auto* value:{&attackValue,&decayValue,&releaseValue})value->format=[](double v){return v>=1?juce::String(v,2)+" s":juce::String(v*1000,0)+" ms";};
         sustainValue.format=[](double v){return juce::String(v*100,0)+"%";};outputValue.format=[](double v){return juce::String(v,1)+" dB";};
+        for(auto pair:{std::pair{&filterAttackValue,filterAttack},{&filterDecayValue,filterDecay},{&filterSustainValue,filterSustain},{&filterReleaseValue,filterRelease},{&filterAmountValue,filterAmount}})
+        {
+            auto* value=pair.first;const auto parameter=pair.second;const auto name=hostParameters[static_cast<size_t>(parameter)].name;
+            value->setName(name);value->setTitle(name);value->setDescription(juce::String("Drag vertically to change ")+name+". Arrows adjust. Double-click resets.");
+            value->onBegin=[this,parameter]{begin({hostIndex(parameter)});};value->onEnd=[this,parameter]{end({hostIndex(parameter)});};
+            value->onChange=[this,parameter](double v){set(parameter,v);};addAndMakeVisible(*value);
+        }
+        for(auto* value:{&filterAttackValue,&filterDecayValue,&filterReleaseValue})value->format=attackValue.format;
+        filterSustainValue.format=sustainValue.format;filterAmountValue.format=[](double v){return(v>0?"+":"")+juce::String(v,2)+" oct";};
+        filterAmountValue.setTooltip("Envelope depth in octaves. Positive opens the filter; negative closes it. Zero preserves the base cutoff.");
+        filterEnvelope.onBegin=[this]{begin({hostIndex(filterAttack),hostIndex(filterDecay),hostIndex(filterSustain),hostIndex(filterRelease)});};
+        filterEnvelope.onEnd=[this]{end({hostIndex(filterAttack),hostIndex(filterDecay),hostIndex(filterSustain),hostIndex(filterRelease)});};
+        filterEnvelope.onChange=[this](std::array<double,4> v){group({{filterAttack,v[0]},{filterDecay,v[1]},{filterSustain,v[2]},{filterRelease,v[3]}});};addAndMakeVisible(filterEnvelope);
         poly.setButtonText("POLY");monoButton.setButtonText("MONO");legatoButton.setButtonText("LEGATO");legatoButton.setName("Legato play mode");
         poly.onClick=[this]{playMode(0);};monoButton.onClick=[this]{playMode(1);};legatoButton.onClick=[this]{playMode(2);};
         for(auto* b:{&poly,&monoButton,&legatoButton})addAndMakeVisible(*b);addAndMakeVisible(glidePanel);addAndMakeVisible(autobendPanel);
@@ -59,7 +74,7 @@ public:
         keyboard.setAvailableRange(48,84);keyboard.setKeyPressBaseOctave(4);keyboard.setOctaveForMiddleC(4);keyboard.setMidiChannel(15);
         keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xff2b312b));keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,glass());
         keyboard.setColour(juce::MidiKeyboardComponent::textLabelColourId,muted());keyboard.setColour(juce::MidiKeyboardComponent::keyDownOverlayColourId,accent().withAlpha(.65f));addAndMakeVisible(keyboard);
-        sync();setSize(1200,840);startTimerHz(30);
+        sync();setSize(1200,960);startTimerHz(30);
     }
     ~Content() override{stopTimer();endAudition();session.endAllEdits();session.detachEditor();setLookAndFeel(nullptr);}
     void beginPreview(){hold.setToggleState(true,juce::dontSendNotification);startAudition();}
@@ -69,18 +84,21 @@ public:
         field.keyPressed(juce::KeyPress(juce::KeyPress::rightKey));const auto changed=current.values[coupling]>initial;undo.onClick();const auto undone=std::abs(current.values[coupling]-initial)<.001;
         fmValue.getAccessibilityHandler()->getValueInterface()->setValue(3.2);const auto source=std::abs(current.values[fm]-3.2)<.001;
         envelope.onChange({.1,.2,.5,.4});const auto env=std::abs(current.values[attack]-.1)<.001;
+        filterEnvelope.onBegin();filterEnvelope.onChange({.03,.15,.25,.6});filterEnvelope.onEnd();
+        filterAmountValue.getAccessibilityHandler()->getValueInterface()->setValue(-2);
+        const auto filterEnv=std::abs(current.values[filterAttack]-.03)<.001&&std::abs(current.values[filterAmount]+2)<.001&&std::abs(current.values[attack]-.1)<.001;
         filter.onChange(.7f,.4f);motion.onChange(.4f,.2f);space.onChange(.3f,.7f);const auto support=current.values[cutoff]>1000&&current.values[motionDepth]>.1&&current.values[spaceMix]>.1;
         const auto count=session.presets().size();const auto kept=session.keep("Interaction test").wasOk()&&session.presets().size()==count+1;rebuildPresets();sync();
         const auto saved=current;set(stress,.8);session.setComparing(true);sync();const auto compared=std::abs(current.values[stress]-saved.values[stress])<.001;
         session.setComparing(false);sync();const auto returned=std::abs(current.values[stress]-.8)<.001;
         field.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey));const auto played=!notes.isEmpty();field.keyStateChanged(false);const auto stopped=notes.isEmpty();
-        std::cout<<"Native interaction checks: "<<changed<<undone<<source<<env<<support<<kept<<compared<<returned<<played<<stopped<<'\n';
-        return changed&&undone&&source&&env&&support&&kept&&compared&&returned&&played&&stopped;
+        std::cout<<"Native interaction checks: "<<changed<<undone<<source<<env<<filterEnv<<support<<kept<<compared<<returned<<played<<stopped<<'\n';
+        return changed&&undone&&source&&env&&filterEnv&&support&&kept&&compared&&returned&&played&&stopped;
     }
     void paint(juce::Graphics& g) override
     {
         g.fillAll(chassis());g.setColour(juce::Colour(0xff1b201d));g.fillRect(0,92,286,424);g.fillRect(918,92,282,424);g.setColour(juce::Colour(0xff30372f));
-        for(int y:{92,530,726})g.drawHorizontalLine(y,24,1176);g.drawVerticalLine(286,110,510);g.drawVerticalLine(918,110,510);g.drawVerticalLine(392,553,710);g.drawVerticalLine(800,553,710);
+        for(int y:{92,530,726,846})g.drawHorizontalLine(y,24,1176);g.drawVerticalLine(286,110,510);g.drawVerticalLine(918,110,510);g.drawVerticalLine(392,553,710);g.drawVerticalLine(800,553,710);
         g.setColour(ink());g.setFont(juce::Font(juce::FontOptions("Helvetica Neue",36,juce::Font::bold)));g.drawText("nitride",25,23,200,43,juce::Justification::left);
         text(g,"PATCH",{300,13,120,14},muted(),8);section(g,"SOUND",{24,112,238,18});section(g,"NETWORK",{310,112,584,18});section(g,"AMPLITUDE",{942,112,234,18});
         text(g,"COUPLING "+juce::String(current.values[coupling]*100,0)+"%   /   STRESS "+juce::String(current.values[stress]*100,0)+"%",{310,428,584,17},muted(),8);
@@ -91,8 +109,10 @@ public:
         text(g,formatCutoff(current.values[cutoff])+"  /  RES "+juce::String(current.values[resonance]*100,0)+"%",{36,692,332,17},muted(),9);
         text(g,juce::String(current.values[motionRate],2)+" Hz  /  DEPTH "+juce::String(current.values[motionDepth]*100,0)+"%",{428,692,348,17},muted(),9);
         text(g,"MIX "+juce::String(current.values[spaceMix]*100,0)+"%  /  SIZE "+juce::String(current.values[spaceSize]*100,0)+"%",{836,692,340,17},muted(),9);
-        text(g,"NATIVE INSTRUMENT",{26,808,260,17},muted(),8);text(g,juce::String(live.voices.load())+" VOICES",{600,808,146,17},muted(),8);text(g,"AUDIO PROCESSOR",{250,808,340,17},muted(),8);
-        const auto peak=live.peak.load();for(int i=0;i<14;++i){g.setColour(peak>static_cast<float>(i)/20?accent().withAlpha(.8f):juce::Colour(0xff30372f));g.fillRect(790+i*8,813,5,10);}
+        section(g,"FILTER ENVELOPE",{24,742,344,18});text(g,"SHARED > CUTOFF",{836,742,340,18},muted(),8);
+        text(g,"SIGNED DEPTH / OCTAVES",{836,810,340,17},muted(),8);
+        text(g,"NATIVE INSTRUMENT",{26,928,260,17},muted(),8);text(g,juce::String(live.voices.load())+" VOICES",{600,928,146,17},muted(),8);text(g,"AUDIO PROCESSOR",{250,928,340,17},muted(),8);
+        const auto peak=live.peak.load();for(int i=0;i<14;++i){g.setColour(peak>static_cast<float>(i)/20?accent().withAlpha(.8f):juce::Colour(0xff30372f));g.fillRect(790+i*8,933,5,10);}
     }
     void resized() override
     {
@@ -100,7 +120,10 @@ public:
         field.setBounds(310,145,584,274);ribbon.setBounds(310,448,584,82);fmValue.setBounds(36,208,226,28);pitchValue.setBounds(36,242,226,28);
         poly.setBounds(36,280,70,24);monoButton.setBounds(112,280,70,24);legatoButton.setBounds(188,280,74,24);glidePanel.setBounds(36,317,226,85);autobendPanel.setBounds(36,418,226,85);
         envelope.setBounds(942,145,234,147);attackValue.setBounds(942,309,234,34);decayValue.setBounds(942,351,234,34);sustainValue.setBounds(942,393,234,34);releaseValue.setBounds(942,435,234,34);
-        filter.setBounds(36,586,332,96);motion.setBounds(428,586,348,96);space.setBounds(836,586,340,96);keyboard.setBounds(26,741,1148,53);keyboard.setKeyWidth(1148.0f/22);outputValue.setBounds(914,803,262,28);
+        filter.setBounds(36,586,332,96);motion.setBounds(428,586,348,96);space.setBounds(836,586,340,96);
+        filterEnvelope.setBounds(36,767,332,64);filterAttackValue.setBounds(428,767,166,28);filterDecayValue.setBounds(610,767,166,28);
+        filterSustainValue.setBounds(428,803,166,28);filterReleaseValue.setBounds(610,803,166,28);filterAmountValue.setBounds(836,767,340,32);
+        keyboard.setBounds(26,861,1148,53);keyboard.setKeyWidth(1148.0f/22);outputValue.setBounds(914,923,262,28);
     }
 private:
     void set(Parameter p,double value){session.setIfCurrent(p,value,lastEpoch);sync();}
@@ -124,13 +147,15 @@ private:
         const auto revision=session.revision.load(std::memory_order_acquire),epoch=session.restoreEpoch.load();
         if(lastEpoch!=epoch)
         {
-            endAudition();hold.setToggleState(false,juce::dontSendNotification);touching=false;edits={};field.cancelGesture();ribbon.cancelGesture();envelope.cancelGesture();
-            for(auto* v:{&fmValue,&pitchValue,&attackValue,&decayValue,&sustainValue,&releaseValue,&outputValue})v->cancelGesture();for(auto* p:{&filter,&motion,&space})p->cancelGesture();lastEpoch=epoch;
+            endAudition();hold.setToggleState(false,juce::dontSendNotification);touching=false;edits={};field.cancelGesture();ribbon.cancelGesture();envelope.cancelGesture();filterEnvelope.cancelGesture();
+            for(auto* v:{&fmValue,&pitchValue,&attackValue,&decayValue,&sustainValue,&releaseValue,&outputValue,&filterAttackValue,&filterDecayValue,&filterSustainValue,&filterReleaseValue,&filterAmountValue})v->cancelGesture();for(auto* p:{&filter,&motion,&space})p->cancelGesture();lastEpoch=epoch;
         }
         if(lastLibrary!=session.libraryRevision.load())rebuildPresets();current=session.readVisible();glidePanel.sync(current,epoch);autobendPanel.sync(current,epoch);
         field.setPosition(static_cast<float>(current.values[coupling]),static_cast<float>(current.values[stress]));ribbon.setResponse(current.values[response]);
         fmValue.setValue(current.values[fm]);pitchValue.setValue(current.values[pitch]);outputValue.setValue(current.values[output]);
         attackValue.setValue(current.values[attack]);decayValue.setValue(current.values[decay]);sustainValue.setValue(current.values[sustain]);releaseValue.setValue(current.values[release]);envelope.setEnvelope({current.values[attack],current.values[decay],current.values[sustain],current.values[release]});
+        filterAttackValue.setValue(current.values[filterAttack]);filterDecayValue.setValue(current.values[filterDecay]);filterSustainValue.setValue(current.values[filterSustain]);filterReleaseValue.setValue(current.values[filterRelease]);filterAmountValue.setValue(current.values[filterAmount]);
+        filterEnvelope.setEnvelope({current.values[filterAttack],current.values[filterDecay],current.values[filterSustain],current.values[filterRelease]});
         filter.setPosition(static_cast<float>(std::log(current.values[cutoff]/40)/std::log(450.0)),static_cast<float>(current.values[resonance]/.85));
         motion.setPosition(static_cast<float>(std::log(current.values[motionRate]/.05)/std::log(160.0)),static_cast<float>(current.values[motionDepth]));space.setPosition(static_cast<float>(current.values[spaceMix]/.65),static_cast<float>(current.values[spaceSize]));
         poly.setToggleState(!current.mono,juce::dontSendNotification);monoButton.setToggleState(current.mono&&current.values[legato]<.5,juce::dontSendNotification);legatoButton.setToggleState(current.mono&&current.values[legato]>=.5,juce::dontSendNotification);
@@ -175,16 +200,18 @@ private:
     void timerCallback() override
     {
         if(editorGeneration!=session.editorMidi.epoch()){editorGeneration=session.editorMidi.epoch();session.synchronizeEditorInput();notes.clear();hold.setToggleState(false,juce::dontSendNotification);touching=false;}
-        if(lastRevision!=session.revision.load(std::memory_order_acquire)||lastLibrary!=session.libraryRevision.load())sync();keyboard.repaint();field.repaint();ribbon.repaint();repaint(24,803,1152,34);
+        if(lastRevision!=session.revision.load(std::memory_order_acquire)||lastLibrary!=session.libraryRevision.load())sync();keyboard.repaint();field.repaint();ribbon.repaint();repaint(24,923,1152,34);
     }
     juce::LookAndFeel_V4 look;InstrumentSession& session;LiveState& live;std::function<void()> audioSettings;
     PitchMotionPanel glidePanel,autobendPanel;PlayingField field;ResponseRibbon ribbon;InstrumentKeyboard keyboard;
-    ValueControl fmValue,pitchValue,attackValue,decayValue,sustainValue,releaseValue,outputValue;EnvelopeControl envelope;XYControl filter,motion,space;
+    ValueControl fmValue,pitchValue,attackValue,decayValue,sustainValue,releaseValue,outputValue;
+    ValueControl filterAttackValue,filterDecayValue,filterSustainValue,filterReleaseValue,filterAmountValue;
+    EnvelopeControl filterEnvelope,envelope;XYControl filter,motion,space;
     juce::ComboBox patchBox;juce::TextButton undo,compare,keep,hold,settings,poly,monoButton,legatoButton;
     std::vector<juce::String> presetIds;std::unique_ptr<juce::FileChooser> chooser;Patch current;juce::Array<int> notes;
     std::array<bool,hostParameterCount> edits{};std::uint64_t lastRevision=0,lastLibrary=0,lastEpoch=0,editorGeneration=0;bool touching=false;
 };
-InstrumentPanel::InstrumentPanel(InstrumentSession& s,std::function<void()> settings):content(std::make_unique<Content>(s,std::move(settings))){addAndMakeVisible(*content);setSize(1200,840);}
+InstrumentPanel::InstrumentPanel(InstrumentSession& s,std::function<void()> settings):content(std::make_unique<Content>(s,std::move(settings))){addAndMakeVisible(*content);setSize(1200,960);}
 InstrumentPanel::~InstrumentPanel()=default;
 void InstrumentPanel::resized(){content->setBounds(getLocalBounds());}
 void InstrumentPanel::beginPreview(){content->beginPreview();}

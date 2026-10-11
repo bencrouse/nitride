@@ -301,9 +301,10 @@ void InstrumentSession::refreshPresets(){auto loaded=store->loadAll();const juce
 
 juce::var InstrumentSession::encodeSnapshot(const Snapshot& s)
 {
+    static_assert(hostParameterCount<63,"Scoped history masks must fit a positive 64-bit integer");
     auto* object=new juce::DynamicObject();object->setProperty("patch",PresetStore::encode({"snapshot",s.patch}));
     object->setProperty("reference",PresetStore::encode({"reference",s.reference}));object->setProperty("selected",s.selected);object->setProperty("program",s.program);
-    int mask=0;for(int i=0;i<hostParameterCount;++i)if(s.parameters[static_cast<size_t>(i)])mask|=1<<i;
+    juce::int64 mask=0;for(int i=0;i<hostParameterCount;++i)if(s.parameters[static_cast<size_t>(i)])mask|=juce::int64{1}<<i;
     object->setProperty("wholePatch",s.wholePatch);object->setProperty("parameters",mask);return juce::var(object);
 }
 std::optional<InstrumentSession::Snapshot> InstrumentSession::decodeSnapshot(const juce::var& data)
@@ -314,17 +315,17 @@ std::optional<InstrumentSession::Snapshot> InstrumentSession::decodeSnapshot(con
     Snapshot result{patch->patch,referencePatch->patch,data["selected"].toString(),p};
     if(data.hasProperty("wholePatch")||data.hasProperty("parameters"))
     {
-        if(!data["wholePatch"].isBool()||!data["parameters"].isInt())return std::nullopt;
-        const auto mask=static_cast<int>(data["parameters"]);if(mask<0||mask>=(1<<hostParameterCount))return std::nullopt;
+        if(!data["wholePatch"].isBool()||(!data["parameters"].isInt()&&!data["parameters"].isInt64()))return std::nullopt;
+        const auto mask=static_cast<juce::int64>(data["parameters"]);if(mask<0||mask>=(juce::int64{1}<<hostParameterCount))return std::nullopt;
         result.wholePatch=static_cast<bool>(data["wholePatch"]);
-        for(int i=0;i<hostParameterCount;++i)result.parameters[static_cast<size_t>(i)]=(mask&(1<<i))!=0;
+        for(int i=0;i<hostParameterCount;++i)result.parameters[static_cast<size_t>(i)]=(mask&(juce::int64{1}<<i))!=0;
     }
     return result;
 }
 juce::var InstrumentSession::saveDocument()const
 {
     const juce::ScopedLock lock(documentLock);syncProgram();auto* object=new juce::DynamicObject();
-    object->setProperty("format","nitride-session");object->setProperty("version",3);object->setProperty("current",encodeSnapshot(snapshot()));
+    object->setProperty("format","nitride-session");object->setProperty("version",4);object->setProperty("current",encodeSnapshot(snapshot()));
     juce::Array<juce::var> undo,redo,kept;
     for(const auto& s:history)undo.add(encodeSnapshot(s));
     if(editChanged())
@@ -339,7 +340,7 @@ juce::var InstrumentSession::saveDocument()const
 juce::Result InstrumentSession::restoreDocument(const juce::var& data)
 {
     const auto version=static_cast<int>(data["version"]);
-    if(data["format"].toString()!="nitride-session"||(version!=2&&version!=3))return juce::Result::fail("Unsupported session state.");
+    if(data["format"].toString()!="nitride-session"||(version<2||version>4))return juce::Result::fail("Unsupported session state.");
     const auto current=decodeSnapshot(data["current"]);if(!current)return juce::Result::fail("Invalid sound conditions.");
     std::vector<Snapshot> newHistory,newFuture;std::vector<StoredPreset> newKept;
     for(const auto field:{"undo","redo"})

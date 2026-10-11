@@ -6,10 +6,11 @@ void InstrumentRenderer::prepare(double sampleRate)
 {
     rate = sampleRate;
     held = {}; deferred = {}; sustainPedal = {};
-    groupHeld={};keyCounts={};presses={};velocities={};nextPress=0;physicalKeys=groupKeys=0;monoNote=-1;monoMode=session.audioMono();
+    groupHeld={};keyCounts={};presses={};velocities={};nextPress=0;physicalKeys=groupKeys=soundingKeys=0;monoNote=-1;monoMode=session.audioMono();
     wheel = lfoPhase = 0;
     editorEpoch=session.editorMidi.epoch();
     engine.setTreatment(SoundStudies::Treatment::expressiveNetwork);
+    filterEnvelope.prepare(sampleRate);
     updateEngine();
     engine.prepare(sampleRate);
     reverb.setSampleRate(sampleRate); reverb.reset(); tone = {};
@@ -17,11 +18,13 @@ void InstrumentRenderer::prepare(double sampleRate)
     cutoffSmooth.setCurrentAndTargetValue(static_cast<float>(session.audioValue(cutoff)));
     resonanceSmooth.setCurrentAndTargetValue(static_cast<float>(session.audioValue(resonance)));
     gainSmooth.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(static_cast<float>(session.audioValue(output))));
+    filterAmountSmooth.reset(sampleRate,.025);filterAmountSmooth.setCurrentAndTargetValue(session.audioValue(filterAmount));
     publish();
 }
 
 void InstrumentRenderer::updateEngine()
 {
+    filterEnvelope.configure(session.audioValue(filterAttack),session.audioValue(filterDecay),session.audioValue(filterSustain),session.audioValue(filterRelease));
     engine.setFmIndex(session.audioValue(fm));
     engine.setAmplitudeEnvelope(session.audioValue(attack), session.audioValue(decay),
         static_cast<float>(session.audioValue(sustain)), session.audioValue(release));
@@ -65,13 +68,18 @@ void InstrumentRenderer::releaseChannel(int channel)
     {
         const auto index = static_cast<size_t>(channel * 128 + note);
         if(held[index]){--physicalKeys;if(groupHeld[index]){groupHeld[index]=false;--groupKeys;}}
+        if(held[index]||deferred[index])--soundingKeys;
         keyCounts[index]=0;
         held[index] = deferred[index] = false;
         if (!monoMode&&!heldAnywhere(note)) engine.noteOff(note);
     }
     sustainPedal[static_cast<size_t>(channel)] = false;
     if(monoMode)refreshMonoNote();
+    releaseFilterGate();
 }
+
+void InstrumentRenderer::releaseFilterGate() noexcept
+{if(soundingKeys==0)filterEnvelope.noteOff();}
 
 void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool editor)
 {
@@ -84,6 +92,7 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
         if (message.isNoteOn())
         {
             const auto overlap=groupKeys-(groupHeld[index]?1:0)>0;
+            if(!held[index]&&!deferred[index])++soundingKeys;
             if(!held[index])++physicalKeys;
             held[index]=true;if(keyCounts[index]<65535)++keyCounts[index];
             deferred[index] = false;
@@ -98,6 +107,7 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
             velocities[index]=message.getFloatVelocity();
             if (!capture)
             {
+                if(!(monoMode&&overlap&&session.audioValue(legato)>=.5))filterEnvelope.noteOn();
                 engine.noteOn(note,message.getFloatVelocity(),monoMode?SoundStudies::Articulation::lead:SoundStudies::Articulation::pad,overlap);
                 if(monoMode)monoNote=note;
             }
@@ -110,7 +120,9 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
             if(held[index]){--physicalKeys;if(groupHeld[index]){groupHeld[index]=false;--groupKeys;}}
             held[index]=false;
             deferred[index] = sustainPedal[static_cast<size_t>(channel)];
+            if(!deferred[index])--soundingKeys;
             if(monoMode)refreshMonoNote();else if (!heldAnywhere(note)) engine.noteOff(note);
+            releaseFilterGate();
         }
     }
     else if (message.isPitchWheel())
@@ -124,10 +136,13 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
         if (!sustainPedal[static_cast<size_t>(channel)])
             for (int note = 0; note < 128; ++note)
             {
-                deferred[static_cast<size_t>(channel * 128 + note)] = false;
+                const auto index=static_cast<size_t>(channel*128+note);
+                if(deferred[index]&&!held[index])--soundingKeys;
+                deferred[index] = false;
                 if (!monoMode&&!heldAnywhere(note)) engine.noteOff(note);
             }
         if(monoMode)refreshMonoNote();
+        releaseFilterGate();
     }
     else if (message.isAllNotesOff() || message.isAllSoundOff()) releaseChannel(channel);
 }
@@ -146,7 +161,9 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
         for(int i=0;i<size;++i)
         {
             const auto base=static_cast<double>(cutoffSmooth.getNextValue());
-            const auto shift=toneMotion[static_cast<size_t>(i)];
+            auto shift=toneMotion[static_cast<size_t>(i)];
+            const auto envelopeLevel=filterEnvelope.next(),amount=filterAmountSmooth.getNextValue();
+            if(std::abs(amount)>0)shift+=12*amount*envelopeLevel;
             const auto frequency=std::min(SoundStudies::pitchIsZero(shift)?base:std::max(10.0,base*std::exp2(shift/12)),rate*.42);
             const auto g=std::tan(juce::MathConstants<double>::pi*frequency/rate);
             const auto k=2.0-1.85*resonanceSmooth.getNextValue();const auto a=1/(1+g*(g+k));
@@ -179,6 +196,7 @@ void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuff
         }
     }
     cutoffSmooth.setTargetValue(static_cast<float>(session.audioValue(cutoff)));
+    filterAmountSmooth.setTargetValue(session.audioValue(filterAmount));
     resonanceSmooth.setTargetValue(static_cast<float>(session.audioValue(resonance)));
     const auto epoch=session.editorMidi.epoch();
     if(editorEpoch!=epoch){for(int channel=16;channel<32;++channel)releaseChannel(channel);editorEpoch=epoch;}
@@ -246,7 +264,8 @@ void InstrumentRenderer::publish()
 void InstrumentRenderer::reset() noexcept
 {
     held = {}; deferred = {}; sustainPedal = {};
-    groupHeld={};keyCounts={};physicalKeys=groupKeys=0;monoNote=-1;
+    groupHeld={};keyCounts={};physicalKeys=groupKeys=soundingKeys=0;monoNote=-1;
+    filterEnvelope.reset();
     engine.allNotesOff();
     session.editorMidi.reset();editorEpoch=session.editorMidi.epoch();
     publish();

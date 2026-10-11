@@ -11,7 +11,7 @@ public:
     {
         addAndMakeVisible(view);
         midi.ensureSize(8192);
-        setSize(1200, 840);
+        setSize(view.getWidth(),view.getHeight());
         setAudioChannels(0, 2);
         deviceManager.addMidiInputDeviceCallback({}, &collector);
     }
@@ -41,6 +41,7 @@ public:
         session.set(Nitride::coupling,.95);session.set(Nitride::stress,.8);session.set(Nitride::response,.035);
         session.setMono(true);session.set(Nitride::legato,1);session.set(Nitride::glideOn,1);session.set(Nitride::glideTime,.2);session.set(Nitride::glideCurve,0);
         session.set(Nitride::autobendOn,1);session.set(Nitride::autobendDepth,12);session.set(Nitride::autobendTarget,3);session.keyboard.noteOn(16,72,.74f);
+        session.set(Nitride::cutoff,800);session.set(Nitride::filterAmount,3);session.set(Nitride::filterAttack,.15);
     }
     bool finishAudioCheck()
     {

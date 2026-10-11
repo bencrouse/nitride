@@ -39,7 +39,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout NitrideAudioProcessor::creat
     const auto add=[&](size_t i)
     {
         const auto& d=Nitride::hostParameters[i];
-        const juce::ParameterID id(d.id,i<Nitride::legacyParameterCount?1:2);
+        const juce::ParameterID id(d.id,Nitride::versionHint(static_cast<Nitride::Parameter>(i)));
         if(d.kind==Nitride::ParameterKind::boolean)layout.add(std::make_unique<juce::AudioParameterBool>(id,d.name,d.initial>=.5));
         else if(d.kind==Nitride::ParameterKind::choice)layout.add(std::make_unique<juce::AudioParameterChoice>(id,d.name,juce::StringArray::fromTokens(d.choices,"|",""),static_cast<int>(d.initial)));
         else layout.add(std::make_unique<juce::AudioParameterFloat>(id,d.name,
@@ -100,7 +100,7 @@ void NitrideAudioProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     const juce::ScopedLock transaction(session.stateTransactionLock());
     juce::XmlElement state("NITRIDE_INSTRUMENT");
-    state.setAttribute("version",3);
+    state.setAttribute("version",4);
     const auto document=session.saveDocument();
     state.createNewChildElement("DOCUMENT")->addTextElement(juce::JSON::toString(document,true));
     // The document's edited conditions are the authority even while Compare is
@@ -129,7 +129,7 @@ void NitrideAudioProcessor::setStateInformation(const void* data,int size)
     if(auto state=getXmlFromBinary(data,size);state&&state->hasTagName("NITRIDE_INSTRUMENT"))
     {
         const auto version=state->getIntAttribute("version");
-        if(version==2||version==3)
+        if(version==2||version==3||version==4)
         {
             const auto* document=state->getChildByName("DOCUMENT");if(document==nullptr)return;
             const auto json=juce::JSON::parse(document->getAllSubText());

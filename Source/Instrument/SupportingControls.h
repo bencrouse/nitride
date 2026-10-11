@@ -3,7 +3,7 @@
 
 namespace Nitride::UI
 {
-class ValueControl final : public juce::Component
+class ValueControl final : public juce::Component,public juce::SettableTooltipClient
 {
 public:
     ValueControl(const juce::String& label,double low,double high,double initialValue,bool logarithmic=false)
@@ -59,7 +59,7 @@ private:
 class EnvelopeControl final : public juce::Component
 {
 public:
-    EnvelopeControl(){setName("Amplitude envelope");setTitle(getName());setDescription("Drag attack, decay/sustain, and release points.");setWantsKeyboardFocus(true);}
+    explicit EnvelopeControl(const juce::String& name="Amplitude envelope"){setName(name);setTitle(getName());setDescription("Drag attack, decay/sustain, and release points.");setWantsKeyboardFocus(true);}
     std::function<void()> onBegin,onEnd;std::function<void(std::array<double,4>)> onChange;
     void setEnvelope(std::array<double,4> v){values=v;repaint();}void cancelGesture(){dragging=false;}
     juce::Rectangle<float> plot() const{return getLocalBounds().toFloat().reduced(12,15);}

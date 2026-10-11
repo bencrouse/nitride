@@ -37,14 +37,16 @@ int main(int argc,char** argv)
         if(!dump&&parameterIds.size()!=Nitride::hostParameterCount)throw std::runtime_error("Installed AU does not publish the current automation contract");
         AudioUnitParameterID couplingId=0;bool foundCoupling=false;
         AudioUnitParameterID depthId=0,autobendId=0;bool foundDepth=false,foundAutobend=false;
-        constexpr std::array<std::pair<const char*,AudioUnitParameterID>,28> legacyIds {{
+        constexpr std::array<std::pair<const char*,AudioUnitParameterID>,33> legacyIds {{
             {"Mono",3357411},{"Pitch",106677056},{"Tone resonance",157452366},{"FM depth",294406475},
             {"Amplitude release",426656908},{"Space size",504585114},{"Tone cutoff",798419949},{"Amplitude decay",894767487},
             {"Output",1141971201},{"Motion depth",1149422842},{"Space mix",1193923491},{"Stress",1255494068},
             {"Motion rate",1284417481},{"Coupling",1777075325},{"Amplitude sustain",1779138216},{"Response",1807160385},{"Amplitude attack",1896459555},
             {"Autobend",201379178},{"Autobend depth",439255852},{"Legato envelopes",1040905678},{"Autobend phrase only",1078391664},
             {"Autobend destination",1186448968},{"Glide time",1300260647},{"Glide",1606803623},{"Glide legato only",1629576104},
-            {"Glide curve",1638037461},{"Glide destination",1855248235},{"Autobend time",1885038916}
+            {"Glide curve",1638037461},{"Glide destination",1855248235},{"Autobend time",1885038916},
+            {"Filter attack",1084803311},{"Filter decay",314395699},{"Filter sustain",240114780},
+            {"Filter release",1035117120},{"Filter envelope amount",1078209279}
         }};
         std::array<bool,legacyIds.size()> foundIds{};
         for(const auto id:parameterIds)
@@ -74,17 +76,22 @@ int main(int argc,char** argv)
         AudioUnitParameterValue writtenDepth=0;check(AudioUnitGetParameter(instance.unit,depthId,kAudioUnitScope_Global,0,&writtenDepth),"Autobend depth read");
         if(std::abs(writtenDepth-normalizedDepth)>.0001f)throw std::runtime_error("AU did not retain Autobend write: "+std::to_string(writtenDepth));
         check(AudioUnitSetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,.82f,0),"Host parameter write");
+        constexpr AudioUnitParameterID filterAmountId=1078209279;
+        check(AudioUnitSetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,.75f,0),"Filter envelope amount write");
         AudioUnitParameterValue retained=0;check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Host parameter read");
         if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("AU did not retain host automation value");
         CFPropertyListRef savedState=nullptr;UInt32 stateSize=sizeof(savedState);
         check(AudioUnitGetProperty(instance.unit,kAudioUnitProperty_ClassInfo,kAudioUnitScope_Global,0,&savedState,&stateSize),"AU session state");
         check(AudioUnitSetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,.2f,0),"Changed host parameter");
+        check(AudioUnitSetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,.1f,0),"Changed filter amount");
         check(AudioUnitSetProperty(instance.unit,kAudioUnitProperty_ClassInfo,kAudioUnitScope_Global,0,&savedState,sizeof(savedState)),"AU session restore");
         CFRelease(savedState);
         check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Restored host parameter");
         if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("Installed AU lost automation conditions during state restore");
         check(AudioUnitGetParameter(instance.unit,depthId,kAudioUnitScope_Global,0,&retained),"Restored Autobend depth");
         if(std::abs(retained-normalizedDepth)>.0001f)throw std::runtime_error("Installed AU lost Autobend depth during state restore: "+std::to_string(retained));
+        check(AudioUnitGetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,&retained),"Restored filter amount");
+        if(std::abs(retained-.75f)>.0001f)throw std::runtime_error("Installed AU lost filter envelope during state restore");
         std::cout<<"Installed AU automation/state verified\n"<<std::flush;
         AudioStreamBasicDescription format{};
         format.mSampleRate=48000;format.mFormatID=kAudioFormatLinearPCM;
@@ -117,7 +124,7 @@ int main(int argc,char** argv)
         check(MusicDeviceMIDIEvent(instance.unit,0x80,60,0,0),"Host note-off");
         double tail=0;for(int block=0;block<1500;++block){const auto p=render();if(block>1480)tail=std::max(tail,p);}
         if(tail>0.0001)throw std::runtime_error("Installed AU did not release its note/tail");
-        std::cout<<"Installed AU component passed: "<<Nitride::hostParameterCount<<" host parameters, pitch parameter/class-state recall, real MIDI timing, stereo peak "<<peak<<", released tail "<<tail<<'\n';
+        std::cout<<"Installed AU component passed: "<<Nitride::hostParameterCount<<" host parameters, pitch/filter parameter/class-state recall, real MIDI timing, stereo peak "<<peak<<", released tail "<<tail<<'\n';
         return 0;
     }
     catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

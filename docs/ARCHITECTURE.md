@@ -78,6 +78,12 @@ the latest-voice policy for the shared Tone filter. Native pitch controls are no
 compiled components; `InstrumentPanel` and normal control headers own the surrounding
 approved view without a study implementation include.
 
+`Source/DSP/FilterEnvelope.h` owns the shared filter's independent sample-clock
+ADSR. The renderer maintains its gate from host/editor/pedal ownership, sums signed
+octave Amount with the existing Tone pitch offset, then filters the mixed voices.
+This is still one stereo post-mix filter, not a per-voice filter architecture.
+See `FILTER_ENVELOPE.md` for triggering, migration and regression contracts.
+
 ## Drawing and interaction
 
 The approved editor is a fixed 1200 × 840 dark/orange native surface. Source and

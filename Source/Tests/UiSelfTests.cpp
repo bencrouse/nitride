@@ -99,7 +99,7 @@ int main(int argc,char** argv)
         midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),0);processor.processBlock(audio,midi);renderFor(processor,24000);
         std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor());
         editor->addToDesktop(0);editor->setVisible(true);
-        require(editor->getWidth()==1200&&editor->getHeight()==840,"Approved editor size changed");
+        require(editor->getWidth()==1200&&editor->getHeight()==960,"Filter-envelope editor size changed");
         auto* depth=namedChild<juce::Component>(*editor,"FM depth");require(depth!=nullptr,"Source control missing");
         auto* accessibility=depth->getAccessibilityHandler();require(accessibility!=nullptr&&accessibility->getValueInterface()!=nullptr,"Source accessibility control unavailable");
         accessibility->getValueInterface()->setValue(3.2);

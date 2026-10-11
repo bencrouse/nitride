@@ -21,7 +21,7 @@ InstrumentView::InstrumentView(InstrumentSession& session, std::function<void()>
 {
     setName("Nitride instrument");
     addAndMakeVisible(*panel);
-    setSize(1200, 840);
+    setSize(1200, 960);
 }
 
 InstrumentView::~InstrumentView() = default;

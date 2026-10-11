@@ -70,7 +70,7 @@ juce::var contract()
         {
             const auto index=conditionIndex(h);const auto& definition=hostParameters[static_cast<size_t>(index)];
             put(p,"id",definition.id);put(p,"kind",static_cast<int>(definition.kind));put(p,"min",definition.minimum);put(p,"max",definition.maximum);
-            put(p,"skew",definition.skew);put(p,"hint",index<legacyParameterCount?1:2);put(p,"choices",definition.choices);
+            put(p,"skew",definition.skew);put(p,"hint",versionHint(index));put(p,"choices",definition.choices);
         }
         controls.add(p);
     }
@@ -100,9 +100,9 @@ void capture(const juce::File& directory,const juce::String& producer)
     const auto compatibility=directory.getSiblingFile("Compatibility");
     NitrideAudioProcessor p(compatibility.getChildFile(".current-capture"));auto& session=p.getInstrumentSession();
     session.apply(scenarios()[5].patch);session.setCompareReference(session.read());session.beginEdit({hostIndex(glideTime)});session.set(glideTime,.33);
-    juce::MemoryBlock state;p.getStateInformation(state);require(compatibility.getChildFile("session-v3-active.state").replaceWithData(state.getData(),state.getSize()),"Cannot write active gesture state");
-    session.setComparing(true);p.getStateInformation(state);require(compatibility.getChildFile("session-v3-motion.state").replaceWithData(state.getData(),state.getSize()),"Cannot write current state");
-    require(compatibility.getChildFile("preset-v2-motion.nitridepreset").replaceWithText(juce::JSON::toString(PresetStore::encode({"current-motion",session.read()}))),"Cannot write current preset");
+    juce::MemoryBlock state;p.getStateInformation(state);require(compatibility.getChildFile("session-v4-active.state").replaceWithData(state.getData(),state.getSize()),"Cannot write active gesture state");
+    session.setComparing(true);p.getStateInformation(state);require(compatibility.getChildFile("session-v4-motion.state").replaceWithData(state.getData(),state.getSize()),"Cannot write current state");
+    require(compatibility.getChildFile("preset-v3-motion.nitridepreset").replaceWithText(juce::JSON::toString(PresetStore::encode({"current-motion",session.read()}))),"Cannot write current preset");
     session.endAllEdits();
     std::cout<<"Captured reviewed reference performances from "<<producer<<'\n';
 }
@@ -134,10 +134,11 @@ void verify(const juce::File& directory)
     {
         juce::MemoryBlock state;const auto name=juce::String("session-v")+juce::String(version)+(mono?"-mono.state":"-poly.state");
         require(compatibility.getChildFile(name).loadFileAsData(state),"Missing historical state");
-        NitrideAudioProcessor p(compatibility.getChildFile("empty-library"));p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));auto& s=p.getInstrumentSession();
+        NitrideAudioProcessor p(compatibility.getChildFile("empty-library"));p.getInstrumentSession().set(filterAmount,4);p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));auto& s=p.getInstrumentSession();
         const auto patch=s.read();require(patch.mono==mono&&std::abs(patch.values[fm]-3.25)<.000001&&std::abs(patch.values[pitch]-5)<.000001,"Historical conditions did not migrate");
         require(std::abs(p.getState().getRawParameterValue("fm_depth")->load()-3.25)<.000001,"Historical host bank disagrees with session");
         require(!s.isComparing()&&patch.values[autobendOn]<.5,"Historical recall resumed an audition or enabled Autobend");
+        require(std::abs(patch.values[filterAmount])<1e-12,"Historical recall enabled filter envelope");
         if(mono)require(patch.values[glideOn]>.5&&std::abs(patch.values[glideTime]-.025)<.000001&&std::abs(patch.values[glideCurve]-2)<.000001,"Legacy mono character changed");
         if(version==2){require(s.presets().size()>4&&s.canUndo(),"Historical portable/history state lost");s.undo();require(std::abs(s.read().values[coupling]-(mono?.75:.55))<.000001,"Historical undo lost its baseline");}
     }
@@ -146,6 +147,7 @@ void verify(const juce::File& directory)
     juce::MemoryBlock state;require(compatibility.getChildFile("session-v3-motion.state").loadFileAsData(state),"Missing current state fixture");
     NitrideAudioProcessor p(compatibility.getChildFile("empty-library"));p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));auto& s=p.getInstrumentSession();
     require(s.read().values[autobendOn]>.5&&!s.isComparing()&&std::abs(s.read().values[glideTime]-.33)<.000001,"Current Compare/gesture recall lost edits");
+    require(std::abs(s.read().values[filterAmount])<1e-12,"0.3.0 recall enabled filter envelope");
     s.undo();require(std::abs(s.read().values[glideTime]-.18)<.000001,"Active-gesture fixture lost its undo baseline");
     std::cout<<"Preserved XML/session v1/v2/v3 and preset v1/v2 compatibility passed\n";
 }

@@ -12,13 +12,16 @@ enum Parameter
     cutoff, resonance, motionRate, motionDepth, spaceMix, spaceSize, output,
     glideOn, glideTime, glideTarget, glideLegato, glideCurve,
     autobendOn, autobendTime, autobendDepth, autobendTarget, autobendPhrase, legato,
+    filterAttack, filterDecay, filterSustain, filterRelease, filterAmount,
     parameterCount
 };
 inline constexpr int legacyParameterCount = 16;
+inline constexpr int pitchParameterCount = 27; // Preset v2 / 0.3.0 conditions.
 inline constexpr int monoHostIndex = 16;
 inline constexpr int hostParameterCount = parameterCount + 1;
 constexpr int hostIndex(Parameter p) noexcept { return p < legacyParameterCount ? static_cast<int>(p) : static_cast<int>(p) + 1; }
 constexpr Parameter conditionIndex(int host) noexcept { return static_cast<Parameter>(host < monoHostIndex ? host : host - 1); }
+constexpr int versionHint(Parameter p) noexcept {return p<legacyParameterCount?1:p<pitchParameterCount?2:3;}
 
 enum class ParameterKind { continuous, boolean, choice };
 struct HostParameterDefinition
@@ -30,7 +33,7 @@ struct HostParameterDefinition
     const char* choices = "";
 };
 // First 16 float IDs followed by mono retain their version-1 host positions.
-// New controls are appended AFTER mono, with version hint 2.
+// Pitch controls append after mono with hint 2; filter controls append with hint 3.
 inline constexpr std::array<HostParameterDefinition,parameterCount> hostParameters {{
     {"coupling","Coupling",0,1,1,.55}, {"stress","Stress",0,1,1,.08},
     {"response","Response",.01,1.6,.35,.35}, {"fm_depth","FM depth",0,4,1,1.65},
@@ -50,7 +53,12 @@ inline constexpr std::array<HostParameterDefinition,parameterCount> hostParamete
     {"autobend_depth","Autobend depth",-36,36,1,12},
     {"autobend_target","Autobend destination",0,4,1,2,ParameterKind::choice,"Carrier|Modulators|All|Opposed|Pitch + Tone"},
     {"autobend_phrase","Autobend phrase only",0,1,1,0,ParameterKind::boolean},
-    {"legato","Legato envelopes",0,1,1,0,ParameterKind::boolean}
+    {"legato","Legato envelopes",0,1,1,0,ParameterKind::boolean},
+    {"filter_attack","Filter attack",.001,4,.3,.01},
+    {"filter_decay","Filter decay",.01,4,.35,.3},
+    {"filter_sustain","Filter sustain",0,1,1,.5},
+    {"filter_release","Filter release",.02,8,.35,.4},
+    {"filter_amount","Filter envelope amount",-6,6,1,0}
 }};
 inline constexpr const char* monoParameterId = "mono";
 constexpr std::array<double,parameterCount> defaultParameterValues()

@@ -10,6 +10,10 @@ Opposed and Pitch + Tone destinations, plus legato play mode. See
 [`docs/PITCH_MOTION.md`](docs/PITCH_MOTION.md) for controls, migration, listening
 comparisons and quantified performance.
 
+**0.4.0 adds a dedicated filter ADSR and signed Amount** for the existing shared
+Tone filter. Old sounds remain unchanged with Amount zero. See
+[`docs/FILTER_ENVELOPE.md`](docs/FILTER_ENVELOPE.md).
+
 Local development checks are available through **`make check`** and
 **`make check-full`**. They use pinned JUCE, preserved compatibility/audio fixtures
 and focused real-time/sanitizer checks. See [`docs/HARDENING.md`](docs/HARDENING.md).
@@ -28,7 +32,7 @@ details; [`docs/MILESTONE_01.md`](docs/MILESTONE_01.md) records the initial inte
 **Keep** saves a named sound to `~/Library/Application Support/nitride/Presets`.
 **Compare** auditions its reference while retaining your edits. **Undo** restores
 control gestures or patch selections; the **...** menu includes Redo and preset
-import/export. The host can automate all 28 controls; the original 17 retain their
+import/export. The host can automate all 33 controls; the original 28 retain their
 IDs and positions.
 
 ## Shared instrument review
@@ -38,7 +42,7 @@ make review
 ```
 
 Opens **Nitride Instrument Review**, using the same shared view and rendering path
-as the AU. Source, amplitude, tone, motion and space controls are audible;
+as the AU. Source, amplitude, filter envelope, tone, motion and space controls are audible;
 Keep/Compare/Undo use the shared persistent session and preset workflow. The
 original visual review is recorded in
 [`docs/INSTRUMENT_REVIEW_08.md`](docs/INSTRUMENT_REVIEW_08.md).
@@ -136,7 +140,7 @@ Following Carbide's conventions:
 - macOS 15+, Apple Silicon.
 - AUv2 instrument + Standalone targets.
 - Native custom `LookAndFeel_V4`, sliders, buttons, combo boxes, and JUCE drawing.
-- Processor-owned sound conditions, 28 stable host parameters, versioned session
+- Processor-owned sound conditions, 33 stable host parameters, versioned session
   recall, persistent presets and Compare/Undo/Redo.
 - In-code factory patches in `Source/Instrument/InstrumentSession.h`.
 - Native hosted/UI, automation/state and DSP tests registered with CTest.
@@ -175,6 +179,7 @@ recorded-automation playback are the remaining manual host acceptance checks.
 | `Source/Instrument/HostParameters.h` | Compatibility include for parameter metadata |
 | `Source/Instrument/Parameters.h` | Authoritative typed metadata, defaults, clamping and compatible host mapping |
 | `Source/DSP/PitchMotion.h` | Sample-clock Glide/Autobend trajectories and routing |
+| `Source/DSP/FilterEnvelope.h` | Independent sample-clock shared-filter ADSR |
 | `Source/DSP/Engine.*` | Production-owned shared DSP |
 | `Source/Instrument/InstrumentPanel.*` | Production native panel |
 | `Source/Instrument/EditorMidiBridge.h` | Bounded editor-to-render command handoff |
@@ -185,6 +190,7 @@ recorded-automation playback are the remaining manual host acceptance checks.
 | `Source/Tests/PerformanceHarness.cpp` | Repeatable Release processor benchmark and baseline comparison |
 | `Source/Tests/PitchMotionTests.cpp` | Pitch, note priority, FM reference, migration, UI and musical renders |
 | `Source/Tests/RegressionFixtures.cpp` | Preserved sound, historical state and host contract checks |
+| `Source/Tests/FilterEnvelopeTests.cpp` | Filter timing, gating, polarity, automation and recall checks |
 | `Source/Tests/RealtimeSafetyTests.cpp` | Allocation, ownership, overflow and active concurrency checks |
 | `Source/Tests/AuComponentTests.cpp` | Installed AU automation/state and MusicDevice render test |
 | `Source/Studies/*` | Audible experiments, audition app, renders, DSP checks |

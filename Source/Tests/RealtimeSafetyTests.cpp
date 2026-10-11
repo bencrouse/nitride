@@ -32,6 +32,7 @@ void lifetime(const juce::File& directory)
     for(int channel:{1,15,16})
     {
         NitrideAudioProcessor p(directory);p.applyPreset(2);p.prepareToPlay(48000,64);auto& s=p.getInstrumentSession();
+        s.set(Nitride::filterAmount,3);s.set(Nitride::cutoff,800);
         juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;midi.ensureSize(4096);
         midi.addEvent(juce::MidiMessage::noteOn(channel,60,.8f),0);process(p,audio,midi);
         std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());auto* hold=named<juce::TextButton>(*editor,"HOLD");require(hold,"Missing Hold");
@@ -56,6 +57,7 @@ void lifetime(const juce::File& directory)
 void concurrency(const juce::File& directory)
 {
     NitrideAudioProcessor p(directory);p.applyPreset(2);p.prepareToPlay(48000,64);auto& s=p.getInstrumentSession();
+    s.set(Nitride::filterAmount,3);s.set(Nitride::cutoff,800);
     juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;midi.ensureSize(4096);midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),0);
     process(p,audio,midi);juce::MemoryBlock state;p.getStateInformation(state);
     std::atomic<bool> stop=false,ready=false;
@@ -63,11 +65,13 @@ void concurrency(const juce::File& directory)
     std::jthread render([&]{ready.store(true);try{while(!stop.load())process(p,audio,midi);}catch(...){failure=std::current_exception();stop.store(true);}});
     while(!ready.load())std::this_thread::yield();
     auto* depth=p.getState().getParameter("autobend_depth");auto* coupling=p.getState().getParameter("coupling");
+    auto* filterDepth=p.getState().getParameter("filter_amount");auto* filterAttack=p.getState().getParameter("filter_attack");
     for(int i=0;i<100;++i)
     {
         const auto generation=s.restoreEpoch.load();
         s.keyboard.noteOn(15,64,.8f);s.keyboard.noteOff(15,64,0);
         coupling->setValueNotifyingHost(static_cast<float>(i%10)/10);depth->setValueNotifyingHost(depth->convertTo0to1(static_cast<float>(i%25)-12));
+        filterDepth->setValueNotifyingHost(filterDepth->convertTo0to1(static_cast<float>(i%9)-4));filterAttack->setValueNotifyingHost(static_cast<float>(i%10)/10);
         p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
         require(!s.setIfCurrent(Nitride::fm,4,generation),"Old gesture overwrote completed recall");
         require(!s.setGroupIfCurrent({{Nitride::coupling,1},{Nitride::stress,1}},generation),"Old grouped gesture overwrote recall");

@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "Instrument/PresetStore.h"
+#include "FilterEnvelopeTests.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -49,6 +50,7 @@ int main()
     juce::ScopedJuceInitialiser_GUI initialiser;
     try
     {
+        runFilterEnvelopeTests();
         TestDirectory directory;
         NitrideAudioProcessor processor(directory.folder);
         auto& session=processor.getInstrumentSession();auto& parameters=processor.getState();
@@ -119,7 +121,7 @@ int main()
         // Restoring with an open editor cancels stale pointer/timer state, before
         // the next UI polling tick as well as after it.
         processor.getStateInformation(saved);const auto beforeRestore=session.read();
-        for(auto* control:{field,response,depth,child<juce::Component>(*editor,"Amplitude envelope"),child<juce::Component>(*editor,"Filter cutoff and resonance")})
+        for(auto* control:{field,response,depth,child<juce::Component>(*editor,"Amplitude envelope"),child<juce::Component>(*editor,"Filter envelope"),child<juce::Component>(*editor,"Filter envelope amount"),child<juce::Component>(*editor,"Filter cutoff and resonance")})
         {
             require(control!=nullptr,"Restore test control missing");
             const juce::Point<float> origin{static_cast<float>(control->getWidth())*.4f,static_cast<float>(control->getHeight())*.5f};

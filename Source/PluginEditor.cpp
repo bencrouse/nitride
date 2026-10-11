@@ -4,7 +4,7 @@ NitrideAudioProcessorEditor::NitrideAudioProcessorEditor(NitrideAudioProcessor& 
     : AudioProcessorEditor(owner),view(owner.getInstrumentSession())
 {
     addAndMakeVisible(view);
-    setSize(1200,840);
+    setSize(view.getWidth(),view.getHeight());
 }
 
 void NitrideAudioProcessorEditor::resized() { view.setBounds(getLocalBounds()); }

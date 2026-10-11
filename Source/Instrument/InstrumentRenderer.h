@@ -2,6 +2,7 @@
 
 #include "InstrumentSession.h"
 #include "../DSP/Engine.h"
+#include "../DSP/FilterEnvelope.h"
 
 namespace Nitride
 {
@@ -15,6 +16,8 @@ public:
     void process(juce::AudioBuffer<float>&, juce::MidiBuffer&, bool injectEditorNotes = true);
     void reset() noexcept;
     SoundStudies::Engine::PitchSnapshot pitchSnapshot(int note=-1) const noexcept { return engine.getPitchSnapshot(note); }
+    double filterEnvelopeLevel() const noexcept {return filterEnvelope.level();}
+    DSP::FilterEnvelope::Stage filterEnvelopeStage() const noexcept {return filterEnvelope.currentStage();}
 
 private:
     void updateEngine();
@@ -25,11 +28,14 @@ private:
     void publish();
     void refreshMonoNote();
     void beginMidiGroup();
+    void releaseFilterGate() noexcept;
 
     InstrumentSession& session;
     SoundStudies::Engine engine;
     juce::Reverb reverb;
     std::array<std::array<double, 2>, 2> tone {};
+    DSP::FilterEnvelope filterEnvelope;
+    juce::SmoothedValue<double> filterAmountSmooth;
     // Separate owners prevent closing an editor/key from releasing a host note
     // on the same channel and pitch.
     std::array<bool, 32 * 128> held {}, deferred {};
@@ -38,7 +44,7 @@ private:
     std::array<std::uint64_t,32*128> presses{};
     std::array<float,32*128> velocities{};
     std::uint64_t nextPress=0;
-    int physicalKeys=0,groupKeys=0,monoNote=-1;
+    int physicalKeys=0,groupKeys=0,soundingKeys=0,monoNote=-1;
     bool monoMode=false;
     std::array<bool, 32> sustainPedal {};
     std::array<EditorMidiBridge::Command,EditorMidiBridge::blockBudget> editorCommands{};
