@@ -4,6 +4,7 @@
 #include "../DSP/Engine.h"
 #include "../DSP/FilterEnvelope.h"
 #include "../DSP/Lfo.h"
+#include "../DSP/FilterModulation.h"
 
 namespace Nitride
 {
@@ -19,6 +20,9 @@ public:
     SoundStudies::Engine::PitchSnapshot pitchSnapshot(int note=-1) const noexcept { return engine.getPitchSnapshot(note); }
     double filterEnvelopeLevel() const noexcept {return filterEnvelope.level();}
     DSP::FilterEnvelope::Stage filterEnvelopeStage() const noexcept {return filterEnvelope.currentStage();}
+    int filterNoteNumber() const noexcept {return filterNote;}
+    double filterNoteVelocity() const noexcept {return filterVelocityValue;}
+    double filterCutoffFrequency() const noexcept {return lastFilterCutoff;}
 
 private:
     void updateEngine();
@@ -28,6 +32,8 @@ private:
     void releaseChannel(int channel);
     void publish();
     void refreshMonoNote();
+    int latestNoteOwner() const noexcept;
+    void refreshFilterNote(int newest=-1);
     void beginMidiGroup();
     void releaseFilterGate() noexcept;
 
@@ -37,6 +43,9 @@ private:
     std::array<std::array<double, 2>, 2> tone {};
     DSP::FilterEnvelope filterEnvelope;
     juce::SmoothedValue<double> filterAmountSmooth;
+    juce::SmoothedValue<double> filterNoteSmooth,filterFmSmooth;
+    int filterNote=DSP::filterTrackingReference,filterOwner=-1;
+    double filterVelocityValue=0,keyTrackingAmount=0,velocityAmount=0,lastFilterCutoff=5500;
     DSP::LfoBank lfos;
     // Separate owners prevent closing an editor/key from releasing a host note
     // on the same channel and pitch.
@@ -51,7 +60,8 @@ private:
     std::array<bool, 32> sustainPedal {};
     std::array<EditorMidiBridge::Command,EditorMidiBridge::blockBudget> editorCommands{};
     std::uint64_t editorEpoch=0;
-    juce::SmoothedValue<float> cutoffSmooth, resonanceSmooth, gainSmooth;
+    juce::SmoothedValue<float,juce::ValueSmoothingTypes::Multiplicative> cutoffSmooth;
+    juce::SmoothedValue<float> resonanceSmooth, gainSmooth;
     double rate = 48000, wheel = 0;
 };
 }

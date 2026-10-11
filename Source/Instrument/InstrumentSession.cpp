@@ -326,7 +326,7 @@ std::optional<InstrumentSession::Snapshot> InstrumentSession::decodeSnapshot(con
 juce::var InstrumentSession::saveDocument()const
 {
     const juce::ScopedLock lock(documentLock);syncProgram();auto* object=new juce::DynamicObject();
-    object->setProperty("format","nitride-session");object->setProperty("version",5);object->setProperty("current",encodeSnapshot(snapshot()));
+    object->setProperty("format","nitride-session");object->setProperty("version",6);object->setProperty("current",encodeSnapshot(snapshot()));
     juce::Array<juce::var> undo,redo,kept;
     for(const auto& s:history)undo.add(encodeSnapshot(s));
     if(editChanged())
@@ -341,7 +341,7 @@ juce::var InstrumentSession::saveDocument()const
 juce::Result InstrumentSession::restoreDocument(const juce::var& data)
 {
     const auto version=static_cast<int>(data["version"]);
-    if(data["format"].toString()!="nitride-session"||version!=5)return juce::Result::fail("Unsupported session state.");
+    if(data["format"].toString()!="nitride-session"||version!=6)return juce::Result::fail("Unsupported session state.");
     const auto current=decodeSnapshot(data["current"]);if(!current)return juce::Result::fail("Invalid sound conditions.");
     std::vector<Snapshot> newHistory,newFuture;std::vector<StoredPreset> newKept;
     for(const auto field:{"undo","redo"})

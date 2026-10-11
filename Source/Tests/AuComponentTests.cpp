@@ -75,12 +75,16 @@ int main(int argc,char** argv)
         constexpr AudioUnitParameterID filterAmountId=1078209279;
         check(AudioUnitSetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,.75f,0),"Filter envelope amount write");
         const auto lfoId=hash("lfo_stress_depth");check(AudioUnitSetParameter(instance.unit,lfoId,kAudioUnitScope_Global,0,.65f,0),"LFO depth write");
+        const std::array filterModulationIds{hash("filter_key_tracking"),hash("filter_velocity"),hash("filter_fm_depth")};
+        constexpr std::array filterModulationValues{.8f,.7f,.5f};
+        for(size_t i=0;i<filterModulationIds.size();++i)check(AudioUnitSetParameter(instance.unit,filterModulationIds[i],kAudioUnitScope_Global,0,filterModulationValues[i],0),"Filter modulation write");
         AudioUnitParameterValue retained=0;check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Host parameter read");
         if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("AU did not retain host automation value");
         CFPropertyListRef savedState=nullptr;UInt32 stateSize=sizeof(savedState);
         check(AudioUnitGetProperty(instance.unit,kAudioUnitProperty_ClassInfo,kAudioUnitScope_Global,0,&savedState,&stateSize),"AU session state");
         check(AudioUnitSetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,.2f,0),"Changed host parameter");
         check(AudioUnitSetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,.1f,0),"Changed filter amount");
+        for(const auto id:filterModulationIds)check(AudioUnitSetParameter(instance.unit,id,kAudioUnitScope_Global,0,0,0),"Changed filter modulation");
         check(AudioUnitSetProperty(instance.unit,kAudioUnitProperty_ClassInfo,kAudioUnitScope_Global,0,&savedState,sizeof(savedState)),"AU session restore");
         CFRelease(savedState);
         check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Restored host parameter");
@@ -91,6 +95,11 @@ int main(int argc,char** argv)
         if(std::abs(retained-.75f)>.0001f)throw std::runtime_error("Installed AU lost filter envelope during state restore");
         check(AudioUnitGetParameter(instance.unit,lfoId,kAudioUnitScope_Global,0,&retained),"Restored LFO depth");
         if(std::abs(retained-.65f)>.0001f)throw std::runtime_error("Installed AU lost LFO depth during state restore");
+        for(size_t i=0;i<filterModulationIds.size();++i)
+        {
+            check(AudioUnitGetParameter(instance.unit,filterModulationIds[i],kAudioUnitScope_Global,0,&retained),"Restored filter modulation");
+            if(std::abs(retained-filterModulationValues[i])>.0001f)throw std::runtime_error("Installed AU lost filter modulation during state restore");
+        }
         std::cout<<"Installed AU automation/state verified\n"<<std::flush;
         AudioStreamBasicDescription format{};
         format.mSampleRate=48000;format.mFormatID=kAudioFormatLinearPCM;

@@ -8,6 +8,8 @@ void InstrumentRenderer::prepare(double sampleRate)
     held = {}; deferred = {}; sustainPedal = {};
     groupHeld={};keyCounts={};presses={};velocities={};nextPress=0;physicalKeys=groupKeys=soundingKeys=0;monoNote=-1;monoMode=session.audioMono();
     wheel = 0;lfos.prepare(sampleRate);
+    filterNote=DSP::filterTrackingReference;filterOwner=-1;filterVelocityValue=0;
+    keyTrackingAmount=session.audioValue(filterKeyTracking);velocityAmount=session.audioValue(filterVelocity);
     editorEpoch=session.editorMidi.epoch();
     engine.setTreatment(SoundStudies::Treatment::expressiveNetwork);
     filterEnvelope.prepare(sampleRate);
@@ -19,6 +21,9 @@ void InstrumentRenderer::prepare(double sampleRate)
     resonanceSmooth.setCurrentAndTargetValue(static_cast<float>(session.audioValue(resonance)));
     gainSmooth.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(static_cast<float>(session.audioValue(output))));
     filterAmountSmooth.reset(sampleRate,.025);filterAmountSmooth.setCurrentAndTargetValue(session.audioValue(filterAmount));
+    filterNoteSmooth.reset(sampleRate,.025);filterNoteSmooth.setCurrentAndTargetValue(0);
+    filterFmSmooth.reset(sampleRate,.025);filterFmSmooth.setCurrentAndTargetValue(session.audioValue(filterFmDepth));
+    lastFilterCutoff=DSP::modulatedCutoff(cutoffSmooth.getCurrentValue(),0,0,0,rate);
     publish();
 }
 
@@ -43,13 +48,29 @@ void InstrumentRenderer::beginMidiGroup()
 {
     groupHeld=held;groupKeys=physicalKeys;engine.beginNoteGroup();
 }
-void InstrumentRenderer::refreshMonoNote()
+int InstrumentRenderer::latestNoteOwner() const noexcept
 {
     int selected=-1;
     // Physical keys take priority over pedal-held notes. Within each class the most
     // recent owner wins; capture owners retain the captured press's original order.
     for(int pass=0;pass<2&&selected<0;++pass)
         for(size_t i=0;i<held.size();++i)if((pass==0?held[i]:deferred[i])&&(selected<0||presses[i]>presses[static_cast<size_t>(selected)]))selected=static_cast<int>(i);
+    return selected;
+}
+void InstrumentRenderer::refreshFilterNote(int newest)
+{
+    // New physical presses outrank all older owners. Re-scan only when the
+    // selected key is released; unrelated polyphonic note events stay O(1).
+    if(newest>=0&&(filterOwner<0||!held[static_cast<size_t>(filterOwner)]||presses[static_cast<size_t>(newest)]>presses[static_cast<size_t>(filterOwner)]))filterOwner=newest;
+    if(soundingKeys==0)filterOwner=-1;
+    else if(filterOwner<0||!held[static_cast<size_t>(filterOwner)])filterOwner=latestNoteOwner();
+    if(filterOwner>=0){filterNote=filterOwner%128;filterVelocityValue=velocities[static_cast<size_t>(filterOwner)];}
+    // No owners: retain the last note's offsets for the shared release tail.
+    filterNoteSmooth.setTargetValue(DSP::filterNoteOctaves(filterNote,keyTrackingAmount,filterVelocityValue,velocityAmount));
+}
+void InstrumentRenderer::refreshMonoNote()
+{
+    const auto selected=latestNoteOwner();
     if(selected<0){if(monoNote>=0)engine.noteOff(monoNote);monoNote=-1;return;}
     const auto note=selected%128;if(note==monoNote)return;
     engine.noteOn(note,velocities[static_cast<size_t>(selected)],SoundStudies::Articulation::lead,true,monoNote>=0);monoNote=note;
@@ -75,6 +96,7 @@ void InstrumentRenderer::releaseChannel(int channel)
     }
     sustainPedal[static_cast<size_t>(channel)] = false;
     if(monoMode)refreshMonoNote();
+    refreshFilterNote();
     releaseFilterGate();
 }
 
@@ -96,15 +118,20 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
             if(!held[index])++physicalKeys;
             held[index]=true;if(keyCounts[index]<65535)++keyCounts[index];
             deferred[index] = false;
-            bool capture = false;
+            int captureOwner=-1;
             if (editor && midiChannel == 15)
-                for (size_t c = 0; c < 31; ++c) capture |= held[c * 128 + static_cast<size_t>(note)] || deferred[c * 128 + static_cast<size_t>(note)];
+                for(size_t c=0;c<31;++c)
+                {
+                    const auto owner=c*128+static_cast<size_t>(note);
+                    if((held[owner]||deferred[owner])&&(captureOwner<0||presses[owner]>presses[static_cast<size_t>(captureOwner)]))captureOwner=static_cast<int>(owner);
+                }
+            const auto capture=captureOwner>=0;
             if(capture)
             {
-                for(size_t c=0;c<31;++c)presses[index]=std::max(presses[index],presses[c*128+static_cast<size_t>(note)]);
+                presses[index]=presses[static_cast<size_t>(captureOwner)];
             }
             else presses[index]=++nextPress;
-            velocities[index]=message.getFloatVelocity();
+            velocities[index]=capture?velocities[static_cast<size_t>(captureOwner)]:message.getFloatVelocity();
             if (!capture)
             {
                 if(!(monoMode&&overlap&&session.audioValue(legato)>=.5))filterEnvelope.noteOn();
@@ -124,6 +151,7 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
             if(monoMode)refreshMonoNote();else if (!heldAnywhere(note)) engine.noteOff(note);
             releaseFilterGate();
         }
+        refreshFilterNote(message.isNoteOn()?static_cast<int>(index):-1);
     }
     else if (message.isPitchWheel())
     {
@@ -142,6 +170,7 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
                 if (!monoMode&&!heldAnywhere(note)) engine.noteOff(note);
             }
         if(monoMode)refreshMonoNote();
+        refreshFilterNote();
         releaseFilterGate();
     }
     else if (message.isAllNotesOff() || message.isAllSoundOff()) releaseChannel(channel);
@@ -169,7 +198,12 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
             auto shift=toneMotion[static_cast<size_t>(i)]+12*cutoffModulation[static_cast<size_t>(i)];
             const auto envelopeLevel=filterEnvelope.next(),amount=filterAmountSmooth.getNextValue();
             if(std::abs(amount)>0)shift+=12*amount*envelopeLevel;
-            const auto frequency=std::min(SoundStudies::pitchIsZero(shift)?base:std::max(10.0,base*std::exp2(shift/12)),rate*.42);
+            const auto fmDepth=filterFmSmooth.getNextValue();
+            // Engine::render produces a bipolar +/-0.8 soft-limited oscillator mix.
+            // Tap before Tone, tremolo, Space and master gain; no feedback or LPF.
+            const auto oscillator=fmDepth>0?(static_cast<double>(left[offset+i])+right[offset+i])*.625:0;
+            const auto frequency=DSP::modulatedCutoff(base,shift/12+filterNoteSmooth.getNextValue(),fmDepth,oscillator,rate);
+            lastFilterCutoff=frequency;
             const auto g=std::tan(juce::MathConstants<double>::pi*frequency/rate);
             const auto k=2.0-1.85*resonanceSmooth.getNextValue();const auto a=1/(1+g*(g+k));
             const auto filterSample=[&](double input,int channel) {
@@ -189,6 +223,9 @@ void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuff
     audio.clear();
     if (audio.getNumChannels() == 0 || audio.getNumSamples() == 0) return;
     updateEngine();
+    keyTrackingAmount=session.audioValue(filterKeyTracking);velocityAmount=session.audioValue(filterVelocity);
+    filterNoteSmooth.setTargetValue(DSP::filterNoteOctaves(filterNote,keyTrackingAmount,filterVelocityValue,velocityAmount));
+    filterFmSmooth.setTargetValue(session.audioValue(filterFmDepth));
     std::array<DSP::LfoSettings,DSP::lfoCount> settings{};
     for(size_t i=0;i<settings.size();++i)
     {
@@ -279,6 +316,7 @@ void InstrumentRenderer::reset() noexcept
     held = {}; deferred = {}; sustainPedal = {};
     groupHeld={};keyCounts={};physicalKeys=groupKeys=soundingKeys=0;monoNote=-1;
     filterEnvelope.reset();
+    filterNote=DSP::filterTrackingReference;filterOwner=-1;filterVelocityValue=0;filterNoteSmooth.setCurrentAndTargetValue(0);
     lfos.prepare(rate);
     engine.allNotesOff();
     session.editorMidi.reset();editorEpoch=session.editorMidi.epoch();

@@ -20,6 +20,7 @@ enum Parameter
     ampLfoOn,ampLfoWave,ampLfoSync,ampLfoDivision,ampLfoRate,ampLfoDepth,
     stressLfoOn,stressLfoWave,stressLfoSync,stressLfoDivision,stressLfoRate,stressLfoDepth,
     lfoTempo,
+    filterKeyTracking,filterVelocity,filterFmDepth,
     parameterCount
 };
 inline constexpr int legacyParameterCount = 16;
@@ -28,7 +29,7 @@ inline constexpr int monoHostIndex = 16;
 inline constexpr int hostParameterCount = parameterCount + 1;
 constexpr int hostIndex(Parameter p) noexcept { return p < legacyParameterCount ? static_cast<int>(p) : static_cast<int>(p) + 1; }
 constexpr Parameter conditionIndex(int host) noexcept { return static_cast<Parameter>(host < monoHostIndex ? host : host - 1); }
-constexpr int versionHint(Parameter p) noexcept {return p<legacyParameterCount?1:p<pitchParameterCount?2:p<=filterAmount?3:4;}
+constexpr int versionHint(Parameter p) noexcept {return p<legacyParameterCount?1:p<pitchParameterCount?2:p<=filterAmount?3:p<=lfoTempo?4:5;}
 
 enum class ParameterKind { continuous, boolean, choice };
 struct HostParameterDefinition
@@ -89,6 +90,9 @@ inline constexpr auto hostParameters=[] {
 #undef NITRIDE_LFO
     definitions[ampLfoDepth].minimum=0;
     definitions[lfoTempo]={"lfo_tempo","LFO fallback tempo",20,300,1,120};
+    definitions[filterKeyTracking]={"filter_key_tracking","Filter key tracking",0,1,1,0};
+    definitions[filterVelocity]={"filter_velocity","Filter velocity sensitivity",-6,6,1,0};
+    definitions[filterFmDepth]={"filter_fm_depth","Filter FM depth",0,6,1,0};
     return definitions;
 }();
 struct LfoParameters {Parameter enabled,wave,sync,division,rate,depth;const char* name;const char* unit;};

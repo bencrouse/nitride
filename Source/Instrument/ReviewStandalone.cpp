@@ -54,6 +54,7 @@ public:
         session.setMono(true);session.set(Nitride::legato,1);session.set(Nitride::glideOn,1);session.set(Nitride::glideTime,.2);session.set(Nitride::glideCurve,0);
         session.set(Nitride::autobendOn,1);session.set(Nitride::autobendDepth,12);session.set(Nitride::autobendTarget,3);session.keyboard.noteOn(16,72,.74f);
         session.set(Nitride::cutoff,800);session.set(Nitride::filterAmount,3);session.set(Nitride::filterAttack,.15);
+        session.set(Nitride::filterKeyTracking,1);session.set(Nitride::filterVelocity,2);session.set(Nitride::filterFmDepth,6);
         for(size_t i=0;i<Nitride::lfoParameters.size();++i)
         {
             const auto& lane=Nitride::lfoParameters[i];session.set(lane.enabled,1);session.set(lane.depth,i==0?2:i==1?1:i==2?1:.25);

@@ -36,6 +36,9 @@ before musical development can continue.
   musical tempo sync and selectable pitch/FM/cutoff/amplitude/network modulation.
   Preset/state design is now greenfield, without legacy migration requirements.
   See [Motion](LFO.md).
+- Feature work in 0.6.0: filter key tracking, signed velocity sensitivity and
+  oscillator-rate cutoff FM, composed with the existing filter ADSR, cutoff LFO
+  and Pitch + Tone. See [filter modulation](FILTER_MODULATION.md).
 
 See [milestone 2](MILESTONE_02.md) and [performance measurements](PERFORMANCE.md).
 Current performance is usable at 48 kHz, but maximum polyphony at 96 kHz still has
@@ -88,7 +91,8 @@ Confirm the feature list, then implement changes affecting modulation, note beha
 parameter ranges or expression before final preset voicing.
 
 Implemented: independent Glide/Autobend and a dedicated filter ADSR for the existing
-shared Tone filter, plus the six-lane Motion bank. New modulation starts neutral.
+shared Tone filter, the six-lane Motion bank, and filter tracking/velocity/audio-rate
+FM. New modulation starts neutral.
 
 Pure workflow improvements—browser conveniences, shortcuts and naming—can happen
 alongside preset development.
@@ -150,7 +154,7 @@ practical at their intended polyphony and supported performance settings.
 
 ## Open decisions and review points
 
-- Glide/Autobend, filter ADSR and expanded LFOs are implemented; any further feature list is not yet
+- Glide/Autobend, filter ADSR, expanded LFOs and filter modulation are implemented; any further feature list is not yet
   specified. Changes to voice architecture or major sound behavior could alter
   the sequence above.
 - Hardware, polyphony and headroom acceptance targets are not yet specified.

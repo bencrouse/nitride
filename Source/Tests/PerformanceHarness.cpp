@@ -12,7 +12,7 @@ namespace
 {
 using Clock = std::chrono::steady_clock;
 constexpr int workloadVersion = 1;
-struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0; };
+struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0,filterModulation=0; };
 constexpr std::array workloads {
     Workload{"idle",0,0}, Workload{"lead",2,1}, Workload{"pad4",0,4}, Workload{"pad12",0,12},
     Workload{"stress12",0,12,true}, Workload{"automation12",0,12,true,true},
@@ -43,13 +43,21 @@ constexpr std::array lfoWorkloads {
     Workload{"lfo12-off",0,12,true,false,false,false,0,0,-1},Workload{"lfo12-on",0,12,true,false,false,false,0,0,1},
     Workload{"lfo-hold12-off",0,12,true,false,false,false,0,0,-2},Workload{"lfo-hold12-on",0,12,true,false,false,false,0,0,2}
 };
+constexpr std::array filterModulationWorkloads {
+    Workload{"tracking-off",0,4,false,false,true,false,0,0,0,-1},Workload{"tracking-on",0,4,false,false,true,false,0,0,0,1},
+    Workload{"velocity-off",0,4,false,false,true,false,0,0,0,-2},Workload{"velocity-on",0,4,false,false,true,false,0,0,0,2},
+    Workload{"filter-fm1-off",2,1,false,false,false,false,0,0,0,-4},Workload{"filter-fm1-on",2,1,false,false,false,false,0,0,0,4},
+    Workload{"filter-mod4-off",0,4,false,false,true,false,0,0,0,-7},Workload{"filter-mod4-on",0,4,false,false,true,false,0,0,0,7},
+    Workload{"filter-mod12-off",0,12,true,false,true,false,0,0,0,-7},Workload{"filter-mod12-on",0,12,true,false,true,false,0,0,0,7},
+    Workload{"filter-all12-off",0,12,true,false,false,false,4,1,1,-7},Workload{"filter-all12-on",0,12,true,false,false,false,4,1,1,7}
+};
 struct Options
 {
     int passes = 3;
     double seconds = 2, warmup = .5;
     std::vector<int> rates {48000,96000}, blocks {64,256};
     juce::String only, label, output, compare;
-    bool pitchMotion=false,filterEnvelope=false,lfo=false,allowSoundChange=false;
+    bool pitchMotion=false,filterEnvelope=false,lfo=false,filterModulation=false,allowSoundChange=false;
 };
 struct Result
 {
@@ -82,6 +90,7 @@ Options parse(int argc, char** argv)
         if(argument=="--pitch-motion"){options.pitchMotion=true;continue;}
         if(argument=="--filter-envelope"){options.filterEnvelope=true;continue;}
         if(argument=="--lfo"){options.lfo=true;continue;}
+        if(argument=="--filter-modulation"){options.filterModulation=true;continue;}
         if(argument=="--allow-sound-change"){options.allowSoundChange=true;continue;}
         require(i+1<argc,"Missing value for "+argument);const juce::String value(argv[++i]);
         if(argument=="--passes")options.passes=integer(value);
@@ -96,7 +105,7 @@ Options parse(int argc, char** argv)
         else throw std::runtime_error("Unknown option: "+argument.toStdString());
     }
     require(options.passes>=1 && options.passes<=20,"Passes must be 1–20");
-    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)<=1,"Select only one feature matrix");
+    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)<=1,"Select only one feature matrix");
     require(options.seconds<=120 && options.warmup<=10,"Duration out of range");
     for(const auto rate:options.rates)require(rate>=11025 && rate<=192000,"Sample rate out of range");
     for(const auto block:options.blocks)require(block>=16 && block<=4096,"Block size out of range");
@@ -165,6 +174,14 @@ void runPass(Result& result, const Options& options)
             patch.values[lane.wave]=std::abs(result.workload.lfo)==2?4:static_cast<double>(i%5);
         }
     }
+    if(result.workload.filterModulation!=0)
+    {
+        const auto features=std::abs(result.workload.filterModulation);const auto enabled=result.workload.filterModulation>0;
+        patch.values[Nitride::cutoff]=1200;
+        patch.values[Nitride::filterKeyTracking]=enabled&&(features&1)?1:0;
+        patch.values[Nitride::filterVelocity]=enabled&&(features&2)?2:0;
+        patch.values[Nitride::filterFmDepth]=enabled&&(features&4)?6:0;
+    }
     session.apply(patch);processor.prepareToPlay(result.rate,result.block);
     juce::AudioBuffer<float> audio(2,result.block);juce::MidiBuffer midi;midi.ensureSize(4096);
     constexpr std::array pitches {48,55,59,62,64,67,71,74,76,79,83,86};
@@ -188,14 +205,18 @@ void runPass(Result& result, const Options& options)
         {
             const auto voice=(block/interval)%result.workload.voices;
             const auto note=pitches[static_cast<size_t>(voice)];
+            constexpr std::array<juce::uint8,4> velocities{32,64,96,127};
+            const auto velocity=result.workload.filterModulation!=0?velocities[static_cast<size_t>((block/interval)%4)]:static_cast<juce::uint8>(96);
             midi.addEvent(juce::MidiMessage::noteOff(1,note),result.block/4);
-            midi.addEvent(juce::MidiMessage::noteOn(1,note,static_cast<juce::uint8>(96)),result.block/2);
+            midi.addEvent(juce::MidiMessage::noteOn(1,note,velocity),result.block/2);
         }
         if(result.workload.pitchMotion!=0&&block%interval==0)
         {
             constexpr std::array transpositions{7,-5,3,0};const auto transpose=transpositions[static_cast<size_t>((block/interval)%4)];
+            constexpr std::array<juce::uint8,4> velocities{32,64,96,127};
+            const auto velocity=result.workload.filterModulation!=0?velocities[static_cast<size_t>((block/interval)%4)]:static_cast<juce::uint8>(96);
             for(int voice=0;voice<result.workload.voices;++voice)midi.addEvent(juce::MidiMessage::noteOff(1,pitches[static_cast<size_t>(voice)]+previousTranspose),result.block/4);
-            for(int voice=0;voice<result.workload.voices;++voice)midi.addEvent(juce::MidiMessage::noteOn(1,pitches[static_cast<size_t>(voice)]+transpose,static_cast<juce::uint8>(96)),result.block/2);
+            for(int voice=0;voice<result.workload.voices;++voice)midi.addEvent(juce::MidiMessage::noteOn(1,pitches[static_cast<size_t>(voice)]+transpose,velocity),result.block/2);
             previousTranspose=transpose;
         }
         const auto phase=juce::MathConstants<double>::twoPi*static_cast<double>(block*result.block)/result.rate;
@@ -284,6 +305,7 @@ int main(int argc,char** argv)
             "--pitch-motion selects paired Glide/Autobend on/off performances.\n"
             "--filter-envelope selects paired shared filter envelope on/off performances.\n"
             "--lfo selects paired six-lane Motion on/off performances.\n"
+            "--filter-modulation selects tracking, velocity, audio-rate FM and combined on/off performances.\n"
             "--allow-sound-change records intentional greenfield sound changes during comparison.\n";return 0;
     }
     juce::ScopedJuceInitialiser_GUI initialiser;
@@ -294,7 +316,7 @@ int main(int argc,char** argv)
             for(const auto rate:options.rates)for(const auto block:options.blocks)for(const auto& workload:matrix)
                 if(options.only.isEmpty()||options.only==workload.name)results.push_back({workload,rate,block});
         };
-        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else add(workloads);
+        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else if(options.filterModulation)add(filterModulationWorkloads);else add(workloads);
         require(!results.empty(),"Unknown workload: "+options.only);
         for(auto& result:results)result.times.reserve(static_cast<size_t>(std::ceil(options.seconds*result.rate/result.block))*static_cast<size_t>(options.passes));
         std::cout<<"Nitride "<<NITRIDE_BENCH_CONFIG<<" benchmark: "<<juce::SystemStats::getCpuModel()<<", "<<options.passes<<" passes, "<<options.seconds<<" audio seconds per case/pass\n";

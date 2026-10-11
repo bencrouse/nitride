@@ -2,6 +2,7 @@
 #include "Instrument/PresetStore.h"
 #include "FilterEnvelopeTests.h"
 #include "LfoTests.h"
+#include "FilterModulationTests.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -53,6 +54,7 @@ int main()
     {
         runFilterEnvelopeTests();
         runLfoTests();
+        runFilterModulationTests();
         TestDirectory directory;
         NitrideAudioProcessor processor(directory.folder);
         auto& session=processor.getInstrumentSession();auto& parameters=processor.getState();

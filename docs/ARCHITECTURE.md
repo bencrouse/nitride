@@ -6,6 +6,11 @@ scalable scoped-history parameter lists. Since 0.5.0 the project deliberately
 uses a greenfield preset/state schema; older compatibility descriptions below
 record earlier milestones, not a current migration guarantee.
 
+`FILTER_MODULATION.md` describes the current filter cutoff path: shared note and
+velocity ownership, log-space control composition and an unsmoothed pre-filter
+audio-rate FM tap. The existing filter envelope is reused. Since 0.6.0 the current
+greenfield schema has 71 host controls, preset v5 and XML/session v6.
+
 The bounded local hardening pass is recorded in `HARDENING.md`. Production UI now
 uses normal `InstrumentPanel`/control components; shared DSP is owned by
 `Source/DSP/Engine.*` and `nitride_dsp`. Editor keyboard/listener state is owned by

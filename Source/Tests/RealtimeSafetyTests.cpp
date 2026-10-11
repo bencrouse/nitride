@@ -68,6 +68,7 @@ void concurrency(const juce::File& directory)
     NitrideAudioProcessor p(directory);p.applyPreset(2);p.prepareToPlay(48000,64);auto& s=p.getInstrumentSession();
     p.setPlayHead(&playhead);
     s.set(Nitride::filterAmount,3);s.set(Nitride::cutoff,800);
+    s.set(Nitride::filterKeyTracking,1);s.set(Nitride::filterVelocity,2);s.set(Nitride::filterFmDepth,6);
     for(const auto& lane:Nitride::lfoParameters){s.set(lane.enabled,1);s.set(lane.depth,.2);s.set(lane.wave,4);s.set(lane.sync,1);}
     juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;midi.ensureSize(4096);midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),0);
     process(p,audio,midi);juce::MemoryBlock state;p.getStateInformation(state);
@@ -78,6 +79,7 @@ void concurrency(const juce::File& directory)
     auto* depth=p.getState().getParameter("autobend_depth");auto* coupling=p.getState().getParameter("coupling");
     auto* filterDepth=p.getState().getParameter("filter_amount");auto* filterAttack=p.getState().getParameter("filter_attack");
     auto* lfoDepth=p.getState().getParameter("lfo_stress_depth");auto* lfoWave=p.getState().getParameter("lfo_pitch_wave");
+    auto* filterTracking=p.getState().getParameter("filter_key_tracking");auto* filterVelocity=p.getState().getParameter("filter_velocity");auto* filterFM=p.getState().getParameter("filter_fm_depth");
     for(int i=0;i<100;++i)
     {
         const auto generation=s.restoreEpoch.load();
@@ -85,6 +87,7 @@ void concurrency(const juce::File& directory)
         coupling->setValueNotifyingHost(static_cast<float>(i%10)/10);depth->setValueNotifyingHost(depth->convertTo0to1(static_cast<float>(i%25)-12));
         filterDepth->setValueNotifyingHost(filterDepth->convertTo0to1(static_cast<float>(i%9)-4));filterAttack->setValueNotifyingHost(static_cast<float>(i%10)/10);
         lfoDepth->setValueNotifyingHost(static_cast<float>(i%10)/10);lfoWave->setValueNotifyingHost(static_cast<float>(i%5)/4);
+        filterTracking->setValueNotifyingHost(static_cast<float>(i%10)/10);filterVelocity->setValueNotifyingHost(static_cast<float>(i%10)/10);filterFM->setValueNotifyingHost(static_cast<float>(i%10)/10);
         p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
         require(!s.setIfCurrent(Nitride::fm,4,generation),"Old gesture overwrote completed recall");
         require(!s.setGroupIfCurrent({{Nitride::coupling,1},{Nitride::stress,1}},generation),"Old grouped gesture overwrote recall");

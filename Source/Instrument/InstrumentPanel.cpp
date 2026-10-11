@@ -17,6 +17,7 @@ public:
         sustainValue("Sustain",0,1,.72),releaseValue("Release",.02,8,1.4,true),outputValue("Output",-24,0,-6),
         filterAttackValue("Attack",.001,4,.01,true),filterDecayValue("Decay",.01,4,.3,true),filterSustainValue("Sustain",0,1,.5),
         filterReleaseValue("Release",.02,8,.4,true),filterAmountValue("Amount",-6,6,0),filterEnvelope("Filter envelope"),
+        filterTrackingValue("Key track",0,1,0),filterVelocityValue("Velocity",-6,6,0),filterFmValue("Filter FM",0,6,0),
         filter(XYControl::Kind::filter),motion(s),space(XYControl::Kind::space)
     {
         setLookAndFeel(&look);
@@ -48,7 +49,8 @@ public:
         fmValue.format=[](double v){return juce::String(v,2);};pitchValue.format=[](double v){return(v>0?"+":"")+juce::String(v,1)+" st";};
         for(auto* value:{&attackValue,&decayValue,&releaseValue})value->format=[](double v){return v>=1?juce::String(v,2)+" s":juce::String(v*1000,0)+" ms";};
         sustainValue.format=[](double v){return juce::String(v*100,0)+"%";};outputValue.format=[](double v){return juce::String(v,1)+" dB";};
-        for(auto pair:{std::pair{&filterAttackValue,filterAttack},{&filterDecayValue,filterDecay},{&filterSustainValue,filterSustain},{&filterReleaseValue,filterRelease},{&filterAmountValue,filterAmount}})
+        for(auto pair:{std::pair{&filterAttackValue,filterAttack},{&filterDecayValue,filterDecay},{&filterSustainValue,filterSustain},{&filterReleaseValue,filterRelease},{&filterAmountValue,filterAmount},
+            {&filterTrackingValue,filterKeyTracking},{&filterVelocityValue,filterVelocity},{&filterFmValue,filterFmDepth}})
         {
             auto* value=pair.first;const auto parameter=pair.second;const auto name=hostParameters[static_cast<size_t>(parameter)].name;
             value->setName(name);value->setTitle(name);value->setDescription(juce::String("Drag vertically to change ")+name+". Arrows adjust. Double-click resets.");
@@ -58,6 +60,11 @@ public:
         for(auto* value:{&filterAttackValue,&filterDecayValue,&filterReleaseValue})value->format=attackValue.format;
         filterSustainValue.format=sustainValue.format;filterAmountValue.format=[](double v){return(v>0?"+":"")+juce::String(v,2)+" oct";};
         filterAmountValue.setTooltip("Envelope depth in octaves. Positive opens the filter; negative closes it. Zero preserves the base cutoff.");
+        filterTrackingValue.format=sustainValue.format;filterVelocityValue.format=filterAmountValue.format;
+        filterFmValue.format=[](double v){return juce::String(v,2)+" oct";};
+        filterTrackingValue.setTooltip("Cutoff key tracking around MIDI note 60. 0% is fixed; 100% tracks one octave per octave. Uses the most recent held note.");
+        filterVelocityValue.setTooltip("Signed octave offset at full velocity. Positive opens the cutoff for harder notes; negative closes it. Retained through release.");
+        filterFmValue.setTooltip("Audio-rate cutoff modulation from the pre-filter oscillator mix. Depth in octaves; the oscillator signal is not control-rate smoothed.");
         filterEnvelope.onBegin=[this]{begin({hostIndex(filterAttack),hostIndex(filterDecay),hostIndex(filterSustain),hostIndex(filterRelease)});};
         filterEnvelope.onEnd=[this]{end({hostIndex(filterAttack),hostIndex(filterDecay),hostIndex(filterSustain),hostIndex(filterRelease)});};
         filterEnvelope.onChange=[this](std::array<double,4> v){group({{filterAttack,v[0]},{filterDecay,v[1]},{filterSustain,v[2]},{filterRelease,v[3]}});};addAndMakeVisible(filterEnvelope);
@@ -88,12 +95,16 @@ public:
         filterAmountValue.getAccessibilityHandler()->getValueInterface()->setValue(-2);
         const auto filterEnv=std::abs(current.values[filterAttack]-.03)<.001&&std::abs(current.values[filterAmount]+2)<.001&&std::abs(current.values[attack]-.1)<.001;
         filter.onChange(.7f,.4f);session.set(couplingLfoOn,1);session.set(couplingLfoDepth,.2);sync();space.onChange(.3f,.7f);const auto support=current.values[cutoff]>1000&&current.values[couplingLfoDepth]>.1&&current.values[spaceMix]>.1;
+        filterTrackingValue.getAccessibilityHandler()->getValueInterface()->setValue(1);
+        filterVelocityValue.getAccessibilityHandler()->getValueInterface()->setValue(2);
+        filterFmValue.getAccessibilityHandler()->getValueInterface()->setValue(3);
+        const auto filterMod=std::abs(current.values[filterKeyTracking]-1)<.00001&&std::abs(current.values[filterVelocity]-2)<.00001&&std::abs(current.values[filterFmDepth]-3)<.00001;
         const auto count=session.presets().size();const auto kept=session.keep("Interaction test").wasOk()&&session.presets().size()==count+1;rebuildPresets();sync();
         const auto saved=current;set(stress,.8);session.setComparing(true);sync();const auto compared=std::abs(current.values[stress]-saved.values[stress])<.001;
         session.setComparing(false);sync();const auto returned=std::abs(current.values[stress]-.8)<.001;
         field.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey));const auto played=!notes.isEmpty();field.keyStateChanged(false);const auto stopped=notes.isEmpty();
-        std::cout<<"Native interaction checks: "<<changed<<undone<<source<<env<<filterEnv<<support<<kept<<compared<<returned<<played<<stopped<<'\n';
-        return changed&&undone&&source&&env&&filterEnv&&support&&kept&&compared&&returned&&played&&stopped;
+        std::cout<<"Native interaction checks: "<<changed<<undone<<source<<env<<filterEnv<<filterMod<<support<<kept<<compared<<returned<<played<<stopped<<'\n';
+        return changed&&undone&&source&&env&&filterEnv&&filterMod&&support&&kept&&compared&&returned&&played&&stopped;
     }
     void paint(juce::Graphics& g) override
     {
@@ -120,7 +131,9 @@ public:
         field.setBounds(310,145,584,274);ribbon.setBounds(310,448,584,82);fmValue.setBounds(36,208,226,28);pitchValue.setBounds(36,242,226,28);
         poly.setBounds(36,280,70,24);monoButton.setBounds(112,280,70,24);legatoButton.setBounds(188,280,74,24);glidePanel.setBounds(36,317,226,85);autobendPanel.setBounds(36,418,226,85);
         envelope.setBounds(942,145,234,147);attackValue.setBounds(942,309,234,34);decayValue.setBounds(942,351,234,34);sustainValue.setBounds(942,393,234,34);releaseValue.setBounds(942,435,234,34);
-        filter.setBounds(36,586,332,96);motion.setBounds(428,576,348,136);space.setBounds(836,586,340,96);
+        filter.setBounds(36,586,152,96);filterTrackingValue.setBounds(196,586,172,28);
+        filterVelocityValue.setBounds(196,620,172,28);filterFmValue.setBounds(196,654,172,28);
+        motion.setBounds(428,576,348,136);space.setBounds(836,586,340,96);
         filterEnvelope.setBounds(36,767,332,64);filterAttackValue.setBounds(428,767,166,28);filterDecayValue.setBounds(610,767,166,28);
         filterSustainValue.setBounds(428,803,166,28);filterReleaseValue.setBounds(610,803,166,28);filterAmountValue.setBounds(836,767,340,32);
         keyboard.setBounds(26,861,1148,53);keyboard.setKeyWidth(1148.0f/22);outputValue.setBounds(914,923,262,28);
@@ -148,7 +161,7 @@ private:
         if(lastEpoch!=epoch)
         {
             endAudition();hold.setToggleState(false,juce::dontSendNotification);touching=false;edits={};field.cancelGesture();ribbon.cancelGesture();envelope.cancelGesture();filterEnvelope.cancelGesture();
-            for(auto* v:{&fmValue,&pitchValue,&attackValue,&decayValue,&sustainValue,&releaseValue,&outputValue,&filterAttackValue,&filterDecayValue,&filterSustainValue,&filterReleaseValue,&filterAmountValue})v->cancelGesture();for(auto* p:{&filter,&space})p->cancelGesture();lastEpoch=epoch;
+            for(auto* v:{&fmValue,&pitchValue,&attackValue,&decayValue,&sustainValue,&releaseValue,&outputValue,&filterAttackValue,&filterDecayValue,&filterSustainValue,&filterReleaseValue,&filterAmountValue,&filterTrackingValue,&filterVelocityValue,&filterFmValue})v->cancelGesture();for(auto* p:{&filter,&space})p->cancelGesture();lastEpoch=epoch;
         }
         if(lastLibrary!=session.libraryRevision.load())rebuildPresets();current=session.readVisible();glidePanel.sync(current,epoch);autobendPanel.sync(current,epoch);
         field.setPosition(static_cast<float>(current.values[coupling]),static_cast<float>(current.values[stress]));ribbon.setResponse(current.values[response]);
@@ -157,6 +170,7 @@ private:
         filterAttackValue.setValue(current.values[filterAttack]);filterDecayValue.setValue(current.values[filterDecay]);filterSustainValue.setValue(current.values[filterSustain]);filterReleaseValue.setValue(current.values[filterRelease]);filterAmountValue.setValue(current.values[filterAmount]);
         filterEnvelope.setEnvelope({current.values[filterAttack],current.values[filterDecay],current.values[filterSustain],current.values[filterRelease]});
         filter.setPosition(static_cast<float>(std::log(current.values[cutoff]/40)/std::log(450.0)),static_cast<float>(current.values[resonance]/.85));
+        filterTrackingValue.setValue(current.values[filterKeyTracking]);filterVelocityValue.setValue(current.values[filterVelocity]);filterFmValue.setValue(current.values[filterFmDepth]);
         motion.sync(current,epoch);space.setPosition(static_cast<float>(current.values[spaceMix]/.65),static_cast<float>(current.values[spaceSize]));
         poly.setToggleState(!current.mono,juce::dontSendNotification);monoButton.setToggleState(current.mono&&current.values[legato]<.5,juce::dontSendNotification);legatoButton.setToggleState(current.mono&&current.values[legato]>=.5,juce::dontSendNotification);
         compare.setToggleState(session.isComparing(),juce::dontSendNotification);undo.setEnabled(session.canUndo());const auto id=session.selectedPresetId();bool found=false;
@@ -206,7 +220,8 @@ private:
     PitchMotionPanel glidePanel,autobendPanel;PlayingField field;ResponseRibbon ribbon;InstrumentKeyboard keyboard;
     ValueControl fmValue,pitchValue,attackValue,decayValue,sustainValue,releaseValue,outputValue;
     ValueControl filterAttackValue,filterDecayValue,filterSustainValue,filterReleaseValue,filterAmountValue;
-    EnvelopeControl filterEnvelope,envelope;XYControl filter;MotionPanel motion;XYControl space;
+    EnvelopeControl filterEnvelope,envelope;ValueControl filterTrackingValue,filterVelocityValue,filterFmValue;
+    XYControl filter;MotionPanel motion;XYControl space;
     juce::ComboBox patchBox;juce::TextButton undo,compare,keep,hold,settings,poly,monoButton,legatoButton;
     std::vector<juce::String> presetIds;std::unique_ptr<juce::FileChooser> chooser;Patch current;juce::Array<int> notes;
     std::array<bool,hostParameterCount> edits{};std::uint64_t lastRevision=0,lastLibrary=0,lastEpoch=0,editorGeneration=0;bool touching=false;

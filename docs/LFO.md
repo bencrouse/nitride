@@ -1,5 +1,8 @@
 # Motion / Nitride 0.5.0
 
+The measurements and schema below record the 0.5.0 milestone. For the current
+filter extensions and 0.6.0 state schema, see `FILTER_MODULATION.md`.
+
 Motion is a bank of **six independent global LFO lanes**: Pitch, FM depth, Filter
 cutoff, Amplitude, Coupling and Stress. Multiple lanes can run at once. The native
 panel remains 1200 × 960; the new controls replace the old Motion XY pad without

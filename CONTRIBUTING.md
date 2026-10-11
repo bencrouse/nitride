@@ -6,6 +6,8 @@ Since 0.5.0, Motion/state development is greenfield: no legacy migration gate.
 `CurrentRegressionTests.cpp` checks deterministic current factory sounds and
 zero-depth neutrality; `LfoTests.cpp` covers the six-lane modulation bank.
 Historical captures remain archival, unchanged. See `docs/LFO.md`.
+`FilterModulationTests.cpp` verifies shared key/velocity ownership, logarithmic
+composition and unsmoothed audio-rate FM; see `docs/FILTER_MODULATION.md`.
 
 Run `make check` during development and `make check-full` for clean Debug/Release,
 ASan/TSan and installed-AU integration checks. CMake downloads checksum-pinned
