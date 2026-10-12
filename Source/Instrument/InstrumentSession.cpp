@@ -196,7 +196,7 @@ void InstrumentSession::writePatch(const Patch& patch,bool notify)
 }
 void InstrumentSession::apply(const Patch& patch)
 {
-    const juce::ScopedLock lock(documentLock);syncProgram();const auto before=snapshot();
+    const juce::ScopedLock lock(documentLock);syncProgram();endAllEdits();restoreEpoch.fetch_add(1);const auto before=snapshot();
     writePatch(patch,true);currentName=patch.name;
     if(!same(before.patch,read())){history.push_back(before);if(history.size()>40)history.erase(history.begin());future.clear();}
 }
@@ -215,6 +215,7 @@ bool InstrumentSession::canUndo() const{const juce::ScopedLock lock(documentLock
 bool InstrumentSession::canRedo() const{const juce::ScopedLock lock(documentLock);syncProgram();return!future.empty();}
 void InstrumentSession::restoreSnapshot(const Snapshot& s)
 {
+    restoreEpoch.fetch_add(1);
     if(s.wholePatch)
     {
         pendingProgram.store(-1);program.store(s.program);currentName=s.patch.name;selectedId=s.selected;reference=s.reference;writePatch(s.patch,true);
@@ -271,6 +272,7 @@ bool InstrumentSession::selectPreset(const juce::String& id)
     const juce::ScopedLock lock(documentLock);syncProgram();
     const auto list=presets();const auto found=std::find_if(list.begin(),list.end(),[&](const auto& p){return p.id==id;});
     if(found==list.end())return false;
+    endAllEdits();restoreEpoch.fetch_add(1);
     const auto before=snapshot();writePatch(found->patch,true);currentName=found->patch.name;selectedId=id;reference=found->patch;
     if(id.startsWith("factory:"))program.store(juce::jlimit(0,3,id.fromFirstOccurrenceOf(":",false,false).getIntValue()));
     else rememberPortable(*found);

@@ -21,3 +21,17 @@ messages; editor teardown still clears its controller/owner bookkeeping.
 Regression coverage: long-release panic, pedal-held CC123, pedal-up, mono/poly,
 channel isolation, same-pitch host/editor ownership, released voices and event
 offsets in `ReviewRegressionTests.cpp`.
+
+## F3 — confirmed and fixed
+
+Preset selection and whole-patch `apply()` now finish outstanding edits under
+the document transaction lock, invalidate their generation, and record a
+separate coherent recall history entry. Keep/import share that selection path.
+Undo/Redo also invalidate obsolete callbacks. Invalid preset IDs do not cancel
+an edit. An interrupted edit remains its own history operation: Undo first
+returns to the edited pre-selection document, then undoes that edit normally.
+
+Regressions cover grouped FM/network/Response edits, stale individual/grouped
+writes before a polling tick, complete identity/value Undo/Redo, balanced host
+notifications, and Keep/import/apply interruption. Release session and existing
+UI/state regressions pass.

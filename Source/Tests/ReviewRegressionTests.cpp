@@ -1,5 +1,6 @@
 #include "ReviewRegressionTests.h"
 #include "PluginEditor.h"
+#include "Instrument/PresetStore.h"
 #include <stdexcept>
 #include <iostream>
 
@@ -40,5 +41,33 @@ void midiChannelModes()
     oldTail.event(juce::MidiMessage::noteOn(1,60,.8f));oldTail.session.keyboard.noteOn(16,60,.8f);oldTail.tick();oldTail.event(juce::MidiMessage::allSoundOff(1));oldTail.tick(400000);
     require(oldTail.session.live.voices.load()==1,"F2: An unrelated release tail prevented transfer to a held editor capture");
 }
+bool samePatch(const Patch& a,const Patch& b)
+{if(a.name!=b.name||a.mono!=b.mono||a.chord!=b.chord)return false;for(size_t i=0;i<parameterCount;++i)if(std::abs(a.values[i]-b.values[i])>1e-8)return false;return true;}
+void interruptedRecall()
+{
+    for(const auto p:{fm,fmRatio,response,coupling})
+    {
+        InstrumentSession s(juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-recall-"+juce::Uuid().toString()));
+        int begins=0,ends=0;s.beginHostGesture=[&](int){++begins;};s.endHostGesture=[&](int){++ends;};
+        const auto generation=s.restoreEpoch.load();s.beginEdit({hostIndex(p),hostIndex(stress)});s.set(p,hostParameters[static_cast<size_t>(p)].maximum);s.set(stress,.91);const auto edited=s.read();
+        require(s.selectPreset("factory:1"),"F3: Factory selection failed");const auto recalled=s.read();
+        require(!s.setIfCurrent(p,.123,generation)&&!s.setGroupIfCurrent({{p,.123},{stress,.12}},generation),"F3: Old gesture overwrote preset recall");s.endEdit({hostIndex(p),hostIndex(stress)});
+        require(samePatch(s.read(),factoryPatches()[1])&&begins==ends,"F3: Recall mixed edits or left unbalanced host gestures");
+        const auto undoGeneration=s.restoreEpoch.load();s.undo();require(samePatch(s.read(),edited)&&s.selectedPresetId()=="factory:0","F3: Recall Undo did not restore the complete pre-selection state");
+        require(!s.setIfCurrent(p,.123,undoGeneration),"F3: Undo retained obsolete gesture generation");s.redo();require(samePatch(s.read(),recalled)&&s.selectedPresetId()=="factory:1","F3: Recall Redo lost document identity");
+        s.undo();s.undo();require(samePatch(s.read(),factoryPatches()[0]),"F3: Interrupted edit history crossed preset boundaries");
+    }
+    const auto directory=juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-import-recall-"+juce::Uuid().toString());InstrumentSession s(directory);
+    const auto file=directory.getChildFile("import.nitridepreset");require(PresetStore::exportFile(file,{"import",factoryPatches()[1]}).wasOk(),"F3: Cannot prepare import regression");
+    for(int mode=0;mode<3;++mode)
+    {
+        const auto generation=s.restoreEpoch.load();s.beginEdit({hostIndex(fmRatio)});s.set(fmRatio,3.5);
+        if(mode==0)require(s.importPreset(file).wasOk(),"F3: Import failed");
+        else if(mode==1)require(s.keepPatch("Saved during edit",factoryPatches()[2]).wasOk(),"F3: Keep selection failed");
+        else s.apply(factoryPatches()[3]);
+        const auto recalled=s.read();require(!s.setIfCurrent(fmRatio,.4,generation),"F3: Import/Keep/apply retained an old gesture");s.endEdit({hostIndex(fmRatio)});require(samePatch(s.read(),recalled),"F3: Ending an old edit damaged recall");
+    }
+    directory.deleteRecursively();
 }
-void runReviewRegressionTests(){midiChannelModes();std::cout<<"Code-review MIDI channel-mode regressions passed\n";}
+}
+void runReviewRegressionTests(){midiChannelModes();interruptedRecall();std::cout<<"Code-review MIDI and interrupted-recall regressions passed\n";}
