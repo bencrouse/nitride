@@ -248,7 +248,13 @@ void InstrumentSession::setComparing(bool enabled)
     revision.fetch_add(1,std::memory_order_release);
 }
 Patch InstrumentSession::compareReference()const{const juce::ScopedLock lock(documentLock);syncProgram();return reference;}
-void InstrumentSession::setCompareReference(const Patch& p){const juce::ScopedLock lock(documentLock);reference=p;revision.fetch_add(1,std::memory_order_release);}
+void InstrumentSession::setCompareReference(const Patch& p)
+{
+    const juce::ScopedLock lock(documentLock);syncProgram();
+    // Replacing the reference ends audition. Publish it only on the next explicit
+    // Compare enable, never mutate an audition bank while audio reads that bank.
+    closeCompare();reference=p;revision.fetch_add(1,std::memory_order_release);
+}
 
 std::vector<StoredPreset> InstrumentSession::presets() const
 {

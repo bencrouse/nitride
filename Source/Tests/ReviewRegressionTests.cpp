@@ -87,5 +87,16 @@ void accessibleUnits()
     require(std::abs(s.read().values[attack]-before)<1e-12,"F4: Invalid string changed a control");
     std::function<void(juce::Component&)> roundtrip=[&](juce::Component& root){for(auto* c:root.getChildren()){if(auto* value=dynamic_cast<UI::ValueControl*>(c)){auto* api=value->getAccessibilityHandler()->getValueInterface();const auto text=api->getCurrentValueAsString();const auto parsed=UI::parseValue(text,value->unit);require(parsed.has_value(),"F4: Displayed value could not be parsed");api->setValueAsString(text);require(std::abs(api->getCurrentValue()-std::clamp(*parsed,api->getRange().getMinimumValue(),api->getRange().getMaximumValue()))<1e-8,"F4: Displayed unit round trip failed");}roundtrip(*c);}};roundtrip(*editor);
 }
+void compareReplacement()
+{
+    InstrumentSession s(juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-compare-review-"+juce::Uuid().toString()));
+    const auto edited=s.read();s.setCompareReference(factoryPatches()[1]);require(!s.isComparing()&&samePatch(s.readVisible(),edited),"F6: Off-state reference replacement changed edited sound");
+    s.setComparing(true);require(std::abs(s.audioValue(fm)-2.7)<1e-12,"F6: New off-state reference was not auditioned");
+    s.setCompareReference(factoryPatches()[2]);require(!s.isComparing()&&samePatch(s.readVisible(),edited),"F6: Active reference replacement did not end Compare");
+    require(std::abs(s.audioValue(fm)-edited.values[fm])<1e-12&&s.audioMono()==edited.mono,"F6: View and audio disagree after reference replacement");
+    s.setComparing(true);require(s.audioMono()&&samePatch(s.readVisible(),factoryPatches()[2]),"F6: Replacement reference lost mono or visible state");
+    for(size_t i=0;i<parameterCount;++i)require(std::abs(s.audioValue(static_cast<Parameter>(i))-s.readVisible().values[i])<1e-12,"F6: Compared parameter bank disagrees with visible reference");
+    require(samePatch(s.read(),edited),"F6: Reference replacement overwrote edited conditions");
 }
-void runReviewRegressionTests(){midiChannelModes();interruptedRecall();accessibleUnits();std::cout<<"Code-review MIDI, recall and accessible-unit regressions passed\n";}
+}
+void runReviewRegressionTests(){midiChannelModes();interruptedRecall();accessibleUnits();compareReplacement();std::cout<<"Code-review MIDI, recall, accessibility/text and Compare regressions passed\n";}

@@ -55,3 +55,12 @@ and accessible description share one tested string. A source-wide scan also
 found/fixed an ASCII-constructor violation in the performance CLI's range error.
 Real-editor checks compare the complete tooltip/description text, rather than
 accepting successful construction with a logged JUCE assertion.
+
+## F6 — confirmed and fixed
+
+Replacing a Compare reference now ends active audition, leaving the view/audio
+on the edited sound. The replacement is published on the next explicit Compare
+enable. This avoids rewriting an active atomic audition bank piecemeal and does
+not claim a new whole-bank publication guarantee. Pending host program selection
+is synchronized first. On/off replacement tests include mono, all parameters,
+and preservation of edited conditions.
