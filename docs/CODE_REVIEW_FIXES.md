@@ -47,3 +47,11 @@ the selected destination's unit.
 
 Real-editor regressions exercise amplitude/filter/FM controls, numeric/string
 equivalence, invalid input and parsing every value control's displayed text.
+
+## F5 — confirmed and fixed
+
+Motion tooltip and FM routing caption use ASCII punctuation. The FM caption
+and accessible description share one tested string. A source-wide scan also
+found/fixed an ASCII-constructor violation in the performance CLI's range error.
+Real-editor checks compare the complete tooltip/description text, rather than
+accepting successful construction with a logged JUCE assertion.

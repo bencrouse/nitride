@@ -116,7 +116,7 @@ Options parse(int argc, char** argv)
         else if(argument=="--compare")options.compare=value;
         else throw std::runtime_error("Unknown option: "+argument.toStdString());
     }
-    require(options.passes>=1 && options.passes<=20,"Passes must be 1–20");
+    require(options.passes>=1 && options.passes<=20,"Passes must be 1-20");
     require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)+static_cast<int>(options.fmExpansion)<=1,"Select only one feature matrix");
     require(options.seconds<=120 && options.warmup<=10,"Duration out of range");
     for(const auto rate:options.rates)require(rate>=11025 && rate<=192000,"Sample rate out of range");

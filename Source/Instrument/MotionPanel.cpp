@@ -22,7 +22,7 @@ MotionPanel::MotionPanel(InstrumentSession& state):session(state),epoch(state.re
     rate.textFromValueFunction=[](double v){return juce::String(v,2)+" Hz";};
     depth.valueFromTextFunction=[](const juce::String& text){auto value=text.trim();if(value.startsWithIgnoreCase("DEPTH"))value=value.substring(5).trimStart();return value.getDoubleValue();};
     tempo.textFromValueFunction=[](double v){return juce::String(v,1)+" BPM";};
-    rate.setTooltip("Independent free-running rate, 0.01–20 Hz. Double-click resets.");
+    rate.setTooltip("Independent free-running rate, 0.01-20 Hz. Double-click resets.");
     tempo.setTooltip("Fallback tempo for Standalone or a host without BPM. Host tempo takes priority.");
     sync(session.readVisible(),epoch);
 }

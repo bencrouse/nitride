@@ -5,6 +5,7 @@ namespace Nitride
 FmPanel::FmPanel(InstrumentSession& s):session(s),epoch(s.restoreEpoch.load())
 {
     setName("Advanced FM");setTitle(getName());setWantsKeyboardFocus(true);
+    setDescription(routingDescription);
     source.setName("FM source page");envelopeTab.setName("FM envelope page");modulation.setName("FM modulation page");
     source.onClick=[this]{selectPage(0);};envelopeTab.onClick=[this]{selectPage(1);};modulation.onClick=[this]{selectPage(2);};
     close.setName("Close advanced FM");close.onClick=[this]{finishEdits();if(onClose)onClose();};
@@ -99,7 +100,7 @@ void FmPanel::paint(juce::Graphics& g)
     {
         UI::text(g,"SOURCE",{20,92,190,18},UI::muted(),9);UI::text(g,"TARGET",{230,92,180,18},UI::muted(),9);UI::text(g,"AMOUNT",{422,92,140,18},UI::muted(),9);
         UI::text(g,"Depth: index / Ratio: octaves / Shape and mix: normalized offsets",{20,270,540,24},UI::muted(),10);
-        UI::text(g,"FM LFO uses the enabled lane’s waveform, independent of depth.",{20,300,540,24},UI::muted(),10);
+        UI::text(g,routingDescription,{20,300,540,24},UI::muted(),10);
     }
 }
 void FmPanel::resized()

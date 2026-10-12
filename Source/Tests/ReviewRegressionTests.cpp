@@ -2,6 +2,7 @@
 #include "PluginEditor.h"
 #include "Instrument/PresetStore.h"
 #include "Instrument/SupportingControls.h"
+#include "Instrument/FmPanel.h"
 #include <stdexcept>
 #include <iostream>
 
@@ -75,6 +76,8 @@ template<class T>T* child(juce::Component& root,const juce::String& name)
 void accessibleUnits()
 {
     RenderHarness h;NitrideAudioProcessor p(h.session.presetDirectory());auto& s=p.getInstrumentSession();std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());editor->addToDesktop(0);editor->setVisible(true);
+    auto* panel=child<FmPanel>(*editor,"Advanced FM");require(panel&&panel->getDescription()=="FM LFO uses the enabled lane's waveform, independent of depth.","F5: FM caption contains corrupted source text");
+    bool tooltipFound=false;std::function<void(juce::Component&)> inspectText=[&](juce::Component& root){for(auto* c:root.getChildren()){if(auto* slider=dynamic_cast<juce::Slider*>(c);slider&&slider->getTooltip().startsWith("Independent free-running")){tooltipFound=true;require(slider->getTooltip()=="Independent free-running rate, 0.01-20 Hz. Double-click resets.","F5: Motion tooltip contains corrupted source text");}inspectText(*c);}};inspectText(*editor);require(tooltipFound,"F5: Motion tooltip regression did not find its control");
     const auto enter=[&](const char* name,const char* value,Parameter parameter,double expected)
     {auto* c=child<UI::ValueControl>(*editor,name);require(c,"F4: Missing accessible value control");c->getAccessibilityHandler()->getValueInterface()->setValueAsString(value);require(std::abs(s.read().values[static_cast<size_t>(parameter)]-expected)<1e-8,"F4: Accessible units changed the wrong physical value");};
     enter("Attack","100 ms",attack,.1);enter("Attack","0.1 s",attack,.1);enter("Sustain","50%",sustain,.5);enter("Sustain","0.5",sustain,.5);

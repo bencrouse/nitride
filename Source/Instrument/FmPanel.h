@@ -7,6 +7,7 @@ namespace Nitride
 class FmPanel final:public juce::Component
 {
 public:
+    static constexpr const char* routingDescription="FM LFO uses the enabled lane's waveform, independent of depth.";
     explicit FmPanel(InstrumentSession&);
     ~FmPanel() override;
     void sync(const Patch&,std::uint64_t);
