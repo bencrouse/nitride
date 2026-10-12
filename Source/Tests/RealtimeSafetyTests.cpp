@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <thread>
+#include <chrono>
 
 namespace
 {
@@ -55,7 +56,7 @@ void lifetime(const juce::File& directory)
         for(int i=0;i<1200;++i)process(p,audio,midi);require(s.live.voices.load()==0,"Fresh input after audio reset lost its release");
     }
 }
-void concurrency(const juce::File& directory)
+void concurrency(const juce::File& directory,bool injectMainFailure=false)
 {
     struct TestPlayhead final:juce::AudioPlayHead
     {
@@ -75,10 +76,11 @@ void concurrency(const juce::File& directory)
     for(const auto& lane:Nitride::lfoParameters){s.set(lane.enabled,1);s.set(lane.depth,.2);s.set(lane.wave,4);s.set(lane.sync,1);}
     juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;midi.ensureSize(4096);midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),0);
     process(p,audio,midi);juce::MemoryBlock state;p.getStateInformation(state);
-    std::atomic<bool> stop=false,ready=false;
+    std::atomic<bool> ready=false;
     std::exception_ptr failure;
-    std::jthread render([&]{ready.store(true);try{while(!stop.load())process(p,audio,midi);}catch(...){failure=std::current_exception();stop.store(true);}});
+    std::jthread render([&](std::stop_token token){ready.store(true);try{while(!token.stop_requested())process(p,audio,midi);}catch(...){failure=std::current_exception();}});
     while(!ready.load())std::this_thread::yield();
+    if(injectMainFailure)throw std::runtime_error("Deliberate main-thread concurrency failure");
     auto* depth=p.getState().getParameter("autobend_depth");auto* coupling=p.getState().getParameter("coupling");
     auto* filterDepth=p.getState().getParameter("filter_amount");auto* filterAttack=p.getState().getParameter("filter_attack");
     auto* lfoDepth=p.getState().getParameter("lfo_stress_depth");auto* lfoWave=p.getState().getParameter("lfo_pitch_wave");
@@ -97,7 +99,7 @@ void concurrency(const juce::File& directory)
         require(!s.setGroupIfCurrent({{Nitride::coupling,1},{Nitride::stress,1}},generation),"Old grouped gesture overwrote recall");
         std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());editor.reset();
     }
-    stop.store(true);render.join();if(failure)std::rethrow_exception(failure);require(s.live.faults.load()==0,"Active concurrency caused DSP faults");
+    render.request_stop();render.join();if(failure)std::rethrow_exception(failure);require(s.live.faults.load()==0,"Active concurrency caused DSP faults");
     coupling->setValueNotifyingHost(.73f);require(std::abs(s.read().values[Nitride::coupling]-.73)<.00001,"Automation after recall did not win");
     // Framework notification callbacks are measured separately from our renderer.
     const auto before=Nitride::Audit::allocations;
@@ -120,7 +122,13 @@ int main()
         require(Nitride::Audit::allocations>0&&Nitride::Audit::deallocations>0,"Allocation audit did not detect its deliberate violation");
 #endif
         const auto directory=juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-safety-"+juce::Uuid().toString());
-        lifetime(directory);concurrency(directory);
+        lifetime(directory);
+        const auto started=std::chrono::steady_clock::now();bool caught=false;
+        try{concurrency(directory,true);}catch(const std::runtime_error& error){caught=std::string(error.what())=="Deliberate main-thread concurrency failure";}
+        const auto cleanupSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
+        require(caught&&cleanupSeconds<10,"Concurrency failure did not promptly unwind/join with its original exception");
+        std::cout<<"Deliberate concurrency failure unwound and joined in "<<cleanupSeconds<<" seconds\n";
+        concurrency(directory);
         std::cout<<"Realtime safety passed: cold render allocation guard, host/editor ownership, teardown, overflow recovery, active APVTS/recall concurrency and generation rejection\n";return 0;
     }
     catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

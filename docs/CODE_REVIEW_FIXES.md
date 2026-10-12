@@ -64,3 +64,12 @@ enable. This avoids rewriting an active atomic audition bank piecemeal and does
 not claim a new whole-bank publication guarantee. Pending host program selection
 is synchronized first. On/off replacement tests include mono, all parameters,
 and preservation of edited conditions.
+
+## F7 — confirmed and fixed
+
+The render `jthread` now observes its stop token. Normal cleanup requests stop
+and joins; exceptional main-thread unwinding uses the same RAII stop/join path,
+so the processor, MIDI/audio buffers and exception state outlive the worker.
+A deliberate exception through the actual concurrency harness must retain its
+original message and finish within ten seconds (well below CTest's timeout).
+The normal render-thread exception is still captured and rethrown after join.
