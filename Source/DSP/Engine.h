@@ -34,7 +34,8 @@ public:
     void beginNoteGroup() noexcept;
     void start(Pattern pattern) noexcept;
     void stop() noexcept;
-    void noteOn(int note, float velocity, Articulation articulation = Articulation::pad, bool overlapping = false, bool returning = false) noexcept;
+    void noteOn(int note, float velocity, Articulation articulation = Articulation::pad, bool overlapping = false, bool returning = false,int owner=-1) noexcept;
+    void silenceOwner(int owner,const std::array<int,128>& retainedOwners) noexcept;
     void noteOff(int note) noexcept;
     void allNotesOff() noexcept;
     void render(float* left, float* right, int samples, double* tonePitch = nullptr,const Nitride::DSP::ModulationFrame* modulation=nullptr) noexcept;
@@ -71,6 +72,7 @@ private:
         bool active = false, released = false;
         Articulation articulation = Articulation::pad;
         int note = 60;
+        int owner=-1;
         double frequency = 261.625565;
         GlideMotion glide;
         AutobendMotion autobend;

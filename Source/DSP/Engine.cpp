@@ -392,7 +392,7 @@ void Engine::stop() noexcept
     allNotesOff();
 }
 
-void Engine::noteOn(int note, float velocity, Articulation articulation,bool overlapping,bool returning) noexcept
+void Engine::noteOn(int note, float velocity, Articulation articulation,bool overlapping,bool returning,int owner) noexcept
 {
     if (velocity <= 0.0f) { noteOff(note); return; }
     auto* voice = &voices.front();
@@ -426,6 +426,7 @@ void Engine::noteOn(int note, float velocity, Articulation articulation,bool ove
     voice->active = true;
     voice->articulation = articulation;
     voice->note = std::clamp(note, 0, 127);
+    voice->owner=owner;
     if (!retrigger) voice->frequency = 440.0 * std::exp2(static_cast<double>(voice->note - 69) / 12.0);
     voice->targetVelocity=std::clamp(static_cast<double>(velocity),0.0,1.0);
     if(preserveEnvelope)
@@ -468,6 +469,27 @@ void Engine::allNotesOff() noexcept
 {
     for (auto& voice : voices)
         if (voice.active) noteOff(voice.note);
+}
+
+void Engine::silenceOwner(int owner,const std::array<int,128>& retainedOwners) noexcept
+{
+    for(int note=0;note<128;++note)
+    {
+        Voice* retained=nullptr;bool otherVoice=false;
+        for(auto& voice:voices)if(voice.active&&voice.note==note)
+        {
+            if(voice.owner!=owner&&!voice.released)otherVoice=true;
+            else if(!retained||voice.serial>retained->serial)retained=&voice;
+        }
+        // Hold can capture an existing voice without creating another operator
+        // network. Transfer that single voice if an unaffected owner needs it.
+        const auto keep=retainedOwners[static_cast<size_t>(note)]>=0&&!otherVoice;
+        for(auto& voice:voices)if(voice.active&&voice.note==note&&voice.owner==owner)
+        {
+            if(keep && &voice==retained)voice.owner=retainedOwners[static_cast<size_t>(note)];
+            else voice={};
+        }
+    }
 }
 
 void Engine::schedule() noexcept

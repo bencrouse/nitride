@@ -30,7 +30,8 @@ private:
     void renderRange(float*, float*, int);
     void handleMidi(const juce::MidiMessage&, bool editor);
     bool heldAnywhere(int note) const noexcept;
-    void releaseChannel(int channel);
+    enum class ChannelRelease {detach,notes,sound};
+    void releaseChannel(int channel,ChannelRelease mode=ChannelRelease::detach);
     void publish();
     void refreshMonoNote();
     int latestNoteOwner() const noexcept;

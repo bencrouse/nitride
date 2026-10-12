@@ -4,6 +4,7 @@
 #include "LfoTests.h"
 #include "FilterModulationTests.h"
 #include "FmTests.h"
+#include "ReviewRegressionTests.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -57,6 +58,7 @@ int main()
         runLfoTests();
         runFilterModulationTests();
         runFmTests();
+        runReviewRegressionTests();
         TestDirectory directory;
         NitrideAudioProcessor processor(directory.folder);
         auto& session=processor.getInstrumentSession();auto& parameters=processor.getState();

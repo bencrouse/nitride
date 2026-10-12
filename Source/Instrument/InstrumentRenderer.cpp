@@ -83,7 +83,7 @@ void InstrumentRenderer::refreshMonoNote()
     const auto selected=latestNoteOwner();
     if(selected<0){if(monoNote>=0)engine.noteOff(monoNote);monoNote=-1;return;}
     const auto note=selected%128;if(note==monoNote)return;
-    engine.noteOn(note,velocities[static_cast<size_t>(selected)],SoundStudies::Articulation::lead,true,monoNote>=0);monoNote=note;
+    engine.noteOn(note,velocities[static_cast<size_t>(selected)],SoundStudies::Articulation::lead,true,monoNote>=0,selected/128);monoNote=note;
 }
 
 bool InstrumentRenderer::heldAnywhere(int note) const noexcept
@@ -93,18 +93,26 @@ bool InstrumentRenderer::heldAnywhere(int note) const noexcept
     return false;
 }
 
-void InstrumentRenderer::releaseChannel(int channel)
+void InstrumentRenderer::releaseChannel(int channel,ChannelRelease mode)
 {
     for (int note = 0; note < 128; ++note)
     {
         const auto index = static_cast<size_t>(channel * 128 + note);
         if(held[index]){--physicalKeys;if(groupHeld[index]){groupHeld[index]=false;--groupKeys;}}
-        if(held[index]||deferred[index])--soundingKeys;
+        const auto sounding=held[index]||deferred[index];
         keyCounts[index]=0;
-        held[index] = deferred[index] = false;
+        held[index]=false;deferred[index]=mode==ChannelRelease::notes&&sustainPedal[static_cast<size_t>(channel)]&&sounding;
+        if(sounding&&!deferred[index])--soundingKeys;
         if (!monoMode&&!heldAnywhere(note)) engine.noteOff(note);
     }
-    sustainPedal[static_cast<size_t>(channel)] = false;
+    if(mode==ChannelRelease::detach)sustainPedal[static_cast<size_t>(channel)]=false;
+    if(mode==ChannelRelease::sound)
+    {
+        std::array<int,128> retained;retained.fill(-1);
+        for(size_t i=0;i<held.size();++i)if(held[i]||deferred[i])retained[i%128]=static_cast<int>(i/128);
+        engine.silenceOwner(channel,retained);
+        if(monoNote>=0&&!heldAnywhere(monoNote))monoNote=-1;
+    }
     if(monoMode)refreshMonoNote();
     refreshFilterNote();
     releaseFilterGate();
@@ -145,7 +153,7 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
             if (!capture)
             {
                 if(!(monoMode&&overlap&&session.audioValue(legato)>=.5))filterEnvelope.noteOn();
-                engine.noteOn(note,message.getFloatVelocity(),monoMode?SoundStudies::Articulation::lead:SoundStudies::Articulation::pad,overlap);
+                engine.noteOn(note,message.getFloatVelocity(),monoMode?SoundStudies::Articulation::lead:SoundStudies::Articulation::pad,overlap,false,channel);
                 if(monoMode)monoNote=note;
             }
         }
@@ -183,7 +191,8 @@ void InstrumentRenderer::handleMidi(const juce::MidiMessage& message, bool edito
         refreshFilterNote();
         releaseFilterGate();
     }
-    else if (message.isAllNotesOff() || message.isAllSoundOff()) releaseChannel(channel);
+    else if(message.isAllSoundOff())releaseChannel(channel,ChannelRelease::sound);
+    else if(message.isAllNotesOff())releaseChannel(channel,ChannelRelease::notes);
 }
 
 void InstrumentRenderer::renderRange(float* left, float* right, int samples)
@@ -251,7 +260,7 @@ void InstrumentRenderer::process(juce::AudioBuffer<float>& audio, juce::MidiBuff
         else
         {
             std::array<bool,128> started{};
-            for(size_t i=0;i<held.size();++i)if((held[i]||deferred[i])&&!started[i%128]){engine.noteOn(static_cast<int>(i%128),velocities[i]);started[i%128]=true;}
+            for(size_t i=0;i<held.size();++i)if((held[i]||deferred[i])&&!started[i%128]){engine.noteOn(static_cast<int>(i%128),velocities[i],SoundStudies::Articulation::pad,false,false,static_cast<int>(i/128));started[i%128]=true;}
         }
     }
     cutoffSmooth.setTargetValue(static_cast<float>(session.audioValue(cutoff)));
