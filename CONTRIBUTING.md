@@ -8,6 +8,9 @@ zero-depth neutrality; `LfoTests.cpp` covers the six-lane modulation bank.
 Historical captures remain archival, unchanged. See `docs/LFO.md`.
 `FilterModulationTests.cpp` verifies shared key/velocity ownership, logarithmic
 composition and unsmoothed audio-rate FM; see `docs/FILTER_MODULATION.md`.
+`FmTests.cpp` verifies the FM extension against independent spectral references,
+per-voice envelope timing and unchanged internal feedback under operator mixing;
+see `docs/FM.md`.
 
 Run `make check` during development and `make check-full` for clean Debug/Release,
 ASan/TSan and installed-AU integration checks. CMake downloads checksum-pinned

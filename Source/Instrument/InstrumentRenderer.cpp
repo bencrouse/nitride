@@ -29,6 +29,16 @@ void InstrumentRenderer::prepare(double sampleRate)
 
 void InstrumentRenderer::updateEngine()
 {
+    DSP::FmSettings fmSettings;fmSettings.ratio=session.audioValue(fmRatio);fmSettings.shape=static_cast<DSP::FmShape>(static_cast<int>(session.audioValue(fmShape)));
+    fmSettings.shapeAmount=session.audioValue(fmShapeAmount);fmSettings.mix=session.audioValue(fmMix);fmSettings.envelopeAmount=session.audioValue(fmEnvelopeAmount);
+    fmSettings.envelope={session.audioValue(fmAttack),session.audioValue(fmDecay),session.audioValue(fmSustain),session.audioValue(fmRelease)};
+    fmRouteFrames=false;
+    for(size_t i=0;i<fmRoutes.size();++i)
+    {
+        const auto& route=fmRoutes[i];auto& setting=fmSettings.routes[i];setting={static_cast<DSP::FmSource>(static_cast<int>(session.audioValue(route.source))),static_cast<DSP::FmTarget>(static_cast<int>(session.audioValue(route.target))),session.audioValue(route.amount)};
+        fmRouteFrames|=(setting.source==DSP::FmSource::lfo||setting.source==DSP::FmSource::filter)&&std::abs(setting.amount)>0;
+    }
+    engine.setFmSettings(fmSettings);
     filterEnvelope.configure(session.audioValue(filterAttack),session.audioValue(filterDecay),session.audioValue(filterSustain),session.audioValue(filterRelease));
     engine.setFmIndex(session.audioValue(fm));
     engine.setAmplitudeEnvelope(session.audioValue(attack), session.audioValue(decay),
@@ -183,12 +193,13 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
     {
         const auto size = std::min(32, samples - offset);
         std::array<DSP::ModulationFrame,32> engineModulation{};
-        std::array<double,32> cutoffModulation{},amplitudeModulation{};
-        const auto engineActive=lfos.engineActive();
+        std::array<double,32> cutoffModulation{},amplitudeModulation{},filterLevels{};
+        const auto engineActive=lfos.engineActive()||fmRouteFrames;
         for(int i=0;i<size;++i)
         {
             const auto values=lfos.next();const auto n=static_cast<size_t>(i);
-            engineModulation[n]={values[0],values[1],values[4],values[5]};cutoffModulation[n]=values[2];amplitudeModulation[n]=values[3];
+            filterLevels[n]=filterEnvelope.next();
+            engineModulation[n]={values[0],values[1],values[4],values[5],lfos.fmWave(),filterLevels[n]};cutoffModulation[n]=values[2];amplitudeModulation[n]=values[3];
         }
         std::array<double,32> toneMotion{};
         engine.render(left+offset,right+offset,size,toneMotion.data(),engineActive?engineModulation.data():nullptr);
@@ -196,7 +207,7 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
         {
             const auto base=static_cast<double>(cutoffSmooth.getNextValue());
             auto shift=toneMotion[static_cast<size_t>(i)]+12*cutoffModulation[static_cast<size_t>(i)];
-            const auto envelopeLevel=filterEnvelope.next(),amount=filterAmountSmooth.getNextValue();
+            const auto envelopeLevel=filterLevels[static_cast<size_t>(i)],amount=filterAmountSmooth.getNextValue();
             if(std::abs(amount)>0)shift+=12*amount*envelopeLevel;
             const auto fmDepth=filterFmSmooth.getNextValue();
             // Engine::render produces a bipolar +/-0.8 soft-limited oscillator mix.

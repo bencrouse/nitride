@@ -3,7 +3,7 @@
 
 namespace Nitride::DSP
 {
-struct ModulationFrame {double pitch=0,fm=0,coupling=0,stress=0;};
+struct ModulationFrame {double pitch=0,fm=0,coupling=0,stress=0,fmWave=0,filterEnvelope=0;};
 struct NetworkSnapshot
 {
     std::array<float,6> offsets{};

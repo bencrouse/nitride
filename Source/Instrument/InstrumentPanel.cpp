@@ -3,6 +3,8 @@
 #include "PitchMotionPanel.h"
 #include "InstrumentKeyboard.h"
 #include "MotionPanel.h"
+#include "FmPanel.h"
+#include "../DSP/Fm.h"
 #include <iostream>
 
 namespace Nitride
@@ -18,7 +20,7 @@ public:
         filterAttackValue("Attack",.001,4,.01,true),filterDecayValue("Decay",.01,4,.3,true),filterSustainValue("Sustain",0,1,.5),
         filterReleaseValue("Release",.02,8,.4,true),filterAmountValue("Amount",-6,6,0),filterEnvelope("Filter envelope"),
         filterTrackingValue("Key track",0,1,0),filterVelocityValue("Velocity",-6,6,0),filterFmValue("Filter FM",0,6,0),
-        filter(XYControl::Kind::filter),motion(s),space(XYControl::Kind::space)
+        filter(XYControl::Kind::filter),motion(s),space(XYControl::Kind::space),advancedFm(s)
     {
         setLookAndFeel(&look);
         look.setColour(juce::TextButton::buttonColourId,juce::Colour(0xff252b27));look.setColour(juce::TextButton::buttonOnColourId,accent());
@@ -34,6 +36,10 @@ public:
         hold.setButtonText("HOLD");hold.setClickingTogglesState(true);hold.onClick=[this]{if(hold.getToggleState())startAudition(true);else if(!touching)endAudition();};
         settings.setButtonText("...");settings.onClick=[this]{showSettings();};
         for(auto* button:{&undo,&compare,&keep,&hold,&settings})addAndMakeVisible(button);addAndMakeVisible(patchBox);
+        fmDisclosure.setButtonText("FM...");fmDisclosure.setName("Open advanced FM");fmDisclosure.setClickingTogglesState(true);
+        fmDisclosure.onClick=[this]{advancedFm.finishEdits();advancedFm.setVisible(fmDisclosure.getToggleState());if(advancedFm.isVisible()){advancedFm.toFront(true);advancedFm.grabKeyboardFocus();}};
+        advancedFm.onClose=[this]{fmDisclosure.setToggleState(false,juce::dontSendNotification);advancedFm.setVisible(false);fmDisclosure.grabKeyboardFocus();};
+        addAndMakeVisible(fmDisclosure);addChildComponent(advancedFm);
         field.onGestureBegin=[this]{begin({coupling,stress});};field.onGestureEnd=[this]{end({coupling,stress});};
         ribbon.onGestureBegin=[this]{begin({response});};ribbon.onGestureEnd=[this]{end({response});};
         field.onShape=[this](float c,float t){group({{coupling,c},{stress,t}});};
@@ -99,12 +105,16 @@ public:
         filterVelocityValue.getAccessibilityHandler()->getValueInterface()->setValue(2);
         filterFmValue.getAccessibilityHandler()->getValueInterface()->setValue(3);
         const auto filterMod=std::abs(current.values[filterKeyTracking]-1)<.00001&&std::abs(current.values[filterVelocity]-2)<.00001&&std::abs(current.values[filterFmDepth]-3)<.00001;
+        fmDisclosure.setToggleState(true,juce::dontSendNotification);fmDisclosure.onClick();
+        session.set(fmRatio,1.414);session.set(fmShape,1);session.set(fmShapeAmount,.8);session.set(fmMix,.25);session.set(fmEnvelopeAmount,2);sync();
+        const auto expanded=advancedFm.isShowing()&&std::abs(current.values[fmRatio]-1.414)<.001;
+        advancedFm.onClose();
         const auto count=session.presets().size();const auto kept=session.keep("Interaction test").wasOk()&&session.presets().size()==count+1;rebuildPresets();sync();
         const auto saved=current;set(stress,.8);session.setComparing(true);sync();const auto compared=std::abs(current.values[stress]-saved.values[stress])<.001;
         session.setComparing(false);sync();const auto returned=std::abs(current.values[stress]-.8)<.001;
         field.keyPressed(juce::KeyPress(juce::KeyPress::spaceKey));const auto played=!notes.isEmpty();field.keyStateChanged(false);const auto stopped=notes.isEmpty();
-        std::cout<<"Native interaction checks: "<<changed<<undone<<source<<env<<filterEnv<<filterMod<<support<<kept<<compared<<returned<<played<<stopped<<'\n';
-        return changed&&undone&&source&&env&&filterEnv&&filterMod&&support&&kept&&compared&&returned&&played&&stopped;
+        std::cout<<"Native interaction checks: "<<changed<<undone<<source<<env<<filterEnv<<filterMod<<expanded<<support<<kept<<compared<<returned<<played<<stopped<<'\n';
+        return changed&&undone&&source&&env&&filterEnv&&filterMod&&expanded&&support&&kept&&compared&&returned&&played&&stopped;
     }
     void paint(juce::Graphics& g) override
     {
@@ -113,7 +123,7 @@ public:
         g.setColour(ink());g.setFont(juce::Font(juce::FontOptions("Helvetica Neue",36,juce::Font::bold)));g.drawText("nitride",25,23,200,43,juce::Justification::left);
         text(g,"PATCH",{300,13,120,14},muted(),8);section(g,"SOUND",{24,112,238,18});section(g,"NETWORK",{310,112,584,18});section(g,"AMPLITUDE",{942,112,234,18});
         text(g,"COUPLING "+juce::String(current.values[coupling]*100,0)+"%   /   STRESS "+juce::String(current.values[stress]*100,0)+"%",{310,428,584,17},muted(),8);
-        sourceWave(g);text(g,"SOURCE / SINE FM",{36,190,225,14},muted(),8);
+        sourceWave(g);text(g,"SOURCE / NETWORK FM",{36,190,225,14},muted(),8);
         section(g,"TONE",{24,550,344,18});text(g,"LP / 12 dB",{205,550,163,18},muted(),8,juce::Justification::right);
         section(g,"MOTION",{416,550,360,18});int active=0;for(const auto& lane:lfoParameters)active+=current.values[lane.enabled]>=.5?1:0;
         text(g,juce::String(active)+" / 6 LANES",{580,550,196,18},muted(),8,juce::Justification::right);
@@ -129,6 +139,7 @@ public:
     {
         patchBox.setBounds(300,33,330,34);undo.setBounds(668,33,70,34);compare.setBounds(746,33,94,34);keep.setBounds(848,33,70,34);hold.setBounds(968,33,80,34);settings.setBounds(1102,33,74,34);
         field.setBounds(310,145,584,274);ribbon.setBounds(310,448,584,82);fmValue.setBounds(36,208,226,28);pitchValue.setBounds(36,242,226,28);
+        fmDisclosure.setBounds(192,108,70,26);advancedFm.setBounds(310,145,584,385);
         poly.setBounds(36,280,70,24);monoButton.setBounds(112,280,70,24);legatoButton.setBounds(188,280,74,24);glidePanel.setBounds(36,317,226,85);autobendPanel.setBounds(36,418,226,85);
         envelope.setBounds(942,145,234,147);attackValue.setBounds(942,309,234,34);decayValue.setBounds(942,351,234,34);sustainValue.setBounds(942,393,234,34);releaseValue.setBounds(942,435,234,34);
         filter.setBounds(36,586,152,96);filterTrackingValue.setBounds(196,586,172,28);
@@ -172,6 +183,7 @@ private:
         filter.setPosition(static_cast<float>(std::log(current.values[cutoff]/40)/std::log(450.0)),static_cast<float>(current.values[resonance]/.85));
         filterTrackingValue.setValue(current.values[filterKeyTracking]);filterVelocityValue.setValue(current.values[filterVelocity]);filterFmValue.setValue(current.values[filterFmDepth]);
         motion.sync(current,epoch);space.setPosition(static_cast<float>(current.values[spaceMix]/.65),static_cast<float>(current.values[spaceSize]));
+        advancedFm.sync(current,epoch);
         poly.setToggleState(!current.mono,juce::dontSendNotification);monoButton.setToggleState(current.mono&&current.values[legato]<.5,juce::dontSendNotification);legatoButton.setToggleState(current.mono&&current.values[legato]>=.5,juce::dontSendNotification);
         compare.setToggleState(session.isComparing(),juce::dontSendNotification);undo.setEnabled(session.canUndo());const auto id=session.selectedPresetId();bool found=false;
         for(size_t i=0;i<presetIds.size();++i)if(presetIds[i]==id){patchBox.setSelectedId(static_cast<int>(i)+1,juce::dontSendNotification);found=true;break;}if(!found){patchBox.setSelectedId(0,juce::dontSendNotification);patchBox.setText(current.name,juce::dontSendNotification);}
@@ -209,7 +221,8 @@ private:
     void sourceWave(juce::Graphics& g)
     {
         const juce::Rectangle<float> p{36,145,226,40};g.setColour(glass());g.fillRoundedRectangle(p,4);juce::Path wave;
-        for(int i=0;i<=140;++i){const auto t=static_cast<float>(i)/140,phase=t*pi*4;const auto sample=std::sin(phase+static_cast<float>(current.values[fm])*std::sin(phase*2));const auto x=p.getX()+12+t*(p.getWidth()-24),y=p.getCentreY()-sample*12;if(i==0)wave.startNewSubPath(x,y);else wave.lineTo(x,y);}g.setColour(signal().withAlpha(.7f));g.strokePath(wave,juce::PathStrokeType(1.1f));
+        const auto harmonics=DSP::fmHarmonics(static_cast<DSP::FmShape>(static_cast<int>(current.values[fmShape])),current.values[fmShapeAmount]);
+        for(int i=0;i<=140;++i){const auto t=static_cast<float>(i)/140,phase=t*pi*4;const auto sample=static_cast<float>(std::sin(phase+current.values[fm]*DSP::fmWave(phase*current.values[fmRatio],harmonics)));const auto x=p.getX()+12+t*(p.getWidth()-24),y=p.getCentreY()-sample*12;if(i==0)wave.startNewSubPath(x,y);else wave.lineTo(x,y);}g.setColour(signal().withAlpha(.7f));g.strokePath(wave,juce::PathStrokeType(1.1f));
     }
     void timerCallback() override
     {
@@ -221,8 +234,8 @@ private:
     ValueControl fmValue,pitchValue,attackValue,decayValue,sustainValue,releaseValue,outputValue;
     ValueControl filterAttackValue,filterDecayValue,filterSustainValue,filterReleaseValue,filterAmountValue;
     EnvelopeControl filterEnvelope,envelope;ValueControl filterTrackingValue,filterVelocityValue,filterFmValue;
-    XYControl filter;MotionPanel motion;XYControl space;
-    juce::ComboBox patchBox;juce::TextButton undo,compare,keep,hold,settings,poly,monoButton,legatoButton;
+    XYControl filter;MotionPanel motion;XYControl space;FmPanel advancedFm;
+    juce::ComboBox patchBox;juce::TextButton undo,compare,keep,hold,settings,poly,monoButton,legatoButton,fmDisclosure;
     std::vector<juce::String> presetIds;std::unique_ptr<juce::FileChooser> chooser;Patch current;juce::Array<int> notes;
     std::array<bool,hostParameterCount> edits{};std::uint64_t lastRevision=0,lastLibrary=0,lastEpoch=0,editorGeneration=0;bool touching=false;
 };

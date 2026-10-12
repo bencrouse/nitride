@@ -3,6 +3,7 @@
 #include "FilterEnvelopeTests.h"
 #include "LfoTests.h"
 #include "FilterModulationTests.h"
+#include "FmTests.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -55,6 +56,7 @@ int main()
         runFilterEnvelopeTests();
         runLfoTests();
         runFilterModulationTests();
+        runFmTests();
         TestDirectory directory;
         NitrideAudioProcessor processor(directory.folder);
         auto& session=processor.getInstrumentSession();auto& parameters=processor.getState();

@@ -32,3 +32,4 @@ as an AU instrument.
 - [Design notes](docs/DESIGN.md) — the original brief and evolving direction.
 - [Motion LFOs](docs/LFO.md) — waveforms, independent destinations and tempo sync.
 - [Filter modulation](docs/FILTER_MODULATION.md) — key tracking, velocity and audio-rate FM.
+- [FM expansion](docs/FM.md) — primary ratio, independent envelope, shapes and network-preserving operator mix.

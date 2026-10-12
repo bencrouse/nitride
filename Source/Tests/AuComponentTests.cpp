@@ -78,6 +78,8 @@ int main(int argc,char** argv)
         const std::array filterModulationIds{hash("filter_key_tracking"),hash("filter_velocity"),hash("filter_fm_depth")};
         constexpr std::array filterModulationValues{.8f,.7f,.5f};
         for(size_t i=0;i<filterModulationIds.size();++i)check(AudioUnitSetParameter(instance.unit,filterModulationIds[i],kAudioUnitScope_Global,0,filterModulationValues[i],0),"Filter modulation write");
+        std::array<AudioUnitParameterID,Nitride::parameterCount-Nitride::fmRatio> fmIds{};
+        for(size_t i=0;i<fmIds.size();++i){const auto& d=Nitride::hostParameters[Nitride::fmRatio+i];fmIds[i]=hash(d.id);check(AudioUnitSetParameter(instance.unit,fmIds[i],kAudioUnitScope_Global,0,d.kind==Nitride::ParameterKind::choice?1:.75f,0),"Advanced FM write");}
         AudioUnitParameterValue retained=0;check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Host parameter read");
         if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("AU did not retain host automation value");
         CFPropertyListRef savedState=nullptr;UInt32 stateSize=sizeof(savedState);
@@ -85,6 +87,7 @@ int main(int argc,char** argv)
         check(AudioUnitSetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,.2f,0),"Changed host parameter");
         check(AudioUnitSetParameter(instance.unit,filterAmountId,kAudioUnitScope_Global,0,.1f,0),"Changed filter amount");
         for(const auto id:filterModulationIds)check(AudioUnitSetParameter(instance.unit,id,kAudioUnitScope_Global,0,0,0),"Changed filter modulation");
+        for(const auto id:fmIds)check(AudioUnitSetParameter(instance.unit,id,kAudioUnitScope_Global,0,0,0),"Changed advanced FM");
         check(AudioUnitSetProperty(instance.unit,kAudioUnitProperty_ClassInfo,kAudioUnitScope_Global,0,&savedState,sizeof(savedState)),"AU session restore");
         CFRelease(savedState);
         check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Restored host parameter");
@@ -99,6 +102,13 @@ int main(int argc,char** argv)
         {
             check(AudioUnitGetParameter(instance.unit,filterModulationIds[i],kAudioUnitScope_Global,0,&retained),"Restored filter modulation");
             if(std::abs(retained-filterModulationValues[i])>.0001f)throw std::runtime_error("Installed AU lost filter modulation during state restore");
+        }
+        for(size_t i=0;i<fmIds.size();++i)
+        {
+            check(AudioUnitGetParameter(instance.unit,fmIds[i],kAudioUnitScope_Global,0,&retained),"Restored advanced FM");
+            const auto& d=Nitride::hostParameters[Nitride::fmRatio+i];
+            const auto expected=d.kind==Nitride::ParameterKind::choice?1:.75f;
+            if(std::abs(retained-expected)>.0001f)throw std::runtime_error(std::string("Installed AU lost ")+d.name+" during state restore: "+std::to_string(retained));
         }
         std::cout<<"Installed AU automation/state verified\n"<<std::flush;
         AudioStreamBasicDescription format{};

@@ -1,5 +1,8 @@
 # Filter modulation / Nitride 0.6.0
 
+The schema and measurements below record the 0.6.0 milestone. For the current
+FM extensions and 0.7.0 schema, see `FM.md`.
+
 Tone adds **Key tracking**, **Velocity sensitivity** and **Filter FM depth** to the
 existing shared stereo filter. The dedicated filter ADSR and its note gate are
 reused unchanged; this feature does not introduce another envelope or per-voice

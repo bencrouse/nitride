@@ -12,7 +12,7 @@ namespace
 {
 using Clock = std::chrono::steady_clock;
 constexpr int workloadVersion = 1;
-struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0,filterModulation=0; };
+struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0,filterModulation=0,fmExtension=0; };
 constexpr std::array workloads {
     Workload{"idle",0,0}, Workload{"lead",2,1}, Workload{"pad4",0,4}, Workload{"pad12",0,12},
     Workload{"stress12",0,12,true}, Workload{"automation12",0,12,true,true},
@@ -51,13 +51,24 @@ constexpr std::array filterModulationWorkloads {
     Workload{"filter-mod12-off",0,12,true,false,true,false,0,0,0,-7},Workload{"filter-mod12-on",0,12,true,false,true,false,0,0,0,7},
     Workload{"filter-all12-off",0,12,true,false,false,false,4,1,1,-7},Workload{"filter-all12-on",0,12,true,false,false,false,4,1,1,7}
 };
+// Identical MIDI and existing routing in each off/on pair.
+constexpr std::array fmWorkloads {
+    Workload{"ratio1-off",2,1,false,false,false,false,0,0,0,0,-1},Workload{"ratio1-on",2,1,false,false,false,false,0,0,0,0,1},
+    Workload{"fm-env1-off",2,1,false,false,true,false,0,0,0,0,-2},Workload{"fm-env1-on",2,1,false,false,true,false,0,0,0,0,2},
+    Workload{"shape1-off",2,1,false,false,false,false,0,0,0,0,-4},Workload{"shape1-on",2,1,false,false,false,false,0,0,0,0,4},
+    Workload{"mix1-off",2,1,false,false,false,false,0,0,0,0,-8},Workload{"mix1-on",2,1,false,false,false,false,0,0,0,0,8},
+    Workload{"fm-routes1-off",2,1,false,false,false,false,0,1,1,0,-16},Workload{"fm-routes1-on",2,1,false,false,false,false,0,1,1,0,16},
+    Workload{"shape12-off",0,12,true,false,false,false,0,0,0,0,-4},Workload{"shape12-on",0,12,true,false,false,false,0,0,0,0,4},
+    Workload{"fm-combined4-off",0,4,false,false,false,false,0,1,1,7,-31},Workload{"fm-combined4-on",0,4,false,false,false,false,0,1,1,7,31},
+    Workload{"fm-combined12-off",0,12,true,false,false,false,4,1,1,7,-31},Workload{"fm-combined12-on",0,12,true,false,false,false,4,1,1,7,31}
+};
 struct Options
 {
     int passes = 3;
     double seconds = 2, warmup = .5;
     std::vector<int> rates {48000,96000}, blocks {64,256};
     juce::String only, label, output, compare;
-    bool pitchMotion=false,filterEnvelope=false,lfo=false,filterModulation=false,allowSoundChange=false;
+    bool pitchMotion=false,filterEnvelope=false,lfo=false,filterModulation=false,fmExpansion=false,allowSoundChange=false;
 };
 struct Result
 {
@@ -91,6 +102,7 @@ Options parse(int argc, char** argv)
         if(argument=="--filter-envelope"){options.filterEnvelope=true;continue;}
         if(argument=="--lfo"){options.lfo=true;continue;}
         if(argument=="--filter-modulation"){options.filterModulation=true;continue;}
+        if(argument=="--fm-expansion"){options.fmExpansion=true;continue;}
         if(argument=="--allow-sound-change"){options.allowSoundChange=true;continue;}
         require(i+1<argc,"Missing value for "+argument);const juce::String value(argv[++i]);
         if(argument=="--passes")options.passes=integer(value);
@@ -105,7 +117,7 @@ Options parse(int argc, char** argv)
         else throw std::runtime_error("Unknown option: "+argument.toStdString());
     }
     require(options.passes>=1 && options.passes<=20,"Passes must be 1–20");
-    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)<=1,"Select only one feature matrix");
+    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)+static_cast<int>(options.fmExpansion)<=1,"Select only one feature matrix");
     require(options.seconds<=120 && options.warmup<=10,"Duration out of range");
     for(const auto rate:options.rates)require(rate>=11025 && rate<=192000,"Sample rate out of range");
     for(const auto block:options.blocks)require(block>=16 && block<=4096,"Block size out of range");
@@ -181,6 +193,21 @@ void runPass(Result& result, const Options& options)
         patch.values[Nitride::filterKeyTracking]=enabled&&(features&1)?1:0;
         patch.values[Nitride::filterVelocity]=enabled&&(features&2)?2:0;
         patch.values[Nitride::filterFmDepth]=enabled&&(features&4)?6:0;
+    }
+    if(result.workload.fmExtension>0)
+    {
+        const auto features=result.workload.fmExtension;
+        if(features&1)patch.values[Nitride::fmRatio]=1.414;
+        if(features&2){patch.values[Nitride::fmEnvelopeAmount]=2;patch.values[Nitride::fmAttack]=.15;patch.values[Nitride::fmDecay]=.35;patch.values[Nitride::fmSustain]=.25;}
+        if(features&4){patch.values[Nitride::fmShape]=1;patch.values[Nitride::fmShapeAmount]=.8;}
+        if(features&8)patch.values[Nitride::fmMix]=.35;
+        if(features&16)
+        {
+            patch.values[Nitride::fmLfoOn]=1;patch.values[Nitride::fmLfoDepth]=1;
+            patch.values[Nitride::fmRoute1Source]=1;patch.values[Nitride::fmRoute1Target]=1;patch.values[Nitride::fmRoute1Amount]=.25;
+            patch.values[Nitride::fmRoute2Source]=3;patch.values[Nitride::fmRoute2Target]=2;patch.values[Nitride::fmRoute2Amount]=.4;
+            patch.values[Nitride::fmRoute3Source]=4;patch.values[Nitride::fmRoute3Target]=0;patch.values[Nitride::fmRoute3Amount]=1;
+        }
     }
     session.apply(patch);processor.prepareToPlay(result.rate,result.block);
     juce::AudioBuffer<float> audio(2,result.block);juce::MidiBuffer midi;midi.ensureSize(4096);
@@ -306,6 +333,7 @@ int main(int argc,char** argv)
             "--filter-envelope selects paired shared filter envelope on/off performances.\n"
             "--lfo selects paired six-lane Motion on/off performances.\n"
             "--filter-modulation selects tracking, velocity, audio-rate FM and combined on/off performances.\n"
+            "--fm-expansion selects paired ratio, envelope, shape, mix and integrated FM performances.\n"
             "--allow-sound-change records intentional greenfield sound changes during comparison.\n";return 0;
     }
     juce::ScopedJuceInitialiser_GUI initialiser;
@@ -316,7 +344,7 @@ int main(int argc,char** argv)
             for(const auto rate:options.rates)for(const auto block:options.blocks)for(const auto& workload:matrix)
                 if(options.only.isEmpty()||options.only==workload.name)results.push_back({workload,rate,block});
         };
-        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else if(options.filterModulation)add(filterModulationWorkloads);else add(workloads);
+        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else if(options.filterModulation)add(filterModulationWorkloads);else if(options.fmExpansion)add(fmWorkloads);else add(workloads);
         require(!results.empty(),"Unknown workload: "+options.only);
         for(auto& result:results)result.times.reserve(static_cast<size_t>(std::ceil(options.seconds*result.rate/result.block))*static_cast<size_t>(options.passes));
         std::cout<<"Nitride "<<NITRIDE_BENCH_CONFIG<<" benchmark: "<<juce::SystemStats::getCpuModel()<<", "<<options.passes<<" passes, "<<options.seconds<<" audio seconds per case/pass\n";

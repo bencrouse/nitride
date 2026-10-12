@@ -23,6 +23,7 @@ public:
     int filterNoteNumber() const noexcept {return filterNote;}
     double filterNoteVelocity() const noexcept {return filterVelocityValue;}
     double filterCutoffFrequency() const noexcept {return lastFilterCutoff;}
+    SoundStudies::Engine::FmSnapshot fmSnapshot(int note=-1) const noexcept {return engine.getFmSnapshot(note);}
 
 private:
     void updateEngine();
@@ -46,6 +47,7 @@ private:
     juce::SmoothedValue<double> filterNoteSmooth,filterFmSmooth;
     int filterNote=DSP::filterTrackingReference,filterOwner=-1;
     double filterVelocityValue=0,keyTrackingAmount=0,velocityAmount=0,lastFilterCutoff=5500;
+    bool fmRouteFrames=false;
     DSP::LfoBank lfos;
     // Separate owners prevent closing an editor/key from releasing a host note
     // on the same channel and pitch.

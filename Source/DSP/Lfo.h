@@ -106,6 +106,7 @@ public:
                 lane.value=std::clamp(lane.value,-1.0,1.0);
             }
             result[i]=i==static_cast<size_t>(LfoDestination::amplitude)?1-std::abs(lane.depth)*(.5+.5*lane.value):lane.value*lane.depth;
+            if(i==1)lane.sourceGain+=slew*((s.enabled?1.0:0.0)-lane.sourceGain);
             const auto increment=(s.sync?transport.bpm/(60*beats):s.rate)/rate;
             lane.phase+=increment;if(lane.phase>=1){const auto wraps=std::floor(lane.phase);lane.phase-=wraps;lane.cycle+=static_cast<std::int64_t>(wraps);}
             lane.displayPhase=phase;
@@ -114,6 +115,7 @@ public:
         return result;
     }
     double phase(size_t lane) const noexcept {return lanes[lane].displayPhase;}
+    double fmWave() const noexcept {return lanes[1].value*lanes[1].sourceGain;}
     double bpm() const noexcept {return transport.bpm;}
     bool hostTempo() const noexcept {return transport.hasTempo;}
     bool engineActive() const noexcept
@@ -121,7 +123,7 @@ public:
 private:
     struct Lane
     {
-        LfoSettings settings;double phase=0,displayPhase=0,value=0,depth=0,targetDepth=0,depthStep=0;
+        LfoSettings settings;double phase=0,displayPhase=0,value=0,depth=0,targetDepth=0,depthStep=0,sourceGain=0;
         std::int64_t cycle=0;int remaining=0;
     };
     std::array<Lane,lfoCount> lanes{};Transport transport;double rate=48000,slew=0,position=0;

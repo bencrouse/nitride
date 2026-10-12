@@ -34,6 +34,13 @@ public:
         renderer.process(block, midi);
     }
     void beginPreview() { view.beginPreview(); }
+    void showFm(const juce::String& page)
+    {
+        std::function<juce::TextButton*(juce::Component&,const juce::String&)> find;
+        find=[&find](juce::Component& root,const juce::String& name)->juce::TextButton*{for(auto* child:root.getChildren()){if(auto* button=dynamic_cast<juce::TextButton*>(child);button&&button->getName()==name)return button;if(auto* button=find(*child,name))return button;}return nullptr;};
+        if(auto* button=find(view,"Open advanced FM")){button->setToggleState(true,juce::dontSendNotification);button->onClick();}
+        if(auto* button=find(view,"FM "+page+" page"))button->onClick();
+    }
     bool checkInteractions() { return view.checkInteractions(); }
     void beginAudioCheck(const juce::String& outputDevice={})
     {
@@ -55,6 +62,8 @@ public:
         session.set(Nitride::autobendOn,1);session.set(Nitride::autobendDepth,12);session.set(Nitride::autobendTarget,3);session.keyboard.noteOn(16,72,.74f);
         session.set(Nitride::cutoff,800);session.set(Nitride::filterAmount,3);session.set(Nitride::filterAttack,.15);
         session.set(Nitride::filterKeyTracking,1);session.set(Nitride::filterVelocity,2);session.set(Nitride::filterFmDepth,6);
+        session.set(Nitride::fmRatio,1.414);session.set(Nitride::fmShape,1);session.set(Nitride::fmShapeAmount,.8);session.set(Nitride::fmMix,.3);session.set(Nitride::fmEnvelopeAmount,2);
+        session.set(Nitride::fmRoute1Source,4);session.set(Nitride::fmRoute1Target,1);session.set(Nitride::fmRoute1Amount,.2);
         for(size_t i=0;i<Nitride::lfoParameters.size();++i)
         {
             const auto& lane=Nitride::lfoParameters[i];session.set(lane.enabled,1);session.set(lane.depth,i==0?2:i==1?1:i==2?1:.25);
@@ -120,6 +129,12 @@ public:
             const auto path=commandLine.fromFirstOccurrenceOf(active?"--snapshot-active ":"--snapshot ",false,false).trim().unquoted();
             if(active)component->beginPreview();
             juce::Timer::callAfterDelay(active?900:10,[component,path]{component->snapshot(path);quit();});
+        }
+        if(commandLine.startsWith("--snapshot-fm-"))
+        {
+            const auto option=commandLine.upToFirstOccurrenceOf(" ",false,false),path=commandLine.fromFirstOccurrenceOf(" ",false,false).trim().unquoted();
+            component->showFm(option.fromFirstOccurrenceOf("--snapshot-fm-",false,false));
+            juce::Timer::callAfterDelay(100,[component,path]{component->snapshot(path);quit();});
         }
     }
     void shutdown() override {window.reset();if(testPresets!=juce::File{})testPresets.deleteRecursively();}

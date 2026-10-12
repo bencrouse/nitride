@@ -5,6 +5,8 @@
 #include <cstdint>
 #include "PitchMotion.h"
 #include "EngineData.h"
+#include "Fm.h"
+#include "FilterEnvelope.h"
 
 namespace SoundStudies
 {
@@ -38,6 +40,9 @@ public:
     void render(float* left, float* right, int samples, double* tonePitch = nullptr,const Nitride::DSP::ModulationFrame* modulation=nullptr) noexcept;
     using PitchSnapshot=Nitride::DSP::PitchSnapshot;
     PitchSnapshot getPitchSnapshot(int note=-1) const noexcept;
+    void setFmSettings(const Nitride::DSP::FmSettings&) noexcept;
+    struct FmSnapshot {double index=0,ratio=2,shape=0,mix=0,envelope=0,primaryHz=0,primaryPhase=0;};
+    FmSnapshot getFmSnapshot(int note=-1) const noexcept;
     float getAmount() const noexcept { return static_cast<float>(smoothedAmount); }
     NetworkSnapshot getNetworkSnapshot() const noexcept;
     std::uint64_t getNumericalFaults() const noexcept { return numericalFaults; }
@@ -92,23 +97,32 @@ private:
         std::size_t delayCursor = 0;
         DelayState noteDelay;
         NetworkState network, stressedNetwork, expressiveNetwork;
+        Nitride::DSP::FilterEnvelope fmEnvelope;
+        Nitride::DSP::FmValues fmValues;
+        bool fmExtended=false;
+        double primaryPhase=0,primaryHz=0,modulatorOutput=0,referenceModulator=0;
+        Nitride::DSP::FmCoefficients fmCoefficients{},fmPositive{},fmNegative{};
+        std::array<double,5> fmHarmonics{1,0,0,0,0},fmAudibleHarmonics{1,0,0,0,0};
+        std::array<double,4> fmRouteOffsets{};
         std::uint64_t serial = 0;
     };
 
     void schedule() noexcept;
     // Compile constant-ratio and moving-ratio paths separately: inactive motion
     // must not add branches inside every partial and network oscillator evaluation.
-    template<bool Split> double voiceSample(Voice&) noexcept;
+    template<bool Split,bool Extended=false> double voiceSample(Voice&) noexcept;
     double envelope(Voice&) noexcept;
     double bodySample(Voice&, double env, double fundamental) noexcept;
     double interactionSample(Voice&, double env, double fundamental) noexcept;
     double phaseDelaySample(Voice&, double env, double fundamental) noexcept;
     double noteCoupledDelaySample(Voice&, double env, double fundamental) noexcept;
-    template<bool Split> double networkSample(Voice&, NetworkState&, double env, double fundamental, double amount, double stress,
+    template<bool Split,bool Extended=false> double networkSample(Voice&, NetworkState&, double env, double fundamental, double amount, double stress,
                          double learning, double phaseSpeed = 1.0) noexcept;
     void updateDimensionRates() noexcept;
     void updateVoicePitch(Voice&) noexcept;
     double splitReference(const Voice&) const noexcept;
+    void updateVoiceFm(Voice&,double index,const Nitride::DSP::ModulationFrame*) noexcept;
+    double extendedReference(const Voice&) const noexcept;
 
     std::array<Voice, 12> voices {};
     std::array<double, 12> partialAmplitudes {};
@@ -146,5 +160,9 @@ private:
     bool playing = false;
     std::int64_t clock = 0, loopSamples = 384000;
     std::uint64_t nextSerial = 0, numericalFaults = 0;
+    Nitride::DSP::FmSettings fmTarget,fmCurrent;
+    const Nitride::DSP::FmTables* fmTable=nullptr;
+    bool fmActive=false;
+    std::array<double,3> fmShapeWeights{1,0,0};
 };
 }

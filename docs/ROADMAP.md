@@ -39,6 +39,9 @@ before musical development can continue.
 - Feature work in 0.6.0: filter key tracking, signed velocity sensitivity and
   oscillator-rate cutoff FM, composed with the existing filter ADSR, cutoff LFO
   and Pitch + Tone. See [filter modulation](FILTER_MODULATION.md).
+- Feature work in 0.7.0: primary FM ratio, independent per-voice FM ADSR, rounded
+  triangle/soft-saturated modulation and output-only operator mix, with progressive
+  controls and optional envelope/LFO/network routing. See [FM expansion](FM.md).
 
 See [milestone 2](MILESTONE_02.md) and [performance measurements](PERFORMANCE.md).
 Current performance is usable at 48 kHz, but maximum polyphony at 96 kHz still has
@@ -92,7 +95,8 @@ parameter ranges or expression before final preset voicing.
 
 Implemented: independent Glide/Autobend and a dedicated filter ADSR for the existing
 shared Tone filter, the six-lane Motion bank, and filter tracking/velocity/audio-rate
-FM. New modulation starts neutral.
+FM, plus primary ratio, independent FM ADSR, shaped modulation and operator mix.
+New modulation starts neutral; adaptive network dynamics and diffusion are retained.
 
 Pure workflow improvements—browser conveniences, shortcuts and naming—can happen
 alongside preset development.

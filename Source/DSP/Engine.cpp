@@ -92,6 +92,7 @@ void Engine::prepare(double sampleRate)
     sourceBlend = source == Source::rich ? 1.0 : 0.0;
     currentIndex = indexOverride ? targetIndex : sourceIndex(source);
     envelopeValues = envelopeTarget;
+    fmTable=&Nitride::DSP::fmTables();fmCurrent=fmTarget;fmShapeWeights={};fmShapeWeights[static_cast<size_t>(fmTarget.shape)]=1;
     smoothedBend = targetBend = 0.0;
     pitchMultiplier = 1.0;
     lastLfoPitch=0;
@@ -228,6 +229,72 @@ void Engine::setFmIndex(double index) noexcept
     targetIndex = std::isfinite(index) ? std::clamp(index, 0.0, 4.0) : 1.65;
 }
 
+void Engine::setFmSettings(const Nitride::DSP::FmSettings& requested) noexcept
+{
+    const auto safe=[](double v,double low,double high,double fallback){return std::clamp(std::isfinite(v)?v:fallback,low,high);};
+    fmTarget=requested;
+    fmTarget.ratio=safe(requested.ratio,.25,8,2);fmTarget.shapeAmount=safe(requested.shapeAmount,0,1,0);
+    fmTarget.mix=safe(requested.mix,0,1,0);fmTarget.envelopeAmount=safe(requested.envelopeAmount,-4,4,0);
+    fmTarget.shape=static_cast<Nitride::DSP::FmShape>(std::clamp(static_cast<int>(requested.shape),0,2));
+    constexpr std::array low{.001,.01,0.0,.02},high{4.0,4.0,1.0,8.0},fallback{.01,.3,.5,.4};
+    for(size_t i=0;i<4;++i)fmTarget.envelope[i]=safe(requested.envelope[i],low[i],high[i],fallback[i]);
+    for(auto& route:fmTarget.routes)
+    {
+        route.source=static_cast<Nitride::DSP::FmSource>(std::clamp(static_cast<int>(route.source),0,4));
+        route.target=static_cast<Nitride::DSP::FmTarget>(std::clamp(static_cast<int>(route.target),0,3));route.amount=safe(route.amount,-4,4,0);
+    }
+    for(auto& voice:voices)if(voice.active)voice.fmEnvelope.configure(fmTarget.envelope[0],fmTarget.envelope[1],fmTarget.envelope[2],fmTarget.envelope[3]);
+}
+Engine::FmSnapshot Engine::getFmSnapshot(int note) const noexcept
+{
+    const Voice* selected=nullptr;for(const auto& voice:voices)if(voice.active&&(note<0||voice.note==note)&&(!selected||voice.serial>selected->serial))selected=&voice;
+    if(!selected)return{};const auto& v=selected->fmValues;
+    return{v.index,v.ratio,v.shape,v.mix,selected->fmEnvelope.level(),selected->primaryHz,selected->primaryPhase};
+}
+void Engine::updateVoiceFm(Voice& voice,double index,const Nitride::DSP::ModulationFrame* frame) noexcept
+{
+    const auto envelope=voice.fmEnvelope.next();
+    if(!fmActive&&!voice.fmExtended){voice.fmValues.index=std::clamp(index,0.0,4.0);voice.primaryHz=2*(pitchOverride?voice.modulatorHz:voice.frequency*pitchMultiplier);return;}
+    if(!voice.fmExtended){voice.primaryPhase=2*(voice.splitPhase?voice.modulatorPhase:voice.phase);voice.fmExtended=true;}
+    const std::array<double,5> sources{0,frame?frame->fmWave:0,std::clamp(voice.envelope,0.0,1.0),frame?frame->filterEnvelope:0,std::clamp(std::abs(voice.expressiveNetwork.signal),0.0,1.0)};
+    std::array<double,4> offsets{};
+    for(const auto& route:fmTarget.routes)offsets[static_cast<size_t>(route.target)]+=route.amount*sources[static_cast<size_t>(route.source)];
+    for(size_t i=0;i<4;++i)voice.fmRouteOffsets[i]+=smoothing*(offsets[i]-voice.fmRouteOffsets[i]);
+    voice.fmValues=Nitride::DSP::fmDestinations(index+fmCurrent.envelopeAmount*envelope,fmCurrent.ratio,fmCurrent.shapeAmount,fmCurrent.mix,voice.fmRouteOffsets);
+    voice.primaryHz=(pitchOverride?voice.modulatorHz:voice.frequency*pitchMultiplier)*voice.fmValues.ratio;
+    voice.fmCoefficients={};voice.fmHarmonics={};
+    for(size_t shape=0;shape<3;++shape)if(fmShapeWeights[shape]>1e-10)
+    {
+        const auto selected=static_cast<Nitride::DSP::FmShape>(shape);
+        const auto coefficients=fmTable->coefficients(selected,voice.fmValues.shape,voice.fmValues.index);
+        const auto harmonics=Nitride::DSP::fmHarmonics(selected,voice.fmValues.shape);
+        for(size_t n=0;n<coefficients.size();++n)voice.fmCoefficients[n]+=fmShapeWeights[shape]*coefficients[n];
+        for(size_t n=0;n<harmonics.size();++n)voice.fmHarmonics[n]+=fmShapeWeights[shape]*harmonics[n];
+    }
+    const auto band=[this](double hz){return std::clamp((rate*.47-std::abs(hz))/(rate*.08),0.0,1.0);};
+    const auto carrier=pitchOverride?voice.carrierHz:voice.frequency*pitchMultiplier;
+    voice.carrierBand=band(carrier);
+    for(size_t n=0;n<Nitride::DSP::fmSidebands;++n)
+    {
+        voice.fmPositive[n]=band(carrier+static_cast<double>(n)*voice.primaryHz);
+        voice.fmNegative[n]=band(carrier-static_cast<double>(n)*voice.primaryHz);
+    }
+    for(size_t n=0;n<voice.fmHarmonics.size();++n)voice.fmAudibleHarmonics[n]=voice.fmHarmonics[n]*band(voice.primaryHz*static_cast<double>(2*n+1));
+}
+double Engine::extendedReference(const Voice& voice) const noexcept
+{
+    const auto carrierSin=std::sin(voice.phase),carrierCos=std::cos(voice.phase);
+    const auto stepSin=std::sin(voice.primaryPhase),stepCos=std::cos(voice.primaryPhase);double sine=0,cosine=1;
+    auto result=voice.fmCoefficients[0]*carrierSin*voice.fmPositive[0];
+    for(size_t n=1;n<Nitride::DSP::fmSidebands;++n)
+    {
+        const auto nextSin=sine*stepCos+cosine*stepSin;cosine=cosine*stepCos-sine*stepSin;sine=nextSin;
+        result+=voice.fmCoefficients[n]*((carrierSin*cosine+carrierCos*sine)*voice.fmPositive[n]
+            +(n%2==0?1:-1)*(carrierSin*cosine-carrierCos*sine)*voice.fmNegative[n]);
+    }
+    return result;
+}
+
 void Engine::setAmplitudeEnvelope(double attack, double decay, float sustain, double release) noexcept
 {
     envelopeOverride = true;
@@ -351,6 +418,9 @@ void Engine::noteOn(int note, float velocity, Articulation articulation,bool ove
         if(!pitchIsZero(stolen))voice->stealSamples=voice->stealLength;
     }
     const auto preserveEnvelope=retrigger&&(returning||(overlapping&&pitchSettings.legato));
+    if(!retrigger)voice->fmEnvelope.prepare(rate);
+    voice->fmEnvelope.configure(fmTarget.envelope[0],fmTarget.envelope[1],fmTarget.envelope[2],fmTarget.envelope[3]);
+    if(!preserveEnvelope)voice->fmEnvelope.noteOn();
     if(!preserveEnvelope){voice->attackStart=voice->envelope;voice->age=voice->releaseAge=0;}
     voice->released = false;
     voice->active = true;
@@ -390,6 +460,7 @@ void Engine::noteOff(int note) noexcept
             voice.released = true;
             voice.releaseLevel = voice.envelope;
             voice.releaseAge = 0.0;
+            voice.fmEnvelope.noteOff();
         }
 }
 
@@ -583,7 +654,7 @@ double Engine::noteCoupledDelaySample(Voice& voice, double env, double fundament
     return returned * 1.2;
 }
 
-template<bool Split>
+template<bool Split,bool Extended>
 double Engine::networkSample(Voice& voice, NetworkState& state, double env, double fundamental, double a, double stress,
                              double learning, double phaseSpeed) noexcept
 {
@@ -625,8 +696,21 @@ double Engine::networkSample(Voice& voice, NetworkState& state, double env, doub
         // The carrier uses its phase directly; only nodes 1–5 are FM modulators.
         if (i != 0)
         {
-            wave[i]=std::sin((Split?voice.modulatorPhase:voice.phase)*networkHarmonics[i]+state.offsets[i]);
-            if constexpr(Split)wave[i]*=std::clamp((rate*.47-voice.modulatorHz*networkHarmonics[i])/(rate*.08),0.0,1.0);
+            if constexpr(Extended)
+            {
+                if(i==1)wave[i]=Nitride::DSP::fmWave(voice.primaryPhase+state.offsets[i],voice.fmAudibleHarmonics);
+                else
+                {
+                    wave[i]=std::sin((Split?voice.modulatorPhase:voice.phase)*networkHarmonics[i]+state.offsets[i]);
+                    const auto anchorHz=pitchOverride?voice.modulatorHz:fundamental;
+                    wave[i]*=std::clamp((rate*.47-anchorHz*networkHarmonics[i])/(rate*.08),0.0,1.0);
+                }
+            }
+            else
+            {
+                wave[i]=std::sin((Split?voice.modulatorPhase:voice.phase)*networkHarmonics[i]+state.offsets[i]);
+                if constexpr(Split)wave[i]*=std::clamp((rate*.47-voice.modulatorHz*networkHarmonics[i])/(rate*.08),0.0,1.0);
+            }
         }
     }
     // The adaptive links participate in FM generation as well as phase synchronization.
@@ -639,13 +723,16 @@ double Engine::networkSample(Voice& voice, NetworkState& state, double env, doub
     if(!samePitchValue(voice.carrierBand,1))result*=voice.carrierBand;
     const auto folded = std::sin(result * std::numbers::pi * (0.5 + 2.5 * stress));
     state.signal = ((1.0 - stress) * result + stress * folded) * excitation;
+    // Output tap only: never put operator mix into the feedback signal above.
+    if constexpr(Extended)if(&state==&voice.expressiveNetwork)voice.modulatorOutput=std::clamp(modulator/(1+1.35*a),-1.0,1.0);
     return result;
 }
 
-template<bool Split>
+template<bool Split,bool Extended>
 double Engine::voiceSample(Voice& voice) noexcept
 {
     const auto env = envelope(voice);
+    const auto globalIndex=currentIndex;if constexpr(Extended)currentIndex=voice.fmValues.index;
     const auto fundamental = pitchOverride?voice.carrierHz:voice.frequency*pitchMultiplier;
     const auto amount = smoothedAmount;
     const auto spectralActive = modeWeights[2] > 0.00000001;
@@ -658,13 +745,13 @@ double Engine::voiceSample(Voice& voice) noexcept
             voice.referenceBands[i] = std::clamp((rate * 0.47 - fundamental * static_cast<double>(2 * i + 1)) / (rate * 0.08), 0.0, 1.0);
         voice.bandPitchBits = pitchBits;
     }
-    double reference = Split?splitReference(voice):0.0, deformed = 0.0;
+    double reference = Extended?extendedReference(voice):(Split?splitReference(voice):0.0), deformed = 0.0;
     for (size_t i = 0; i < partialAmplitudes.size(); ++i)
     {
         const auto harmonic = static_cast<double>(2 * i + 1);
         const auto frequency = fundamental * partialRatios[i];
         const auto referenceBand = voice.referenceBands[i];
-        if (!Split&&referenceBand != 0.0)
+        if (!Split&&!Extended&&referenceBand != 0.0)
             reference += partialAmplitudes[i] * std::sin(voice.phase * harmonic) * referenceBand;
         if (spectralActive)
         {
@@ -679,13 +766,13 @@ double Engine::voiceSample(Voice& voice) noexcept
     const auto phaseDelay = modeWeights[4] > 0.00000001 ? phaseDelaySample(voice, env, fundamental) : 0.0;
     const auto noteDelay = modeWeights[5] > 0.00000001 ? noteCoupledDelaySample(voice, env, fundamental) : 0.0;
     const auto network = modeWeights[6] > 0.00000001
-        ? networkSample<Split>(voice, voice.network, env, fundamental, amount, 0.0, networkLearning) : 0.0;
+        ? networkSample<Split,Extended>(voice, voice.network, env, fundamental, amount, 0.0, networkLearning) : 0.0;
     const auto extendedAmount = std::min(1.0, amount * 2.0);
     const auto stress = std::max(0.0, amount * 2.0 - 1.0);
     const auto drivenNetwork = modeWeights[7] > 0.00000001
-        ? networkSample<Split>(voice, voice.stressedNetwork, env, fundamental, extendedAmount, stress, networkLearning) : 0.0;
+        ? networkSample<Split,Extended>(voice, voice.stressedNetwork, env, fundamental, extendedAmount, stress, networkLearning) : 0.0;
     const auto expressive = modeWeights[8] > 0.00000001
-        ? networkSample<Split>(voice, voice.expressiveNetwork, env, fundamental, couplingDimension, stressDimension,
+        ? networkSample<Split,Extended>(voice, voice.expressiveNetwork, env, fundamental, couplingDimension, stressDimension,
                          expressiveLearning, expressivePhaseSpeed) : 0.0;
     const auto bodySound = reference * (1.0 - amount) + amount * body;
     // Blend back to the source rather than forcibly resetting accumulated partial phases.
@@ -698,12 +785,25 @@ double Engine::voiceSample(Voice& voice) noexcept
     const auto drivenNetworkSound = reference * (1.0 - extendedAmount) + extendedAmount * drivenNetwork;
     const auto presence = std::max(couplingDimension, stressDimension * 0.5);
     const auto expressiveSound = reference * (1.0 - presence) + presence * expressive;
+    if constexpr(Extended)
+    {
+        if(voice.fmValues.mix>0)voice.referenceModulator=Nitride::DSP::fmWave(voice.primaryPhase,voice.fmAudibleHarmonics);
+        voice.primaryPhase=wrap(voice.primaryPhase+twoPi*voice.primaryHz/internalRate);
+    }
     voice.phase = wrap(voice.phase + twoPi * fundamental / internalRate);
     if constexpr(Split)voice.modulatorPhase=wrap(voice.modulatorPhase+twoPi*voice.modulatorHz/internalRate);
-    auto sample = (reference * modeWeights[0] + bodySound * modeWeights[1] + spectralSound * modeWeights[2]
+    auto carrierSample = (reference * modeWeights[0] + bodySound * modeWeights[1] + spectralSound * modeWeights[2]
         + interactionSound * modeWeights[3] + phaseDelaySound * modeWeights[4] + noteDelaySound * modeWeights[5]
-        + networkSound * modeWeights[6] + drivenNetworkSound * modeWeights[7] + expressiveSound * modeWeights[8])
-        * env * voice.velocity;
+        + networkSound * modeWeights[6] + drivenNetworkSound * modeWeights[7] + expressiveSound * modeWeights[8]);
+    if constexpr(Extended)
+    {
+        if(voice.fmValues.mix>0)
+        {
+            const auto modulator=voice.referenceModulator*(1-presence)+presence*voice.modulatorOutput;
+            carrierSample=carrierSample*(1-voice.fmValues.mix)+modulator*voice.fmValues.mix;
+        }
+    }
+    auto sample=carrierSample*env*voice.velocity;currentIndex=globalIndex;
     if (!std::isfinite(sample) || !std::isfinite(voice.bodySignal) || !std::isfinite(voice.interactionSignal))
     {
         ++numericalFaults;
@@ -737,6 +837,12 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch,con
         else currentIndex = sourceIndex(Source::simple) + sourceBlend * (sourceIndex(Source::rich) - sourceIndex(Source::simple));
         if (envelopeOverride)
             for (size_t i = 0; i < envelopeValues.size(); ++i) envelopeValues[i] += smoothing * (envelopeTarget[i] - envelopeValues[i]);
+        fmCurrent.ratio*=std::exp(smoothing*std::log(fmTarget.ratio/fmCurrent.ratio));
+        fmCurrent.shapeAmount+=smoothing*(fmTarget.shapeAmount-fmCurrent.shapeAmount);
+        fmCurrent.mix+=smoothing*(fmTarget.mix-fmCurrent.mix);fmCurrent.envelopeAmount+=smoothing*(fmTarget.envelopeAmount-fmCurrent.envelopeAmount);
+        for(size_t i=0;i<3;++i)fmShapeWeights[i]+=smoothing*((i==static_cast<size_t>(fmTarget.shape)?1.0:0.0)-fmShapeWeights[i]);
+        fmActive=!samePitchValue(fmCurrent.ratio,2)||fmCurrent.shapeAmount>1e-10||fmCurrent.mix>1e-10||std::abs(fmCurrent.envelopeAmount)>1e-10;
+        for(const auto& route:fmTarget.routes)fmActive|=route.source!=Nitride::DSP::FmSource::off&&std::abs(route.amount)>0;
         const auto previousBend = smoothedBend;
         smoothedBend += smoothing * (targetBend - smoothedBend);
         const auto lfoPitch=modulation?modulation[sample].pitch:0;
@@ -783,6 +889,7 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch,con
             if(!latest||voice.serial>latest->serial)latest=&voice;
         }
         if(latest)lastNoteHz=latest->frequency;
+        for(auto& voice:voices)if(voice.active)updateVoiceFm(voice,baseIndex+(modulation?modulation[sample].fm:0),modulation?modulation+sample:nullptr);
         if(tonePitch)tonePitch[sample]=latest?latest->tonePitch:0;
         if(split)for(size_t n=0;n<rawBessel.size();++n)
         {
@@ -799,7 +906,9 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch,con
         for (int step = 0; step < oversampling; ++step)
         {
             double sum = 0.0;
-            for (auto& voice : voices) if (voice.active) sum += voice.splitPhase?voiceSample<true>(voice):voiceSample<false>(voice);
+            for (auto& voice : voices) if (voice.active)
+                sum += voice.fmExtended?(voice.splitPhase?voiceSample<true,true>(voice):voiceSample<false,true>(voice))
+                    :(voice.splitPhase?voiceSample<true>(voice):voiceSample<false>(voice));
             for (auto& pole : downsampleFilter)
             {
                 pole += decimationCoefficient * (sum - pole);

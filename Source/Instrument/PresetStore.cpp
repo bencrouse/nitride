@@ -12,7 +12,7 @@ juce::File PresetStore::defaultDirectory()
 juce::var PresetStore::encode(const StoredPreset& preset)
 {
     auto* object = new juce::DynamicObject();
-    object->setProperty("format", "nitride-preset"); object->setProperty("version", 5);
+    object->setProperty("format", "nitride-preset"); object->setProperty("version", 6);
     object->setProperty("id", preset.id); object->setProperty("name", preset.patch.name);
     object->setProperty("mono", preset.patch.mono); object->setProperty("chord", preset.patch.chord);
     auto* values = new juce::DynamicObject();
@@ -24,7 +24,7 @@ juce::var PresetStore::encode(const StoredPreset& preset)
 std::optional<StoredPreset> PresetStore::decode(const juce::var& data)
 {
     const auto version=static_cast<int>(data["version"]);
-    if (!data.isObject() || data["format"].toString() != "nitride-preset" || version!=5) return std::nullopt;
+    if (!data.isObject() || data["format"].toString() != "nitride-preset" || version!=6) return std::nullopt;
     StoredPreset preset;
     preset.id = data["id"].toString(); preset.patch.name = data["name"].toString().trim();
     if (preset.id.isEmpty() || preset.id.length() > 128 || preset.patch.name.isEmpty() || preset.patch.name.length() > 256) return std::nullopt;

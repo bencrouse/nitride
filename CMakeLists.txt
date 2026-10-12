@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "Supported product architecture")
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum product macOS")
-project(nitride VERSION 0.6.0 LANGUAGES C CXX)
+project(nitride VERSION 0.7.0 LANGUAGES C CXX)
 
 if(NOT APPLE)
     message(FATAL_ERROR "nitride currently targets macOS only.")
@@ -52,6 +52,7 @@ target_sources(nitride PRIVATE
     Source/Instrument/PitchMotionPanel.cpp
     Source/Instrument/InstrumentPanel.cpp
     Source/Instrument/MotionPanel.cpp
+    Source/Instrument/FmPanel.cpp
 )
 target_include_directories(nitride PRIVATE Source)
 target_compile_definitions(nitride PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
@@ -60,7 +61,7 @@ target_link_libraries(nitride PRIVATE
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags
 )
 
-add_library(nitride_dsp STATIC Source/DSP/Engine.cpp)
+add_library(nitride_dsp STATIC Source/DSP/Engine.cpp Source/DSP/Fm.cpp)
 add_library(nitride_study_engine ALIAS nitride_dsp)
 target_include_directories(nitride_dsp PUBLIC Source/DSP Source/Studies)
 # Keep the real-time DSP optimized while the native UI remains a normal Debug build.
@@ -113,6 +114,7 @@ target_sources(nitride_review PRIVATE
     Source/Instrument/PitchMotionPanel.cpp
     Source/Instrument/InstrumentPanel.cpp
     Source/Instrument/MotionPanel.cpp
+    Source/Instrument/FmPanel.cpp
 )
 target_compile_definitions(nitride_review PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 target_link_libraries(nitride_review PRIVATE nitride_study_engine juce::juce_audio_utils
@@ -135,7 +137,7 @@ if(NITRIDE_BUILD_TESTS)
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_ui_tests COMMAND nitride_ui_tests)
     juce_add_console_app(nitride_automation_tests PRODUCT_NAME "nitride_automation_tests")
-    target_sources(nitride_automation_tests PRIVATE Source/Tests/AutomationStateTests.cpp Source/Tests/FilterEnvelopeTests.cpp Source/Tests/LfoTests.cpp Source/Tests/FilterModulationTests.cpp)
+    target_sources(nitride_automation_tests PRIVATE Source/Tests/AutomationStateTests.cpp Source/Tests/FilterEnvelopeTests.cpp Source/Tests/LfoTests.cpp Source/Tests/FilterModulationTests.cpp Source/Tests/FmTests.cpp)
     target_include_directories(nitride_automation_tests PRIVATE Source)
     target_compile_definitions(nitride_automation_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
     add_dependencies(nitride_automation_tests nitride)

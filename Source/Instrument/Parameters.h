@@ -21,6 +21,8 @@ enum Parameter
     stressLfoOn,stressLfoWave,stressLfoSync,stressLfoDivision,stressLfoRate,stressLfoDepth,
     lfoTempo,
     filterKeyTracking,filterVelocity,filterFmDepth,
+    fmRatio,fmShape,fmShapeAmount,fmMix,fmAttack,fmDecay,fmSustain,fmRelease,fmEnvelopeAmount,
+    fmRoute1Source,fmRoute1Target,fmRoute1Amount,fmRoute2Source,fmRoute2Target,fmRoute2Amount,fmRoute3Source,fmRoute3Target,fmRoute3Amount,
     parameterCount
 };
 inline constexpr int legacyParameterCount = 16;
@@ -29,7 +31,7 @@ inline constexpr int monoHostIndex = 16;
 inline constexpr int hostParameterCount = parameterCount + 1;
 constexpr int hostIndex(Parameter p) noexcept { return p < legacyParameterCount ? static_cast<int>(p) : static_cast<int>(p) + 1; }
 constexpr Parameter conditionIndex(int host) noexcept { return static_cast<Parameter>(host < monoHostIndex ? host : host - 1); }
-constexpr int versionHint(Parameter p) noexcept {return p<legacyParameterCount?1:p<pitchParameterCount?2:p<=filterAmount?3:p<=lfoTempo?4:5;}
+constexpr int versionHint(Parameter p) noexcept {return p<legacyParameterCount?1:p<pitchParameterCount?2:p<=filterAmount?3:p<=lfoTempo?4:p<=filterFmDepth?5:6;}
 
 enum class ParameterKind { continuous, boolean, choice };
 struct HostParameterDefinition
@@ -93,9 +95,28 @@ inline constexpr auto hostParameters=[] {
     definitions[filterKeyTracking]={"filter_key_tracking","Filter key tracking",0,1,1,0};
     definitions[filterVelocity]={"filter_velocity","Filter velocity sensitivity",-6,6,1,0};
     definitions[filterFmDepth]={"filter_fm_depth","Filter FM depth",0,6,1,0};
+    definitions[fmRatio]={"fm_ratio","FM ratio",.25,8,.5,2};
+    definitions[fmShape]={"fm_shape","FM modulator shape",0,2,1,0,ParameterKind::choice,"Sine|Triangle|Soft saturated"};
+    definitions[fmShapeAmount]={"fm_shape_amount","FM shape amount",0,1,1,0};
+    definitions[fmMix]={"fm_operator_mix","FM operator mix",0,1,1,0};
+    definitions[fmAttack]={"fm_attack","FM envelope attack",.001,4,.3,.01};
+    definitions[fmDecay]={"fm_decay","FM envelope decay",.01,4,.3,.3};
+    definitions[fmSustain]={"fm_sustain","FM envelope sustain",0,1,1,.5};
+    definitions[fmRelease]={"fm_release","FM envelope release",.02,8,.3,.4};
+    definitions[fmEnvelopeAmount]={"fm_envelope_amount","FM envelope amount",-4,4,1,0};
+#define NITRIDE_FM_ROUTE(n,source,target,amount) \
+    definitions[source]={"fm_route_" #n "_source","FM route " #n " source",0,4,1,0,ParameterKind::choice,"Off|FM LFO|Amplitude envelope|Filter envelope|Network activity"}; \
+    definitions[target]={"fm_route_" #n "_target","FM route " #n " target",0,3,1,0,ParameterKind::choice,"Depth|Ratio|Shape|Operator mix"}; \
+    definitions[amount]={"fm_route_" #n "_amount","FM route " #n " amount",-4,4,1,0};
+    NITRIDE_FM_ROUTE(1,fmRoute1Source,fmRoute1Target,fmRoute1Amount)
+    NITRIDE_FM_ROUTE(2,fmRoute2Source,fmRoute2Target,fmRoute2Amount)
+    NITRIDE_FM_ROUTE(3,fmRoute3Source,fmRoute3Target,fmRoute3Amount)
+#undef NITRIDE_FM_ROUTE
     return definitions;
 }();
 struct LfoParameters {Parameter enabled,wave,sync,division,rate,depth;const char* name;const char* unit;};
+struct FmRouteParameters {Parameter source,target,amount;};
+inline constexpr std::array<FmRouteParameters,3> fmRoutes{{{fmRoute1Source,fmRoute1Target,fmRoute1Amount},{fmRoute2Source,fmRoute2Target,fmRoute2Amount},{fmRoute3Source,fmRoute3Target,fmRoute3Amount}}};
 inline constexpr std::array<LfoParameters,6> lfoParameters {{
     {pitchLfoOn,pitchLfoWave,pitchLfoSync,pitchLfoDivision,pitchLfoRate,pitchLfoDepth,"Pitch","st"},
     {fmLfoOn,fmLfoWave,fmLfoSync,fmLfoDivision,fmLfoRate,fmLfoDepth,"FM depth","index"},

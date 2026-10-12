@@ -8,8 +8,12 @@ record earlier milestones, not a current migration guarantee.
 
 `FILTER_MODULATION.md` describes the current filter cutoff path: shared note and
 velocity ownership, log-space control composition and an unsmoothed pre-filter
-audio-rate FM tap. The existing filter envelope is reused. Since 0.6.0 the current
-greenfield schema has 71 host controls, preset v5 and XML/session v6.
+audio-rate FM tap. The existing filter envelope is reused.
+
+`FM.md` describes the 0.7.0 primary-modulator ratio, shaped reference sidebands,
+per-voice FM ADSR and output-only operator mix. Coupling/stress/Response and
+downstream signal flow are retained. Current greenfield state has 89 host
+controls, preset v6 and XML/session v7.
 
 The bounded local hardening pass is recorded in `HARDENING.md`. Production UI now
 uses normal `InstrumentPanel`/control components; shared DSP is owned by
