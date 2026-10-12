@@ -1,6 +1,7 @@
 #include "ReviewRegressionTests.h"
 #include "PluginEditor.h"
 #include "Instrument/PresetStore.h"
+#include "Instrument/SupportingControls.h"
 #include <stdexcept>
 #include <iostream>
 
@@ -69,5 +70,19 @@ void interruptedRecall()
     }
     directory.deleteRecursively();
 }
+template<class T>T* child(juce::Component& root,const juce::String& name)
+{for(auto* c:root.getChildren()){if(auto* found=dynamic_cast<T*>(c);found&&c->getName()==name)return found;if(auto* found=child<T>(*c,name))return found;}return nullptr;}
+void accessibleUnits()
+{
+    RenderHarness h;NitrideAudioProcessor p(h.session.presetDirectory());auto& s=p.getInstrumentSession();std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());editor->addToDesktop(0);editor->setVisible(true);
+    const auto enter=[&](const char* name,const char* value,Parameter parameter,double expected)
+    {auto* c=child<UI::ValueControl>(*editor,name);require(c,"F4: Missing accessible value control");c->getAccessibilityHandler()->getValueInterface()->setValueAsString(value);require(std::abs(s.read().values[static_cast<size_t>(parameter)]-expected)<1e-8,"F4: Accessible units changed the wrong physical value");};
+    enter("Attack","100 ms",attack,.1);enter("Attack","0.1 s",attack,.1);enter("Sustain","50%",sustain,.5);enter("Sustain","0.5",sustain,.5);
+    enter("Filter attack","100 ms",filterAttack,.1);enter("Filter key tracking","50%",filterKeyTracking,.5);enter("Filter envelope amount","-2 oct",filterAmount,-2);
+    enter("FM envelope attack","100 ms",fmAttack,.1);enter("FM envelope sustain","50%",fmSustain,.5);enter("FM ratio","1:1.414",fmRatio,1.414);enter("FM shape amount","50%",fmShapeAmount,.5);enter("FM operator mix","25%",fmMix,.25);enter("Output","-12 dB",output,-12);enter("Pitch","+3 st",pitch,3);
+    auto* attackControl=child<UI::ValueControl>(*editor,"Attack");const auto before=s.read().values[attack];for(const auto* invalid:{"garbage","100 bananas","nan","inf","","1.2.3"})attackControl->getAccessibilityHandler()->getValueInterface()->setValueAsString(invalid);
+    require(std::abs(s.read().values[attack]-before)<1e-12,"F4: Invalid string changed a control");
+    std::function<void(juce::Component&)> roundtrip=[&](juce::Component& root){for(auto* c:root.getChildren()){if(auto* value=dynamic_cast<UI::ValueControl*>(c)){auto* api=value->getAccessibilityHandler()->getValueInterface();const auto text=api->getCurrentValueAsString();const auto parsed=UI::parseValue(text,value->unit);require(parsed.has_value(),"F4: Displayed value could not be parsed");api->setValueAsString(text);require(std::abs(api->getCurrentValue()-std::clamp(*parsed,api->getRange().getMinimumValue(),api->getRange().getMaximumValue()))<1e-8,"F4: Displayed unit round trip failed");}roundtrip(*c);}};roundtrip(*editor);
 }
-void runReviewRegressionTests(){midiChannelModes();interruptedRecall();std::cout<<"Code-review MIDI and interrupted-recall regressions passed\n";}
+}
+void runReviewRegressionTests(){midiChannelModes();interruptedRecall();accessibleUnits();std::cout<<"Code-review MIDI, recall and accessible-unit regressions passed\n";}

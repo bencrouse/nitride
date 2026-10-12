@@ -30,6 +30,10 @@ FmPanel::FmPanel(InstrumentSession& s):session(s),epoch(s.restoreEpoch.load())
             if(parameter==fmRatio)control->format=[](double v){return "1:"+juce::String(v,3);};
             else if(parameter==fmAttack||parameter==fmDecay||parameter==fmRelease)control->format=[](double v){return v>=1?juce::String(v,2)+" s":juce::String(v*1000,0)+" ms";};
             else if(parameter==fmShapeAmount||parameter==fmMix||parameter==fmSustain)control->format=[](double v){return juce::String(v*100,0)+"%";};
+            if(parameter==fmRatio)control->unit=UI::ValueUnit::ratio;
+            else if(parameter==fmAttack||parameter==fmDecay||parameter==fmRelease)control->unit=UI::ValueUnit::seconds;
+            else if(parameter==fmShapeAmount||parameter==fmMix||parameter==fmSustain)control->unit=UI::ValueUnit::normalized;
+            else if(parameter==fmEnvelopeAmount)control->unit=UI::ValueUnit::index;
         }
     }
     integers.setName("Harmonic FM ratio");integers.setTextWhenNothingSelected("Integer ratio...");
@@ -65,6 +69,7 @@ void FmPanel::sync(const Patch& patch,std::uint64_t generation)
     {
         auto* value=values[static_cast<size_t>(route.amount-fmRatio)].get();const auto target=static_cast<int>(patch.values[route.target]);
         value->format=[target](double v){return (v>0?"+":"")+juce::String(v,2)+(target==0?" idx":target==1?" oct":"");};
+        value->unit=target==0?UI::ValueUnit::index:target==1?UI::ValueUnit::octaves:UI::ValueUnit::number;
     }
     updating=false;repaint();
 }

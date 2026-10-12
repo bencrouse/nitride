@@ -35,3 +35,15 @@ Regressions cover grouped FM/network/Response edits, stale individual/grouped
 writes before a polling tick, complete identity/value Undo/Redo, balanced host
 notifications, and Keep/import/apply interruption. Release session and existing
 UI/state regressions pass.
+
+## F4 — confirmed and fixed
+
+Value controls now pair their formatter with an explicit physical-unit parser:
+milliseconds/seconds, normalized percentages, carrier:modulator ratios, signed
+octaves/semitones, index and dB. Bare numbers and numeric accessibility setters
+retain physical units. Malformed/unknown-unit/non-finite strings are rejected
+without changing sound or starting a host gesture. Route Amount parsing follows
+the selected destination's unit.
+
+Real-editor regressions exercise amplitude/filter/FM controls, numeric/string
+equivalence, invalid input and parsing every value control's displayed text.

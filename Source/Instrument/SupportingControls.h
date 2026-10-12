@@ -1,8 +1,38 @@
 #pragma once
 #include "NativeGestureControls.h"
+#include <cstdlib>
+#include <optional>
 
 namespace Nitride::UI
 {
+enum class ValueUnit {number,seconds,normalized,ratio,decibels,semitones,octaves,index};
+inline std::optional<double> parseValue(juce::String text,ValueUnit unit)
+{
+    text=text.trim();double scale=1;
+    const auto number=[](const juce::String& input)->std::optional<double>
+    {
+        const auto trimmed=input.trim();const auto* start=trimmed.toRawUTF8();char* end=nullptr;const auto value=std::strtod(start,&end);
+        if(end==start||*end!='\0'||!std::isfinite(value))return std::nullopt;return value;
+    };
+    if(unit==ValueUnit::ratio&&text.containsChar(':'))
+    {
+        const auto carrier=number(text.upToFirstOccurrenceOf(":",false,false)),modulator=number(text.fromFirstOccurrenceOf(":",false,false));
+        if(!carrier||!modulator||*carrier<=0||*modulator<=0)return std::nullopt;
+        const auto ratio=*modulator / *carrier;return std::isfinite(ratio)?std::optional<double>(ratio):std::nullopt;
+    }
+    const auto suffix=[&](const char* s){if(!text.endsWithIgnoreCase(s))return false;text=text.dropLastCharacters(juce::String(s).length()).trim();return true;};
+    switch(unit)
+    {
+        case ValueUnit::seconds:if(suffix("ms"))scale=.001;else suffix("s");break;
+        case ValueUnit::normalized:if(suffix("%"))scale=.01;break;
+        case ValueUnit::decibels:suffix("dB");break;
+        case ValueUnit::semitones:suffix("st");break;
+        case ValueUnit::octaves:suffix("oct");break;
+        case ValueUnit::index:suffix("idx");break;
+        case ValueUnit::number:case ValueUnit::ratio:break;
+    }
+    const auto value=number(text);if(!value||!std::isfinite(*value*scale))return std::nullopt;return *value*scale;
+}
 class ValueControl final : public juce::Component,public juce::SettableTooltipClient
 {
 public:
@@ -12,6 +42,7 @@ public:
     std::function<void()> onBegin,onEnd;
     std::function<void(double)> onChange;
     std::function<juce::String(double)> format;
+    ValueUnit unit=ValueUnit::number;
     void setValue(double v){value=juce::jlimit(minimum,maximum,v);repaint();}
     double getValue() const{return value;}
     void cancelGesture(){dragging=false;}
@@ -44,7 +75,7 @@ public:
             double getCurrentValue() const override{return view.value;}
             juce::String getCurrentValueAsString() const override{return view.format?view.format(view.value):juce::String(view.value);}
             void setValue(double v) override{if(view.onBegin)view.onBegin();view.change(v);if(view.onEnd)view.onEnd();}
-            void setValueAsString(const juce::String& v) override{setValue(v.getDoubleValue());}
+            void setValueAsString(const juce::String& v) override{if(const auto parsed=parseValue(v,view.unit))setValue(*parsed);}
             AccessibleValueRange getRange() const override{return{{view.minimum,view.maximum},(view.maximum-view.minimum)/100};}
         private:ValueControl& view;
         };

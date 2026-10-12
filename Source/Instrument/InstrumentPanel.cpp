@@ -53,6 +53,8 @@ public:
             value->onChange=[this,parameter](double v){set(parameter,v);};addAndMakeVisible(*value);
         }
         fmValue.format=[](double v){return juce::String(v,2);};pitchValue.format=[](double v){return(v>0?"+":"")+juce::String(v,1)+" st";};
+        fmValue.unit=ValueUnit::index;pitchValue.unit=ValueUnit::semitones;outputValue.unit=ValueUnit::decibels;sustainValue.unit=ValueUnit::normalized;
+        for(auto* value:{&attackValue,&decayValue,&releaseValue})value->unit=ValueUnit::seconds;
         for(auto* value:{&attackValue,&decayValue,&releaseValue})value->format=[](double v){return v>=1?juce::String(v,2)+" s":juce::String(v*1000,0)+" ms";};
         sustainValue.format=[](double v){return juce::String(v*100,0)+"%";};outputValue.format=[](double v){return juce::String(v,1)+" dB";};
         for(auto pair:{std::pair{&filterAttackValue,filterAttack},{&filterDecayValue,filterDecay},{&filterSustainValue,filterSustain},{&filterReleaseValue,filterRelease},{&filterAmountValue,filterAmount},
@@ -64,6 +66,9 @@ public:
             value->onChange=[this,parameter](double v){set(parameter,v);};addAndMakeVisible(*value);
         }
         for(auto* value:{&filterAttackValue,&filterDecayValue,&filterReleaseValue})value->format=attackValue.format;
+        for(auto* value:{&filterAttackValue,&filterDecayValue,&filterReleaseValue})value->unit=ValueUnit::seconds;
+        for(auto* value:{&filterSustainValue,&filterTrackingValue})value->unit=ValueUnit::normalized;
+        for(auto* value:{&filterAmountValue,&filterVelocityValue,&filterFmValue})value->unit=ValueUnit::octaves;
         filterSustainValue.format=sustainValue.format;filterAmountValue.format=[](double v){return(v>0?"+":"")+juce::String(v,2)+" oct";};
         filterAmountValue.setTooltip("Envelope depth in octaves. Positive opens the filter; negative closes it. Zero preserves the base cutoff.");
         filterTrackingValue.format=sustainValue.format;filterVelocityValue.format=filterAmountValue.format;
