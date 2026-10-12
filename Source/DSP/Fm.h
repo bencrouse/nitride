@@ -45,14 +45,16 @@ inline std::array<double,5> fmHarmonics(FmShape shape,double amount) noexcept
     for(size_t k=0;k<result.size();++k)result[k]=result[k]*(1-amount)+shaped[k]*amount;
     return result;
 }
-inline double fmWave(double phase,const std::array<double,5>& harmonics) noexcept
+inline double fmWaveFromSine(double sine,const std::array<double,5>& harmonics) noexcept
 {
     // sin((h+2)p) = 2 cos(2p) sin(hp) - sin((h-2)p). Derive
     // cos(2p) from sin(p): one transcendental for all five odd harmonics.
-    auto sine=std::sin(phase),previous=-sine;const auto step=2*(1-2*sine*sine);double result=0;
+    auto previous=-sine;const auto step=2*(1-2*sine*sine);double result=0;
     for(const auto coefficient:harmonics){result+=coefficient*sine;const auto next=step*sine-previous;previous=sine;sine=next;}
     return result;
 }
+inline double fmWave(double phase,const std::array<double,5>& harmonics) noexcept
+{return fmWaveFromSine(std::sin(phase),harmonics);}
 inline constexpr size_t fmSidebands=25;
 using FmCoefficients=std::array<double,fmSidebands>;
 // Constructed once by prepare(), never lazily from a render callback.

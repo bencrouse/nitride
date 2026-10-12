@@ -1,5 +1,9 @@
 # FM expansion / Nitride 0.7.0
 
+The measurements below record the initial FM milestone. Subsequent exact caching
+and hot/cold voice-state optimizations, updated qualification targets and remaining
+96 kHz limitations are documented in [code-review fixes](CODE_REVIEW_FIXES.md#f1--confirmed-exact-optimizations-residual-qualification-limit).
+
 Nitride extends its existing reference FM source and **six-node expressive
 network**, not a replacement two-operator synth. Carrier node 0 and modulator
 nodes 1–5 retain their adaptive links, phase torques, coupling/stress feedback and

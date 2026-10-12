@@ -139,6 +139,35 @@ void soundAndNetwork()
     const auto coupled=render(s,64,.9,.8,.2);difference=0;for(size_t i=0;i<a.size();++i)difference+=std::abs(a[i]-coupled[i]);require(difference>1,"Advanced FM bypassed coupling/stress/Response");
     for(const auto rate:{44100,48000,96000}){s.ratio=8;s.envelopeAmount=4;s.shapeAmount=1;s.mix=.5;render(s,64,1,1,.001,rate);}
 }
+void derivedDataParity()
+{
+    DSP::FmSettings settings;settings.ratio=1.414;settings.shape=DSP::FmShape::triangle;settings.shapeAmount=.8;
+    EngineHarness cached(settings),reference(settings);reference.engine.setDerivedDataCaching(false);cached.on(72);reference.on(72);
+    cached.tick(24000);const auto updates=cached.engine.getDerivedUpdates();
+    require(updates.coefficients==1&&updates.harmonics==1&&updates.bands==1,"F1: Static advanced FM recomputed derived data every sample");
+    // Fresh matching voices: automate every cache dependency and enter/leave
+    // the historical spectral treatment, including after its fade has settled.
+    cached.engine.prepare(48000);reference.engine.prepare(48000);cached.on(72);reference.on(72);cached.on(60);reference.on(60);
+    constexpr int block=32;std::array<float,block> left{},right{},expectedLeft{},expectedRight{};std::array<DSP::ModulationFrame,block> frames{};
+    for(int b=0;b<2000;++b)
+    {
+        if(b==200||b==1500){cached.engine.setTreatment(SoundStudies::Treatment::spectral);reference.engine.setTreatment(SoundStudies::Treatment::spectral);cached.engine.setAmount(.9f);reference.engine.setAmount(.9f);}
+        if(b==400){cached.engine.setTreatment(SoundStudies::Treatment::expressiveNetwork);reference.engine.setTreatment(SoundStudies::Treatment::expressiveNetwork);}
+        if(b==1600){cached.engine.setTreatment(SoundStudies::Treatment::phaseDelay);reference.engine.setTreatment(SoundStudies::Treatment::phaseDelay);}
+        if(b==1700){cached.engine.setTreatment(SoundStudies::Treatment::noteCoupledDelay);reference.engine.setTreatment(SoundStudies::Treatment::noteCoupledDelay);}
+        if(b==1800)for(int note=48;note<62;++note){cached.on(note);reference.on(note);}
+        if(b==250||b==450||b==650)
+        {
+            settings.ratio=b==250?3.17:1.2;settings.shape=static_cast<DSP::FmShape>((b/200)%3);settings.shapeAmount=b==450?1:.3;settings.envelopeAmount=1.5;
+            settings.routes[0]={DSP::FmSource::lfo,DSP::FmTarget::ratio,.2};cached.engine.setFmSettings(settings);reference.engine.setFmSettings(settings);
+        }
+        if(b==300){cached.on(84);reference.on(84);}
+        if(b==900)cached.engine.setDerivedDataCaching(false);if(b==1100)cached.engine.setDerivedDataCaching(true);
+        for(int i=0;i<block;++i){const auto phase=(b*block+i)*.001;frames[static_cast<size_t>(i)]={std::sin(phase)*3,std::sin(phase)*.4,.1*std::sin(phase),0,std::sin(phase),.3};}
+        cached.engine.render(left.data(),right.data(),block,nullptr,frames.data());reference.engine.render(expectedLeft.data(),expectedRight.data(),block,nullptr,frames.data());
+        require(left==expectedLeft&&right==expectedRight,"F1: Caching/lazy spectral initialization changed audio under dependency changes or treatment transitions");
+    }
+}
 template<class T>T* child(juce::Component& root,const juce::String& name)
 {for(auto* c:root.getChildren()){if(auto* v=dynamic_cast<T*>(c);v&&c->getName()==name)return v;if(auto* v=child<T>(*c,name))return v;}return nullptr;}
 void rendererAndUi()
@@ -175,4 +204,4 @@ void rendererAndUi()
     near(s.read().values[fm],patch.values[fm],0,"FM routing overwrote base FM depth");
 }
 }
-void runFmTests(){composition();ratiosAndEnvelope();referenceSpectra();soundAndNetwork();rendererAndUi();std::cout<<"FM ratios, independent envelope, shaped spectra, output-only mix, network integration, progressive native UI and state/history passed\n";}
+void runFmTests(){composition();ratiosAndEnvelope();referenceSpectra();soundAndNetwork();derivedDataParity();rendererAndUi();std::cout<<"FM ratios, independent envelope, shaped spectra, output-only mix, network integration, cached/eager parity, progressive native UI and state/history passed\n";}

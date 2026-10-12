@@ -44,6 +44,11 @@ public:
     void setFmSettings(const Nitride::DSP::FmSettings&) noexcept;
     struct FmSnapshot {double index=0,ratio=2,shape=0,mix=0,envelope=0,primaryHz=0,primaryPhase=0;};
     FmSnapshot getFmSnapshot(int note=-1) const noexcept;
+    // Diagnostic reference path for exact caching/lazy-initialization parity.
+    // Not a quality/polyphony setting and not exposed as a plugin parameter.
+    void setDerivedDataCaching(bool enabled) noexcept {derivedDataCaching=enabled;}
+    struct DerivedUpdates {std::uint64_t coefficients=0,harmonics=0,bands=0;};
+    DerivedUpdates getDerivedUpdates() const noexcept {return derivedUpdates;}
     float getAmount() const noexcept { return static_cast<float>(smoothedAmount); }
     NetworkSnapshot getNetworkSnapshot() const noexcept;
     std::uint64_t getNumericalFaults() const noexcept { return numericalFaults; }
@@ -57,9 +62,13 @@ private:
     struct Mode { double displacement = 0.0, velocity = 0.0; };
     struct DelayState
     {
-        std::array<float, 4096> samples {};
         std::size_t cursor = 0;
         double signal = 0.0;
+    };
+    struct ColdDelays
+    {
+        std::array<float,4096> phase{},note{};
+        bool phaseReset=true,noteReset=true;
     };
     struct NetworkState
     {
@@ -93,9 +102,10 @@ private:
         std::uint64_t bandPitchBits = 0;
         std::array<double, 12> referenceBands {};
         std::array<double, 12> partialPhases {};
+        bool dormantSpectral=false;
+        double dormantPhase=0,dormantFundamental=0,dormantAmount=0;
         std::array<Mode, 4> modes {};
         std::array<Mode, 4> interactionModes {};
-        std::array<float, 4096> delay {};
         std::size_t delayCursor = 0;
         DelayState noteDelay;
         NetworkState network, stressedNetwork, expressiveNetwork;
@@ -106,6 +116,11 @@ private:
         Nitride::DSP::FmCoefficients fmCoefficients{},fmPositive{},fmNegative{};
         std::array<double,5> fmHarmonics{1,0,0,0,0},fmAudibleHarmonics{1,0,0,0,0};
         std::array<double,4> fmRouteOffsets{};
+        bool fmCacheValid=false;
+        double cachedIndex=0,cachedShape=0,cachedCarrier=0,cachedPrimary=0,cachedAnchor=0;
+        bool cachedBandsFull=false;
+        std::array<double,6> fmCompanionBands{};
+        std::array<double,3> cachedShapeWeights{};
         std::uint64_t serial = 0;
     };
 
@@ -121,12 +136,15 @@ private:
     template<bool Split,bool Extended=false> double networkSample(Voice&, NetworkState&, double env, double fundamental, double amount, double stress,
                          double learning, double phaseSpeed = 1.0) noexcept;
     void updateDimensionRates() noexcept;
+    void updateNetworkBias(double stress,double excitation) noexcept;
+    void resetColdDelays(size_t index) noexcept;
     void updateVoicePitch(Voice&) noexcept;
     double splitReference(const Voice&) const noexcept;
     void updateVoiceFm(Voice&,double index,const Nitride::DSP::ModulationFrame*) noexcept;
-    double extendedReference(const Voice&) const noexcept;
+    double extendedReference(Voice&) const noexcept;
 
     std::array<Voice, 12> voices {};
+    std::array<ColdDelays,12> coldDelays{};
     std::array<double, 12> partialAmplitudes {};
     std::array<std::array<double, 12>, 2> sourceAmplitudes {};
     std::array<std::array<double, 12>, 129> indexAmplitudes {};
@@ -166,5 +184,10 @@ private:
     const Nitride::DSP::FmTables* fmTable=nullptr;
     bool fmActive=false;
     std::array<double,3> fmShapeWeights{1,0,0};
+    bool derivedDataCaching=true;
+    DerivedUpdates derivedUpdates;
+    bool networkBiasValid=false;
+    double cachedBiasStress=0,cachedBiasExcitation=0;
+    std::array<double,9> biasSine{},biasCosine{};
 };
 }
