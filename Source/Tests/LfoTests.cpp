@@ -54,6 +54,40 @@ void wavesAndClock()
         for(size_t i=0;i<DSP::lfoCount;++i)near(all[i],independent[i].next()[i],0,"Running another lane changed a destination's independent clock/depth");
     }
 }
+// Long triplet S&H runs exposed a one-sample hash change at sample 128000,
+// beyond the shorter modulation-render tests' duration.
+void sampleHoldBoundaryClock()
+{
+    const auto renderClock=[](double rate,double bpm,int division,double start,double meter,int block)
+    {
+        DSP::LfoBank bank;bank.prepare(rate);std::array<DSP::LfoSettings,DSP::lfoCount> settings{};
+        settings[1]={true,true,DSP::LfoWave::sampleHold,.25,.12,division};
+        std::vector<double> result(static_cast<size_t>(rate*8));
+        for(size_t offset=0;offset<result.size();offset+=static_cast<size_t>(block))
+        {
+            DSP::Transport transport{bpm,start+static_cast<double>(offset)*bpm/(60*rate),meter,true,true,true};
+            transport.barCount=static_cast<std::int64_t>(std::floor(transport.ppq/meter));transport.barStart=static_cast<double>(transport.barCount)*meter;transport.hasBarCount=transport.hasBarStart=true;
+            bank.configure(settings,transport,120);
+            for(size_t i=offset;i<std::min(offset+static_cast<size_t>(block),result.size());++i){bank.next();result[i]=bank.fmWave();}
+        }
+        return result;
+    };
+    for(const auto rate:{48000.0,96000.0})
+    {
+        const auto reference=renderClock(rate,120,8,0,4,64);
+        require(reference==renderClock(rate,120,8,0,4,257),"Triplet S&H cycle hash depends on host block size");
+        require(reference==renderClock(rate,120,8,0,4,1024),"Triplet S&H cycle hash depends on large host blocks");
+    }
+    for(const auto division:{0,14})
+        require(renderClock(48000,157.5,division,-1.25,3,64)==renderClock(48000,157.5,division,-1.25,3,257),"Negative-PPQ/meter S&H clock depends on host block size");
+    DSP::LfoBank stopped;stopped.prepare(48000);std::array<DSP::LfoSettings,DSP::lfoCount> settings{};
+    settings[1]={true,true,DSP::LfoWave::sampleHold,.25,.12,8};
+    DSP::Transport transport{120,DSP::beatsPerCycle(8)*(4-1e-7),4,true,true,false};stopped.configure(settings,transport,120);
+    for(int i=0;i<10000;++i)stopped.next();near(stopped.fmWave(),DSP::lfoWave(DSP::LfoWave::sampleHold,0,3,2),1e-10,"S&H boundary repair moved a genuine pre-boundary position");
+    transport.ppq=DSP::beatsPerCycle(8)*4;stopped.configure(settings,transport,120);
+    for(int i=0;i<10000;++i)stopped.next();near(stopped.fmWave(),DSP::lfoWave(DSP::LfoWave::sampleHold,0,4,2),1e-10,"Stopped S&H seek did not follow the new cycle");
+}
+
 struct Playhead final:juce::AudioPlayHead
 {
     PositionInfo position;
@@ -153,4 +187,4 @@ void uiAndState()
     p.getStateInformation(state);rate->onDragStart();p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));rate->setValue(10,juce::sendNotificationSync);rate->onDragEnd();near(s.read().values[pitchLfoRate],3,1e-6,"Stale LFO drag overwrote recalled rate");
 }
 }
-void runLfoTests(){wavesAndClock();hostTiming();destinations();pitchComposition();uiAndState();std::cout<<"LFO waves, independent clocks, musical sync/meter/seek/fallback, all destinations, deterministic S&H, pitch composition/band suppression, UI and scalable recall/history passed\n";}
+void runLfoTests(){wavesAndClock();sampleHoldBoundaryClock();hostTiming();destinations();pitchComposition();uiAndState();std::cout<<"LFO waves, independent clocks, musical sync/meter/seek/fallback, all destinations, deterministic S&H/triplet boundaries, pitch composition/band suppression, UI and scalable recall/history passed\n";}

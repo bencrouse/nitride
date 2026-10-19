@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <numbers>
 
 namespace Nitride::DSP
@@ -56,7 +57,7 @@ class LfoBank
 public:
     void prepare(double sampleRate) noexcept
     {
-        rate=std::isfinite(sampleRate)&&sampleRate>0?sampleRate:48000;slew=-std::expm1(-1/(rate*.003));lanes={};transport={};position=0;
+        rate=std::isfinite(sampleRate)&&sampleRate>0?sampleRate:48000;slew=-std::expm1(-1/(rate*.003));lanes={};transport={};position=0;positionSamples=0;
     }
     void configure(const std::array<LfoSettings,lfoCount>& settings,const Transport& host,double fallbackTempo) noexcept
     {
@@ -66,7 +67,7 @@ public:
         transport.hasBarStart=host.hasBarStart&&std::isfinite(host.barStart)&&std::abs(host.barStart)<1e12;
         transport.hasBarCount=host.hasBarCount&&host.barCount>-1000000000000ll&&host.barCount<1000000000000ll;
         transport.beatsPerBar=std::isfinite(host.beatsPerBar)&&host.beatsPerBar>=.01&&host.beatsPerBar<=1024?host.beatsPerBar:4;
-        position=transport.hasPosition?transport.ppq:0;
+        position=transport.hasPosition?transport.ppq:0;positionSamples=0;
         for(size_t i=0;i<lfoCount;++i)
         {
             auto& lane=lanes[i];lane.settings=settings[i];
@@ -91,12 +92,23 @@ public:
             const auto beats=beatsPerCycle(s.division,transport.beatsPerBar);
             if(s.sync&&transport.hasPosition)
             {
-                auto cycles=position/beats;
+                // A discrete cycle hash must not change one sample earlier/later
+                // with host block size due to accumulated PPQ addition error.
+                // Continuous waves retain their existing interpolation arithmetic.
+                const auto discrete=s.wave==LfoWave::sampleHold;
+                const auto syncedPosition=discrete&&transport.playing?transport.ppq+static_cast<double>(positionSamples)*transport.bpm/(60*rate):position;
+                auto cycles=syncedPosition/beats;
                 const auto& subdivision=subdivisions[static_cast<size_t>(s.division)];
                 if(subdivision.bars&&transport.hasBarStart)
                 {
                     const auto bars=transport.hasBarCount?static_cast<double>(transport.barCount):std::floor(transport.barStart/transport.beatsPerBar);
-                    cycles=(bars+(position-transport.barStart)/transport.beatsPerBar)/subdivision.beats;
+                    cycles=(bars+(syncedPosition-transport.barStart)/transport.beatsPerBar)/subdivision.beats;
+                }
+                if(discrete)
+                {
+                    const auto boundary=std::round(cycles);
+                    const auto tolerance=std::min(1e-12,8*std::numeric_limits<double>::epsilon()*std::max(1.0,std::abs(cycles)));
+                    if(std::abs(cycles-boundary)<=tolerance)cycles=boundary;
                 }
                 cycle=static_cast<std::int64_t>(std::floor(cycles));phase=cycles-std::floor(cycles);
             }
@@ -111,7 +123,7 @@ public:
             lane.phase+=increment;if(lane.phase>=1){const auto wraps=std::floor(lane.phase);lane.phase-=wraps;lane.cycle+=static_cast<std::int64_t>(wraps);}
             lane.displayPhase=phase;
         }
-        if(transport.playing)position+=transport.bpm/(60*rate);
+        if(transport.playing){position+=transport.bpm/(60*rate);++positionSamples;}
         return result;
     }
     double phase(size_t lane) const noexcept {return lanes[lane].displayPhase;}
@@ -126,6 +138,6 @@ private:
         LfoSettings settings;double phase=0,displayPhase=0,value=0,depth=0,targetDepth=0,depthStep=0,sourceGain=0;
         std::int64_t cycle=0;int remaining=0;
     };
-    std::array<Lane,lfoCount> lanes{};Transport transport;double rate=48000,slew=0,position=0;
+    std::array<Lane,lfoCount> lanes{};Transport transport;double rate=48000,slew=0,position=0;std::uint64_t positionSamples=0;
 };
 }
