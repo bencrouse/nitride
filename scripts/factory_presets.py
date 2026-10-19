@@ -341,7 +341,7 @@ def install_factory(folder, destination=FACTORY_DESTINATION):
     return receipt
 
 
-def extend_factory(folder, archive, destination=FACTORY_DESTINATION, retire_studies=False):
+def extend_factory(folder, archive, destination=FACTORY_DESTINATION, retire_studies=False, study_ids=()):
     """Explicit additive update only: existing managed sounds must remain byte-identical."""
     confirmation = host_confirmation()
     manifest = verify_package(folder)
@@ -364,16 +364,28 @@ def extend_factory(folder, archive, destination=FACTORY_DESTINATION, retire_stud
         path = destination / relative
         if path.exists() or path.is_symlink(): raise ValueError("User preset collision: " + relative)
         if path.parent.exists() and (not path.parent.is_dir() or path.parent.is_symlink()): raise ValueError("Unsafe category directory")
-    retire = {}
-    study_receipt = ".nitride-fs1r-study-001.json"
-    if retire_studies and (destination / study_receipt).exists():
+    retire, requests = {}, []
+    legacy_receipt = ".nitride-fs1r-study-001.json"
+    if retire_studies and ((destination / legacy_receipt).exists() or (destination / legacy_receipt).is_symlink()):
+        requests.append((legacy_receipt, None))
+    if len(study_ids) != len(set(study_ids)): raise ValueError("Duplicate study retirement request")
+    for identity in study_ids:
+        ev.identifier(identity); requests.append((".nitride-study-" + identity + ".json", identity))
+    documents = [document_from_native(plistlib.loads(package_file(folder, p).read_bytes())) for p in files] if requests else []
+    for study_receipt, identity in requests:
         study = json.loads(package_file(destination, study_receipt).read_text())
-        if (study.get("format"), study.get("version")) != ("nitride-fs1r-study-install", 1) or len(study.get("files", {})) != 3:
+        expected_format = "nitride-study-preset-install" if identity else "nitride-fs1r-study-install"
+        owned = study.get("files", {})
+        if (study.get("format"), study.get("version")) != (expected_format, 1) or not isinstance(owned, dict) or not 1 <= len(owned) <= 12:
             raise ValueError("Invalid study ownership receipt")
-        documents = [document_from_native(plistlib.loads(package_file(folder, p).read_bytes())) for p in files]
+        if identity:
+            if study.get("study") != identity or study.get("status") != "awaiting-feedback-not-factory-selected":
+                raise ValueError("Study identity/status differs from explicit retirement request")
+        elif len(owned) != 3: raise ValueError("Legacy study receipt must own exactly three files")
         for relative, expected in study["files"].items():
             path = package_file(destination, relative)
-            if path.suffix != ".aupreset" or "Study - " not in path.name or ev.digest(path) != expected:
+            if relative in files or relative in retire: raise ValueError("Study file has conflicting ownership")
+            if path.suffix != ".aupreset" or not path.name.startswith("Study - ") or ev.digest(path) != expected:
                 raise ValueError("Study file edited; preserve user changes: " + relative)
             old_document = document_from_native(plistlib.loads(path.read_bytes()))
             if old_document not in documents: raise ValueError("Study sound has no exact clean-label replacement")
@@ -447,6 +459,7 @@ def main():
     extend.add_argument("--archive", type=Path, required=True)
     extend.add_argument("--destination", type=Path, default=FACTORY_DESTINATION)
     extend.add_argument("--retire-studies", action="store_true")
+    extend.add_argument("--retire-study", action="append", default=[], help="Explicit study identity; archive only exact owned duplicates")
     args = parser.parse_args()
     if args.command == "selection":
         _, entries = validate_selection(); print("Proposed:", len(entries), "retained families; pending voices and archived iterations excluded")
@@ -460,7 +473,7 @@ def main():
     elif args.command == "install-factory":
         install_factory(args.package, args.destination); print("Installed categorized factory candidate directly at:", args.destination)
     elif args.command == "extend-factory":
-        extend_factory(args.package, args.archive, args.destination, args.retire_studies)
+        extend_factory(args.package, args.archive, args.destination, args.retire_studies, args.retire_study)
         print("Extended catalog without changing existing managed sounds; prior receipts/studies archived at:", args.archive)
 
 

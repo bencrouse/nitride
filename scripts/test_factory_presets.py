@@ -54,10 +54,10 @@ class SelectionTests(unittest.TestCase):
 
     def test_retained_selection_is_separate_from_historical_programs(self):
         selection, entries = fp.validate_selection()
-        self.assertEqual(len(entries), 50)
+        self.assertEqual(len(entries), 53)
         self.assertEqual(len(selection["categories"]), 9)
-        self.assertEqual(len({e["family"] for e in entries}), 50)
-        self.assertEqual(len(ev.validate_builtins()["entries"]), 59)
+        self.assertEqual(len({e["family"] for e in entries}), 53)
+        self.assertEqual(len(ev.validate_builtins()["entries"]), 62)
         self.assertEqual([e["program"] for e in entries if e["family"] == "cutoff-alloy"], [39])
         self.assertFalse(any(e["name"] == "Cutoff Alloy" for e in entries))
         self.assertEqual({e["id"] for e in entries if e["id"] in selection["pilot"]}, set(selection["pilot"]))
@@ -105,8 +105,8 @@ class SelectionTests(unittest.TestCase):
 
     def test_generated_metadata_keeps_sparse_historical_programs(self):
         generated = catalog.header()
-        self.assertIn("std::array<FactoryProgram, 50>", generated)
-        self.assertIn("std::array<const char*, 63>", generated)
+        self.assertIn("std::array<FactoryProgram, 53>", generated)
+        self.assertIn("std::array<const char*, 66>", generated)
         self.assertIn('{39, "review:cutoff-alloy:r2", "Tine Keys", "Keys & Organs"}', generated)
         self.assertIn('{59, "review:classic-koto:r1"', generated)
         self.assertNotIn('{37, "review:cutoff-alloy:r1"', generated)
@@ -140,8 +140,8 @@ class SelectionTests(unittest.TestCase):
 
     def test_source_archive_metadata_build_does_not_require_personal_journal(self):
         with mock.patch.object(fp.ev, "read_events", return_value=[]):
-            self.assertIn("std::array<FactoryProgram, 50>", catalog.header())
-            self.assertEqual(len(fp.validate_selection()[1]), 50)
+            self.assertIn("std::array<FactoryProgram, 53>", catalog.header())
+            self.assertEqual(len(fp.validate_selection()[1]), 53)
         with mock.patch.object(fp, "acceptance", return_value={"retained": []}):
             with self.assertRaisesRegex(ValueError, "retained-direction feedback"): fp.validate_selection()
 
@@ -313,21 +313,70 @@ class PackageTests(unittest.TestCase):
     def prepare_candidate(self):
         self.manifest["scope"] = "candidate"; self.save_manifest()
 
-    def prepare_extension(self, studies=False):
+    def prepare_extension(self, studies=False, study_id=None):
         self.prepare_candidate()
         full = list(self.manifest["entries"])
         self.manifest["entries"] = full[:1]; self.save_manifest()
         fp.install_factory(self.package, self.destination)
         self.manifest["entries"] = full; self.save_manifest()
-        if studies:
+        if studies or study_id:
             files = {}
             for entry in full:
                 relative = entry["category"] + "/Study - " + entry["name"] + ".aupreset"
                 path = self.destination / relative; path.parent.mkdir(exist_ok=True)
                 native = plistlib.loads((self.package / entry["file"]).read_bytes()); native["name"] = "Study - " + entry["name"]
                 path.write_bytes(plistlib.dumps(native)); files[relative] = ev.digest(path)
-            (self.destination / ".nitride-fs1r-study-001.json").write_text(json.dumps({"format": "nitride-fs1r-study-install", "version": 1, "files": files}))
+            name = ".nitride-study-" + study_id + ".json" if study_id else ".nitride-fs1r-study-001.json"
+            (self.destination / name).write_text(json.dumps({"format": "nitride-study-preset-install" if study_id else "nitride-fs1r-study-install",
+                "version": 1, "files": files, "study": study_id, "status": "awaiting-feedback-not-factory-selected"}))
         return (self.destination / fp.FACTORY_RECEIPT).read_bytes()
+
+    def test_named_study_promotion_archives_only_explicit_owned_duplicates(self):
+        before = self.prepare_extension(study_id="pop-001")
+        user = self.destination / "Pads/Study - My own setting.aupreset"; user.write_bytes(b"user")
+        archive = self.root / "archive"
+        receipt = fp.extend_factory(self.package, archive, self.destination, study_ids=["pop-001"])
+        self.assertEqual((archive / fp.FACTORY_RECEIPT).read_bytes(), before)
+        self.assertTrue((archive / ".nitride-study-pop-001.json").is_file())
+        self.assertFalse((self.destination / ".nitride-study-pop-001.json").exists())
+        self.assertEqual(user.read_bytes(), b"user")
+        self.assertEqual(len(list(archive.rglob("*.aupreset"))), 3)
+        for relative, expected in receipt["files"].items(): self.assertEqual(ev.digest(self.destination / relative), expected)
+
+    def test_named_study_edits_identity_and_replacement_are_checked(self):
+        before = self.prepare_extension(study_id="pop-001")
+        path = next(self.destination.rglob("Study - *.aupreset")); original = path.read_bytes(); path.write_bytes(b"user edit")
+        with self.assertRaisesRegex(ValueError, "Study file edited"):
+            fp.extend_factory(self.package, self.root / "archive", self.destination, study_ids=["pop-001"])
+        path.write_bytes(original)
+        receipt = self.destination / ".nitride-study-pop-001.json"; data = json.loads(receipt.read_text()); data["study"] = "other"
+        receipt.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "identity/status"):
+            fp.extend_factory(self.package, self.root / "archive", self.destination, study_ids=["pop-001"])
+        self.assertEqual((self.destination / fp.FACTORY_RECEIPT).read_bytes(), before)
+
+    def test_named_study_receipt_failure_restores_all_old_files(self):
+        before = self.prepare_extension(study_id="pop-001")
+        studies = {p: p.read_bytes() for p in self.destination.rglob("Study - *.aupreset")}
+        with mock.patch.object(fp.os, "replace", side_effect=OSError("injected receipt failure")):
+            with self.assertRaisesRegex(OSError, "injected"):
+                fp.extend_factory(self.package, self.root / "archive", self.destination, study_ids=["pop-001"])
+        self.assertEqual((self.destination / fp.FACTORY_RECEIPT).read_bytes(), before)
+        self.assertTrue((self.destination / ".nitride-study-pop-001.json").exists())
+        for path, expected in studies.items(): self.assertEqual(path.read_bytes(), expected)
+        self.assertTrue(all(not (self.destination / e["file"]).exists() for e in self.manifest["entries"][1:]))
+
+    def test_named_study_requires_an_exact_sound_replacement_even_with_a_matching_receipt(self):
+        self.prepare_extension(study_id="pop-001")
+        receipt_path = self.destination / ".nitride-study-pop-001.json"; receipt = json.loads(receipt_path.read_text())
+        relative = next(iter(receipt["files"])); path = self.destination / relative
+        entry = self.manifest["entries"][0]; source = json.loads((self.package / entry["frozen_source"]).read_text())
+        source["values"]["coupling"] += .01
+        path.write_bytes(plistlib.dumps(synthetic_native(source, entry)))
+        receipt["files"][relative] = ev.digest(path); receipt_path.write_text(json.dumps(receipt))
+        with self.assertRaisesRegex(ValueError, "no exact clean-label replacement"):
+            fp.extend_factory(self.package, self.root / "archive", self.destination, study_ids=["pop-001"])
+        self.assertFalse((self.root / "archive").exists())
 
     def test_extension_is_additive_and_archives_exact_study_duplicates(self):
         before = self.prepare_extension(studies=True)

@@ -1,6 +1,7 @@
 # Reference preset exploration
 
-**Current:** all50current sounds are user-selected. See the
+**Current:** 53 sounds are finalized, including the subsequently approved Plastic
+Hero, Budget Heaven and Sugar Teeth trio, unchanged from audition. See the
 [factory workflow](../presets/factory/HOST_PRESETS.md) for the final selection and
 [provenance](PRESET_PROVENANCE.md) for reference limitations. The following records
 the exploration sequence; historical counts/pending questions are not current status.

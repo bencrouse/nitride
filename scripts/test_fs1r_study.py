@@ -145,7 +145,7 @@ class Fs1rStudyTests(unittest.TestCase):
         self.assertEqual([e["program"] for e in studies], [60, 61, 62])
         self.assertEqual([e["family"] for e in studies], ["whistle-stem", "jaw-twang", "vowel-pick"])
         selection = json.loads((ROOT / "presets/factory/candidate-001.json").read_text())
-        self.assertEqual(len(selection["entries"]), 50)
+        self.assertEqual(len(selection["entries"]), 53)
         self.assertTrue({e["id"] for e in studies} <= {e["id"] for e in selection["entries"]})
         source = (ROOT / "CMakeLists.txt").read_text()
         self.assertNotIn("fs1rLib", source); self.assertNotIn("vop3host", source)

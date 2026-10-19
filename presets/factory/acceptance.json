@@ -4,6 +4,14 @@
   "date": "2026-10-19",
   "user_feedback": "i want all the current presets included. i tested the preset editing and saving so i've confirmed that flow. i checked levels, they seem fine. can you proceed to clean up, do any review you feel should be done, and commit?",
   "interpretation": "Include the43kept directions plus Classic Tines/Bass/Tubes and the4original programs. Preserve sounds and historical recall, archive superseded iterations. User confirms editing/saving and levels; this does not separately assert project-close/reopen, hardware fidelity or outstanding DSP/performance qualification. Commit authorized, push not requested.",
+  "additional_feedback": [
+    {
+      "trial": "logic-028",
+      "user_feedback": "they're all great, can you promote them to finalized, do any needed review/cleanup, and commit?",
+      "revisions": ["review:plastic-hero:r1", "review:budget-heaven:r1", "review:sugar-teeth:r1"],
+      "interpretation": "Explicit finalization of the three auditioned original pop-lens sounds, unchanged. Add clean labels to both curated browsers, safely retire owned Study duplicates, review/validate/commit. No push or broader DSP/performance/hardware qualification is requested. Artist lens is imagined, not artist-authentic."
+    }
+  ],
   "host_category_confirmation": "confirmed-by-user",
   "host_category_feedback_event": "29243f7b120e44cf806c46bd1b120866",
   "host_save_edit": "confirmed-by-user",
@@ -21,6 +29,7 @@
     "review:fault-bloom:r1", "review:orbit-shards:r1", "review:overtone-lantern:r1", "review:tendon-drift:r1",
     "review:brake-bloom:r1", "review:flash-room:r1", "review:pressure-lift:r1", "review:reverse-veil:r1", "review:shred-relay:r1", "review:sinkhole:r1", "review:spectral-cut:r1",
     "review:classic-tines:r1", "review:classic-bass:r1", "review:classic-tubes:r1",
-    "review:whistle-stem:r1", "review:jaw-twang:r1", "review:vowel-pick:r1"
+    "review:whistle-stem:r1", "review:jaw-twang:r1", "review:vowel-pick:r1",
+    "review:plastic-hero:r1", "review:budget-heaven:r1", "review:sugar-teeth:r1"
   ]
 }

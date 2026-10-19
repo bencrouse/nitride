@@ -1,6 +1,6 @@
-# Host-native presets / 0.7.27 · eval-027
+# Host-native presets / 0.7.29 · eval-029
 
-The selected library has **50 sounds in nine musical-role categories**. In Logic,
+The finalized library has **53 sounds in nine musical-role categories**. In Logic,
 use the host's Settings/preset menu above the instrument
 interface. The temporary `Nitride Preview` parent is not part of the library:
 
@@ -29,22 +29,22 @@ project-close/reopen is not separately inferred from the editing/saving confirma
 - **AU:** no internal factory dropdown or KEEP button. Load/save through the host.
   Undo, Compare, Hold, synthesis controls, automation and keyboard remain intact.
 - **Standalone:** a small category-organized dropdown and KEEP remain. Normal
-  browsing contains the same50selectedsounds, plus user-kept sounds.
+  browsing contains the same53finalizedsounds, plus user-kept sounds.
 - Superseded revisions remain in standalone's **… → Evaluation archive**.
 - All original starting patches, Classic Tines/Bass/Tubes and the FS1R-inspired trio
   are now in normal browsing. Existing startup/default conditions are unchanged.
 
 The AU does **not advertise a Factory Presets list**. Logic otherwise adds a redundant
 **AU Presets** submenu alongside the real category folders. Categorized `.aupreset`
-files are the sole host-facing browser; existing40files remain byte-identical.
+files are the sole host-facing browser; the prior50files remain byte-identical.
 Historical numeric selection still works for compatibility, without advertising a list.
 Names/categories are release metadata: original preset JSON, stored inner names and
 sound definitions are not edited. An old project can still contain an archived name.
 
 ## Legacy sounds and session compatibility
 
-No historical program was deleted or renumbered. All **63 program numbers**
-(four starting patches plus59reviewrevisions), v7 documents, undo/redo histories,
+No historical program was deleted or renumbered. All **66 program numbers**
+(four starting patches plus62reviewrevisions), v7 documents, undo/redo histories,
 Compare references and portable kept sounds retain their existing storage/recall paths.
 The AU adapter disables public enumeration and retains outer display labels. It operates
 on a checksum-verified generated copy of the pinned JUCE wrapper, not the vendor
@@ -67,8 +67,11 @@ iterations. Tine Keys appears once rather than alongside its identical Cutoff Al
 predecessor. Archived presets/MIDI/audio/feedback remain intact.
 
 The user's explicit all-current-sounds inclusion decision closes the earlier classic
-trio/original-four selection questions. All50are selected, with clean outer labels;
-the FS1R-inspired trio no longer uses temporary Study prefixes. No mass normalization
+trio/original-four selection questions. The subsequently auditioned Plastic Hero,
+Budget Heaven and Sugar Teeth are explicitly finalized, bringing the catalog to53.
+They use clean labels in Leads & Brass, Pads and Keys & Organs respectively, with
+their auditioned sounds unchanged. Owned temporary Study duplicates are archived.
+No mass normalization
 or sound edits are part of consolidation. Inclusion/levels/save-edit acceptance is
 not certification of every register, hardware reference or maximum-polyphony case.
 
@@ -86,6 +89,11 @@ For an existing managed catalog, use the explicit additive extension:
 python3 scripts/factory_presets.py extend-factory /new/output/path \
   --archive /new/local/receipt-and-study-archive --retire-studies
 ```
+
+For the finalized pop trio, use `--retire-study ag-cook-001` instead of the legacy
+FS1R-only `--retire-studies`. Explicit named-study retirement verifies the receipt's
+identity/status, every owned checksum and full sound-document equality with a clean
+replacement. It never scans for or removes unrelated files merely named Study.
 
 Extension refuses edited factory files, changed/removed existing sounds and unowned
 path collisions. Only exact owned Study duplicates are retired; their prior files

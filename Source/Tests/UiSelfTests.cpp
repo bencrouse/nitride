@@ -99,7 +99,7 @@ int main(int argc,char** argv)
         {
             Nitride::InstrumentView standalone(processor.getInstrumentSession());
             auto* browser=namedChild<juce::ComboBox>(standalone,"Starting patch");
-            require(browser&&browser->getNumItems()==50&&button(standalone,"KEEP"),"Standalone lost its curated browser/Keep fallback");
+            require(browser&&browser->getNumItems()==53&&button(standalone,"KEEP"),"Standalone lost its curated browser/Keep fallback");
         }
         auto* depth=namedChild<juce::Component>(*editor,"FM depth");require(depth!=nullptr,"Source control missing");
         auto* accessibility=depth->getAccessibilityHandler();require(accessibility!=nullptr&&accessibility->getValueInterface()!=nullptr,"Source accessibility control unavailable");

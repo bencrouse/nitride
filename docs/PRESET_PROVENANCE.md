@@ -1,6 +1,6 @@
 # Preset provenance and repository boundaries
 
-The50selected sounds are original Nitride recipes within its existing architecture.
+The53finalized sounds are original Nitride recipes within its existing architecture.
 The catalog selects one preferred revision per family, including the original four
 patches. Older revisions retain their names, IDs, host numbers and exact definitions
 for session compatibility. Release labels/categories are separate metadata.
@@ -9,6 +9,9 @@ for session compatibility. Release labels/categories are separate metadata.
 
 - Artist/producer lenses describe imagined creative briefs, not authentic settings,
   private intent, artist involvement or endorsements.
+- Plastic Hero, Budget Heaven and Sugar Teeth were auditioned and explicitly
+  finalized as original imagined A.G. Cook taste briefs, not recreations of his
+  presets or commercial recordings. Their approved sound definitions are unchanged.
 - DX7-inspired Classic voices and FS1R-inspired Whistle Stem/Jaw Twang/Vowel Pick are
   approximations, not Yamaha preset imports or exact reproductions. Native envelopes,
   ratio/shape/tap and the shared Tone filter substitute for richer source structures.

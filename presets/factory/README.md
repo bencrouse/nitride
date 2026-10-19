@@ -1,11 +1,12 @@
 # Factory preset library
 
-**Current workflow:** [Host-native presets / eval-027](HOST_PRESETS.md).
-The user selected **all50current sounds**:43kept directions, Classic Tines/Bass/Tubes,
-and the4original patches. Editing/saving and levels are confirmed. Logic and the
+**Current workflow:** [Host-native presets / eval-029](HOST_PRESETS.md).
+The user finalized **53 sounds**: the prior50 plus Plastic Hero, Budget Heaven and
+Sugar Teeth, unchanged from the approved pop-lens audition. Editing/saving and levels
+for the prior library are confirmed. Logic and the
 standalone browser use the same nine categories. Superseded iterations stay archived
-for recall, not duplicated in the release browser. Sound definitions and all63host
-program numbers are preserved. Temporary FS1R Study labels are retired safely.
+for recall, not duplicated in the release browser. Sound definitions and all66host
+program numbers are preserved. Temporary owned Study labels are retired safely.
 
 `candidate-001.json` remains release-facing metadata, not a replacement program table.
 `acceptance.json` carries portable verbatim inclusion/host-flow feedback without the

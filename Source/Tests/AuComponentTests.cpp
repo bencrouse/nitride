@@ -99,7 +99,8 @@ int main(int argc,char** argv)
             "Review / Experimental / Reverse Veil r1","Review / Experimental / Spectral Cut r1","Review / Experimental / Flash Room r1",
             "Review / Physical materials / Classic Tines r1","Review / Basses / Classic Bass r1","Review / Physical materials / Classic Tubes r1",
             "Review / Pads / Classic Voice r1","Review / Physical materials / Orch Chime r1","Review / Physical materials / Classic Koto r1",
-            "Review / Leads / Whistle Stem r1","Review / Physical materials / Jaw Twang r1","Review / Physical materials / Vowel Pick r1"};
+            "Review / Leads / Whistle Stem r1","Review / Physical materials / Jaw Twang r1","Review / Physical materials / Vowel Pick r1",
+            "Review / Leads / Plastic Hero r1","Review / Pads / Budget Heaven r1","Review / Physical materials / Sugar Teeth r1"};
         if(Nitride::legacyProgramNames.size()!=4+reviewNames.size())throw std::runtime_error("Legacy fixture coverage changed");
         for(CFIndex i=0;i<static_cast<CFIndex>(Nitride::legacyProgramNames.size());++i)
         {
@@ -249,7 +250,7 @@ int main(int argc,char** argv)
         const auto sameCustom=CFEqual(CFDictionaryGetValue(static_cast<CFDictionaryRef>(beforeCustom),CFSTR("jucePluginState")),CFDictionaryGetValue(static_cast<CFDictionaryRef>(afterCustom),CFSTR("jucePluginState")));
         CFRelease(beforeCustom);CFRelease(afterCustom);
         if(!sameCustom)throw std::runtime_error("AU user preset metadata changed the full sound document");
-        std::cout<<"Installed AU advertises no FactoryPresets list and exactly recalls all "<<Nitride::legacyProgramNames.size()<<" programs, including the appended FS1R partial studies\n";
+        std::cout<<"Installed AU advertises no FactoryPresets list and exactly recalls all "<<Nitride::legacyProgramNames.size()<<" programs, including appended audition studies\n";
         for(const auto found:foundIds)if(!found)throw std::runtime_error("A current AU parameter name disappeared");
         if(!foundCoupling)throw std::runtime_error("AU Coupling automation parameter missing");
         if(!foundDepth||!foundAutobend)throw std::runtime_error("AU Autobend controls missing");

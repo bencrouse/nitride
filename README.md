@@ -35,5 +35,5 @@ as an AU instrument.
 - [FM expansion](docs/FM.md) — primary ratio, independent envelope, shapes and network-preserving operator mix.
 - [Preset exploration](docs/PRESET_REVIEW.md) — versioned review sounds, MIDI demos and iteration notes.
 - [Evaluation journal](docs/EVALUATION.md) — embedded Logic trial presets, persistent feedback and resumable history.
-- [Factory presets](presets/factory/HOST_PRESETS.md) — 50 selected sounds, Logic-native categories and the standalone browser.
+- [Factory presets](presets/factory/HOST_PRESETS.md) — 53 finalized sounds, Logic-native categories and the standalone browser.
 - [Preset provenance](docs/PRESET_PROVENANCE.md) — original Nitride interpretations and the local-only research boundary.

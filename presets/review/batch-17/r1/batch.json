@@ -1,0 +1,34 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "plastic-hero-r1",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 22,
+      "study_axis": "foreground synthetic pop hook",
+      "design_lens": "A.G. Cook (imagined taste brief, not artist-authentic)",
+      "intent": "Shamelessly melodic glossy plastic lead: pointed index/Tone front settles into a simple strong held center. Mono legato all-pitch glide, small phrase-only common-direction scoop, tiny undelayed global vibrato. Be the hook, not a distortion demonstration. No high network stress, opposed bend, long room, evolving ratio routes or rhythmic gating. Not another gritty/resonant experimental lead or an authentic artist recipe."
+    },
+    {
+      "file": "budget-heaven-r1",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 32,
+      "study_axis": "earnest bargain-keyboard strings",
+      "design_lens": "A.G. Cook (imagined taste brief, not artist-authentic)",
+      "intent": "Thin, exposed, buzzy electronic ensemble played with sincerity. Triangle-rich near-unison operator tap gives a cheap beating string edge, direct moderate entrance and sustained chords, shallow global vibrato. Keep artificiality audible instead of polishing it into an ambient wash. No slow index/ratio/cutoff evolution, giant Space, chord helper, network distortion or huge attack/release. Near-unison tap is not a new chorus engine or independently detuned ensemble."
+    },
+    {
+      "file": "sugar-teeth-r1",
+      "category": "Physical materials",
+      "host_category": "Keys & Organs",
+      "seconds": 22,
+      "study_axis": "hard crystalline key with soft interior",
+      "design_lens": "A.G. Cook (imagined taste brief, not artist-authentic)",
+      "intent": "Tiny abrasive harmonic bite followed by a round restrained key body. Strong very brief shaped1:1FM index strike, short bright Tone contour and velocity opening; hard playing exposes the teeth, soft playing feels delicate. Shared Tone uses last-note velocity, not independent per-operator/per-voice velocity layers. No inharmonic bell ratio, filter-FM tine body, slow pluck-vowel sweep, pitch entrance, stress distortion or long room. Not an acoustic piano, electric-piano model, sample layer or authentic artist recipe."
+    }
+  ]
+}

@@ -638,6 +638,42 @@
       "contrast_with": "review:classic-koto:r1",
       "preset": "batch-16/r1/vowel-pick-r1.nitridepreset",
       "sha256": "78d584ef09ab8bd70fd77ec4f217a69bc4e2f8464a2e15c6612bf7db40429e48"
+    },
+    {
+      "program": 63,
+      "id": "review:plastic-hero:r1",
+      "family": "plastic-hero",
+      "revision": "r1",
+      "category": "Leads",
+      "design_lens": "A.G. Cook (imagined taste brief, not artist-authentic)",
+      "study_axis": "foreground synthetic pop hook",
+      "contrast_with": "review:copper-lift:r1",
+      "preset": "batch-17/r1/plastic-hero-r1.nitridepreset",
+      "sha256": "ee8098fdcd7f226078e20217f7aea9e5a7d3b33d13878e24bd0a8e577670b1c2"
+    },
+    {
+      "program": 64,
+      "id": "review:budget-heaven:r1",
+      "family": "budget-heaven",
+      "revision": "r1",
+      "category": "Pads",
+      "design_lens": "A.G. Cook (imagined taste brief, not artist-authentic)",
+      "study_axis": "earnest bargain-keyboard strings",
+      "contrast_with": "review:soft-alloy:r2",
+      "preset": "batch-17/r1/budget-heaven-r1.nitridepreset",
+      "sha256": "679563fb0562242dd07ae15e2ea574148b651e79401527ed02a5c4cda9b6595b"
+    },
+    {
+      "program": 65,
+      "id": "review:sugar-teeth:r1",
+      "family": "sugar-teeth",
+      "revision": "r1",
+      "category": "Physical materials",
+      "design_lens": "A.G. Cook (imagined taste brief, not artist-authentic)",
+      "study_axis": "hard crystalline key with soft interior",
+      "contrast_with": "review:classic-tines:r1",
+      "preset": "batch-17/r1/sugar-teeth-r1.nitridepreset",
+      "sha256": "40322ea19c1eab1f7bffd950f55bfa35e9ffe88b5534b80b502783256a503426"
     }
   ]
 }

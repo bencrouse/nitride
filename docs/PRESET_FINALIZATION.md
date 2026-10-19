@@ -1,5 +1,28 @@
 # Preset consolidation review
 
+## Subsequent finalized pop trio
+
+The user approved Plastic Hero, Budget Heaven and Sugar Teeth after the eval-028
+audition and explicitly requested finalization/review/commit. Eval-029 expands the
+curated catalog from50to53 without changing any sound definition or any of the
+66historical programs. The generic named Study receipt is retired only after full
+checksum/identity/status and exact sound-document checks; unrelated user settings
+remain untouched. Regression tests cover successful named promotion, edited files,
+wrong identities, missing exact replacements and receipt-failure rollback. No push
+is implied. The following report preserves the earlier50sound consolidation context.
+
+Promotion validation: all 53 actually installed native files pass exact full-document,
+89-parameter and audio recall; AU validation and all 66 historical program/state/MIDI
+checks pass. All prior 50 preset files and other user settings remain byte-identical.
+The three former Study files and their receipt are archived outside the host preset
+tree. Factory/extension regressions pass 42 tests; pop recipe/installer tests pass 5.
+Clean staged-source Debug and Release builds each pass all nine core suites without
+the private evaluation workspace. Seven historical research-evidence tests explicitly
+skip there; the full local 41-test evaluation and optional 8-test FS1R suites also pass.
+The original audition definitions and MIDI are unchanged. No DSP, schema or host-control
+changes are included. The private evidence workspace and old untracked review report
+are excluded from the commit.
+
 ## Scope
 
 The selected catalog contains 50 sounds across nine categories: the 43 kept

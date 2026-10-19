@@ -1,5 +1,16 @@
 # Persistent evaluation
 
+## Finalized pop trio / eval-029
+
+The user explicitly finalized all three original imagined A.G. Cook taste studies
+after auditioning eval-028: Plastic Hero, Budget Heaven and Sugar Teeth. The catalog
+now has53sounds in the same nine categories; all66historical numbers remain intact.
+Only presentation/selection changes: sound definitions and the prior50native files
+are unchanged. Named study retirement archives only owned checksum-verified exact
+duplicates after checking full-document equality with the clean replacements.
+Cleanup/review/commit is authorized, not a push. The original private checkpoint
+and feedback remain append-only. Historical qualifications are not silently closed.
+
 ## Current consolidation / eval-027
 
 The user explicitly selected all50current sounds, confirmed preset editing/saving

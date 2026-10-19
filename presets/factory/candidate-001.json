@@ -16,12 +16,15 @@
     {"id": "factory:1", "name": "Glass Keys", "category": "Keys & Organs"},
     {"id": "review:clear-stops:r1", "name": "Clear Stops", "category": "Keys & Organs"},
     {"id": "review:cutoff-alloy:r2", "name": "Tine Keys", "category": "Keys & Organs"},
+    {"id": "review:sugar-teeth:r1", "name": "Sugar Teeth", "category": "Keys & Organs"},
     {"id": "review:copper-lift:r1", "name": "Copper Lift", "category": "Leads & Brass"},
     {"id": "factory:2", "name": "Contact Lead", "category": "Leads & Brass"},
     {"id": "review:glass-current:r2", "name": "Glass Current", "category": "Leads & Brass"},
     {"id": "review:reed-snap:r2", "name": "Reed Snap", "category": "Leads & Brass"},
     {"id": "review:replica-voice:r2", "name": "Replica Voice", "category": "Leads & Brass"},
     {"id": "review:whistle-stem:r1", "name": "Whistle Stem", "category": "Leads & Brass"},
+    {"id": "review:plastic-hero:r1", "name": "Plastic Hero", "category": "Leads & Brass"},
+    {"id": "review:budget-heaven:r1", "name": "Budget Heaven", "category": "Pads"},
     {"id": "review:classic-voice:r1", "name": "Classic Voice", "category": "Pads"},
     {"id": "review:soft-alloy:r2", "name": "Soft Alloy", "category": "Pads"},
     {"id": "factory:0", "name": "Soft Pad", "category": "Pads"},
@@ -59,5 +62,5 @@
   "pilot": ["review:cutoff-alloy:r2", "review:clear-stops:r1", "review:classic-voice:r1"],
   "pending_feedback": [],
   "original_programs_pending_audition": [],
-  "note": "All50current sounds selected by the user, including the original4 and classic trio. Clean release labels only; definitions, historical numbers and recall unchanged. Superseded iterations remain archived; Tine Keys appears once. User confirmed editing/saving and levels; project-close/reopen is not separately inferred. Inclusion is approved, not a claim that every outstanding DSP/performance qualification is complete."
+  "note": "53 finalized sounds: the prior50 plus user-approved Plastic Hero, Budget Heaven and Sugar Teeth. Clean release labels only; definitions, historical numbers and recall unchanged. Superseded iterations remain archived; Tine Keys appears once. User confirmed editing/saving and levels for the prior library and explicitly finalized the pop trio. Project-close/reopen and outstanding DSP/performance qualifications are not separately inferred."
 }
