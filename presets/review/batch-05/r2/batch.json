@@ -1,0 +1,13 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "reed-snap-r2",
+      "category": "Leads",
+      "intent": "Different harmonic/transient profile: triangle FM with filter-envelope-driven shape, preserving stress/coupling/FM depth, nominal ratio, resonant articulation and fixed MIDI. Small level trim avoids louder bias. Shared-grit differentiation is a listening hypothesis, not a global distortion fix.",
+      "seconds": 20
+    }
+  ]
+}

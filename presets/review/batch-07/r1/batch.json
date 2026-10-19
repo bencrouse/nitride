@@ -1,0 +1,28 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "taffy-coil-r1",
+      "category": "Physical materials",
+      "design_lens": "SOPHIE",
+      "intent": "Original imagined synthetic-elastic-material study: opposed attack bend, resonant Tone/FM and envelope-shaped triangle spectrum. Artist lens is not an authentic setting/quote/endorsement. Contrast Skin Knock's brief common-direction pitch relaxation.",
+      "seconds": 20
+    },
+    {
+      "file": "stillwater-r1",
+      "category": "Pads",
+      "design_lens": "Brian Eno",
+      "intent": "Original imagined patient-harmonic-space study: long fades, near-unity sine-FM/operator blend and slow independent free-running motion, without synced pulses. Artist lens is not an authentic setting/quote/endorsement. Contrast Soft Alloy's more active network bloom.",
+      "seconds": 44
+    },
+    {
+      "file": "crooked-velvet-r1",
+      "category": "Basses",
+      "design_lens": "Flying Lotus",
+      "intent": "Original imagined elastic/off-kilter bass study: modulator-only attack bend, velocity-shaped triangle/mix, short carrier glide and loping free modulation. Swung note timing belongs to frozen MIDI, not an internal groove engine. Contrast Felt Weight's dry/static damped pluck. Artist lens is not an authentic setting/quote/endorsement.",
+      "seconds": 22
+    }
+  ]
+}

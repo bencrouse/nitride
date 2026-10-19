@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "soft-alloy-r1",
+      "category": "Pads",
+      "intent": "Slow bloom, warm harmonic body, gentle network motion; not a finished factory preset.",
+      "seconds": 32
+    },
+    {
+      "file": "tension-core-r1",
+      "category": "Basses",
+      "intent": "Centered harmonic weight, brief FM/filter bite, velocity contrast and legato slides.",
+      "seconds": 12
+    }
+  ]
+}

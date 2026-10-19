@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "Supported product architecture")
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum product macOS")
-project(nitride VERSION 0.7.0 LANGUAGES C CXX)
+project(nitride VERSION 0.7.27 LANGUAGES C CXX)
+set(NITRIDE_EVALUATION_BUILD "eval-027" CACHE STRING "Visible evaluation build identity")
+if(NOT NITRIDE_EVALUATION_BUILD MATCHES "^[a-zA-Z0-9_-]+$")
+    message(FATAL_ERROR "Evaluation identity must use letters, numbers, underscore or hyphen")
+endif()
+configure_file(Source/Instrument/BuildInfo.h.in generated/BuildInfo.h @ONLY)
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 if(NOT APPLE)
     message(FATAL_ERROR "nitride currently targets macOS only.")
@@ -15,6 +21,7 @@ if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "arm64" OR NOT CMAKE_OSX_DEPLOYMENT_TARG
     message(FATAL_ERROR "Supported Nitride profile is arm64 / macOS 15.0 deployment")
 endif()
 option(NITRIDE_BUILD_TESTS "Build local regression, safety and measurement tools" ON)
+option(NITRIDE_BUILD_LOCAL_EVALUATION_TESTS "Test private offline research assets (not distributed)" OFF)
 option(NITRIDE_BUILD_STUDIES "Build historical study applications" ON)
 set(NITRIDE_SANITIZER "" CACHE STRING "Local diagnostic profile: address or thread")
 if(NITRIDE_SANITIZER)
@@ -26,6 +33,22 @@ if(NITRIDE_SANITIZER)
 endif()
 
 include(cmake/JuceDependency.cmake)
+find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/evaluation.py" verify-builtins
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" RESULT_VARIABLE review_validation)
+if(NOT review_validation EQUAL 0)
+    message(FATAL_ERROR "Review builtin catalog validation failed")
+endif()
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/presets/review/builtins.json" review_manifest)
+string(JSON review_count LENGTH "${review_manifest}" entries)
+math(EXPR review_last "${review_count}-1")
+set(review_files "${CMAKE_CURRENT_SOURCE_DIR}/presets/review/builtins.json")
+foreach(i RANGE 0 ${review_last})
+    string(JSON preset_file GET "${review_manifest}" entries ${i} preset)
+    list(APPEND review_files "${CMAKE_CURRENT_SOURCE_DIR}/presets/review/${preset_file}")
+endforeach()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${review_files})
+juce_add_binary_data(nitride_builtin_data NAMESPACE NitrideReviewData HEADER_NAME NitrideReviewData.h SOURCES ${review_files})
 
 juce_add_plugin(nitride
     COMPANY_NAME "nitride"
@@ -42,6 +65,8 @@ juce_add_plugin(nitride
     COPY_PLUGIN_AFTER_BUILD FALSE
 )
 
+include(cmake/FactoryCatalog.cmake)
+
 target_sources(nitride PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
@@ -53,11 +78,12 @@ target_sources(nitride PRIVATE
     Source/Instrument/InstrumentPanel.cpp
     Source/Instrument/MotionPanel.cpp
     Source/Instrument/FmPanel.cpp
+    Source/Instrument/BuiltinPresets.cpp
 )
 target_include_directories(nitride PRIVATE Source)
 target_compile_definitions(nitride PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
 target_link_libraries(nitride PRIVATE
-    nitride_dsp juce::juce_audio_utils
+    nitride_dsp nitride_builtin_data juce::juce_audio_utils
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags
 )
 
@@ -115,9 +141,10 @@ target_sources(nitride_review PRIVATE
     Source/Instrument/InstrumentPanel.cpp
     Source/Instrument/MotionPanel.cpp
     Source/Instrument/FmPanel.cpp
+    Source/Instrument/BuiltinPresets.cpp
 )
 target_compile_definitions(nitride_review PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
-target_link_libraries(nitride_review PRIVATE nitride_study_engine juce::juce_audio_utils
+target_link_libraries(nitride_review PRIVATE nitride_study_engine nitride_builtin_data juce::juce_audio_utils
     juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
 
 if(NITRIDE_BUILD_STUDIES)
@@ -183,8 +210,29 @@ if(NITRIDE_BUILD_TESTS)
     target_link_libraries(nitride_perf PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_executable(nitride_study_tests Source/Studies/StudyTests.cpp)
+    juce_add_console_app(nitride_preset_review PRODUCT_NAME "nitride_preset_review")
+    target_sources(nitride_preset_review PRIVATE Source/Presets/ReviewBatchRender.cpp)
+    target_include_directories(nitride_preset_review PRIVATE Source)
+    target_compile_definitions(nitride_preset_review PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    add_dependencies(nitride_preset_review nitride)
+    target_link_libraries(nitride_preset_review PRIVATE "$<TARGET_FILE:nitride>" nitride_dsp juce::juce_audio_utils
+        juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     target_link_libraries(nitride_study_tests PRIVATE nitride_study_engine)
     add_test(NAME nitride_study_tests COMMAND nitride_study_tests)
+    add_test(NAME nitride_evaluation_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_evaluation.py")
     add_executable(nitride_au_component_tests Source/Tests/AuComponentTests.cpp)
     target_link_libraries(nitride_au_component_tests PRIVATE "-framework AudioToolbox" "-framework CoreFoundation")
+    # Offline host-preset checkpoint: uses the installed AU, never links plugin code.
+    add_executable(nitride_au_presets Source/Presets/AuPresetTool.cpp)
+    target_link_libraries(nitride_au_presets PRIVATE "-framework AudioToolbox" "-framework CoreFoundation")
+    add_test(NAME nitride_factory_preset_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_factory_presets.py")
+    if(NITRIDE_BUILD_LOCAL_EVALUATION_TESTS)
+        if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/evaluation/fs1r-studies/pass-001/source-manifest.json")
+            message(FATAL_ERROR "Local FS1R research tests require the preserved pinned private workspace; no data is downloaded automatically")
+        endif()
+        add_test(NAME nitride_fs1r_study_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_fs1r_study.py")
+    endif()
+    foreach(target nitride_ui_tests nitride_automation_tests nitride_pitch_tests nitride_reference_tests nitride_safety_tests nitride_perf nitride_preset_review)
+        target_link_libraries(${target} PRIVATE nitride_builtin_data)
+    endforeach()
 endif()

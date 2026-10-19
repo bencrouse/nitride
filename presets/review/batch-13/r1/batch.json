@@ -1,0 +1,28 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "reverse-veil-r1",
+      "category": "Experimental",
+      "study_axis": "fixed-pitch level and spectral build",
+      "intent": "Reverse-like four-second held build from amplitude/Tone opening, no reversed audio or pitch/ratio movement. Raw staged probes separate static dark, amplitude-only and added Tone motion. Release into boundary; no automatic bar-length handoff.",
+      "seconds": 20
+    },
+    {
+      "file": "spectral-cut-r1",
+      "category": "Experimental",
+      "study_axis": "fixed-pitch spectral shutdown",
+      "intent": "Bright fixed harmonic source closes to a muffled core over3.4s, then note-off clears the boundary. Fixed note/ratio/index, zero network/motion/routes; filter rather than pitch descent. Compare against identical static Tone control.",
+      "seconds": 20
+    },
+    {
+      "file": "flash-room-r1",
+      "category": "Experimental",
+      "study_axis": "fixed-pitch transient to diffuse tail",
+      "intent": "Brief fixed harmonic excitation leaves a diffuse room tail, not a pitch drop/noise crash/one-shot mode. Compare dry at same excitation/output/room-size. Output0dB intentional for short-duty source, not active-RMS matched; assess raw/context level and masking.",
+      "seconds": 20
+    }
+  ]
+}

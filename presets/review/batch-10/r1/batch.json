@@ -1,0 +1,35 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "rosewood-tap-r1",
+      "category": "Physical materials",
+      "study_axis": "wooden mallet",
+      "intent": "Nitride interpretation of a warm pitched wooden mallet: stable pitch, brief harmonic index strike and quick damping, not a sampled marimba or physical model. Contrast Hollow Bronze ringing and Skin's pitch drop.",
+      "seconds": 20
+    },
+    {
+      "file": "clear-stops-r1",
+      "category": "Leads",
+      "study_axis": "simple sustained organ",
+      "intent": "Nitride interpretation of compact dry sustained organ keys: even amplitude, stable harmonic carrier/operator blend, no cyclic motion or long ambience. Not a drawbar/tonewheel emulation. Contrast articulated Reed Snap.",
+      "seconds": 24
+    },
+    {
+      "file": "copper-lift-r1",
+      "category": "Leads",
+      "study_axis": "harmonic brass and stabs",
+      "intent": "Nitride interpretation of harmonic FM brass: poly stabs and held swells, rising index/Tone entrance settling to solid body, small network color. Not an acoustic brass model or copied DX algorithm. Contrast mono Glass Current.",
+      "seconds": 24
+    },
+    {
+      "file": "pocket-slap-r1",
+      "category": "Basses",
+      "study_axis": "concise FM slap bass",
+      "intent": "Nitride interpretation of dry classic FM slap/rubber bass: short bright index pop, clear settled fundamental and concise stops; no glide, Autobend, cyclic wobble or Space. Must earn distinct utility against Crooked Velvet, not an exact classic preset clone.",
+      "seconds": 20
+    }
+  ]
+}

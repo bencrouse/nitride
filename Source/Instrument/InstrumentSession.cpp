@@ -6,13 +6,13 @@ namespace Nitride
 {
 namespace
 {
-juce::String factoryId(int index){return "factory:"+juce::String(index);}
+juce::String builtInId(int index){return builtInPresets()[static_cast<size_t>(index)].id;}
 }
 
 InstrumentSession::InstrumentSession(juce::File directory)
     : store(std::make_unique<PresetStore>(directory==juce::File{}?PresetStore::defaultDirectory():directory))
 {
-    currentName=factoryPatches()[0].name;selectedId=factoryId(0);reference=factoryPatches()[0];
+    currentName=factoryPatches()[0].name;selectedId=builtInId(0);reference=factoryPatches()[0];
     storeConditions(reference);userPresets=store->loadAll();keyboard.addListener(this);
 }
 InstrumentSession::~InstrumentSession(){keyboard.removeListener(this);}
@@ -121,8 +121,8 @@ void InstrumentSession::syncProgram() const
             gestures[static_cast<size_t>(i)]=0;if(endHostGesture)endHostGesture(i);
         }
         editDepth=0;editStart.reset();
-        currentName=factoryPatches()[static_cast<size_t>(index)].name;selectedId=factoryId(index);
-        reference=factoryPatches()[static_cast<size_t>(index)];history.clear();future.clear();
+        currentName=builtInPresets()[static_cast<size_t>(index)].patch.name;selectedId=builtInId(index);
+        reference=builtInPresets()[static_cast<size_t>(index)].patch;history.clear();future.clear();
     }
 }
 Patch InstrumentSession::read() const
@@ -202,12 +202,13 @@ void InstrumentSession::apply(const Patch& patch)
 }
 void InstrumentSession::applyProgram(int index)
 {
-    if(index<0||index>=static_cast<int>(factoryPatches().size()))return;
+    if(index<0||index>=static_cast<int>(builtInPresets().size()))return;
     program.store(index);
     // Host program selection may arrive on a render thread: no document/file lock.
-    closeCompare();storeConditions(factoryPatches()[static_cast<size_t>(index)]);
+    const auto& patch=builtInPresets()[static_cast<size_t>(index)].patch;
+    closeCompare();storeConditions(patch);
     if(writeHostParameter)for(int i=0;i<hostParameterCount;++i)writeHostParameter(i,i!=monoHostIndex
-        ?factoryPatches()[static_cast<size_t>(index)].values[static_cast<size_t>(conditionIndex(i))]:(factoryPatches()[static_cast<size_t>(index)].mono?1:0));
+        ?patch.values[static_cast<size_t>(conditionIndex(i))]:(patch.mono?1:0));
     pendingProgram.store(index);restoreEpoch.fetch_add(1);
     revision.fetch_add(1,std::memory_order_release);
 }
@@ -259,7 +260,7 @@ void InstrumentSession::setCompareReference(const Patch& p)
 std::vector<StoredPreset> InstrumentSession::presets() const
 {
     const juce::ScopedLock lock(documentLock);std::vector<StoredPreset> result;
-    for(int i=0;i<4;++i)result.push_back({factoryId(i),factoryPatches()[static_cast<size_t>(i)]});
+    result=builtInPresets();
     result.insert(result.end(),userPresets.begin(),userPresets.end());
     for(const auto& portable:portablePresets)
         if(std::none_of(result.begin(),result.end(),[&](const auto& p){return p.id==portable.id;}))result.push_back(portable);
@@ -280,7 +281,7 @@ bool InstrumentSession::selectPreset(const juce::String& id)
     if(found==list.end())return false;
     endAllEdits();restoreEpoch.fetch_add(1);
     const auto before=snapshot();writePatch(found->patch,true);currentName=found->patch.name;selectedId=id;reference=found->patch;
-    if(id.startsWith("factory:"))program.store(juce::jlimit(0,3,id.fromFirstOccurrenceOf(":",false,false).getIntValue()));
+    if(const auto index=builtInIndex(id);index>=0)program.store(index);
     else rememberPortable(*found);
     history.push_back(before);if(history.size()>40)history.erase(history.begin());future.clear();revision.fetch_add(1,std::memory_order_release);return true;
 }
@@ -318,7 +319,7 @@ std::optional<InstrumentSession::Snapshot> InstrumentSession::decodeSnapshot(con
 {
     const auto patch=PresetStore::decode(data["patch"]),referencePatch=PresetStore::decode(data["reference"]);
     if(!patch||!referencePatch||!data["program"].isInt())return std::nullopt;
-    const auto p=static_cast<int>(data["program"]);if(p<0||p>3)return std::nullopt;
+    const auto p=static_cast<int>(data["program"]);if(p<0||p>=static_cast<int>(builtInPresets().size()))return std::nullopt;
     Snapshot result{patch->patch,referencePatch->patch,data["selected"].toString(),p};
     const auto* parameters=data["parameters"].getArray();
     if(!data["wholePatch"].isBool()||!parameters||parameters->size()>hostParameterCount)return std::nullopt;
@@ -367,7 +368,7 @@ juce::Result InstrumentSession::restoreDocument(const juce::var& data)
 void InstrumentSession::establishRestoredPatch(const Patch& patch,int index)
 {
     endAllEdits();const juce::ScopedLock lock(documentLock);closeCompare();pendingProgram.store(-1);program.store(index);
-    currentName=patch.name;selectedId=factoryId(index);reference=patch;storeConditions(patch);history.clear();future.clear();portablePresets.clear();
+    currentName=patch.name;selectedId=builtInId(index);reference=patch;storeConditions(patch);history.clear();future.clear();portablePresets.clear();
     restoreEpoch.fetch_add(1);revision.fetch_add(1,std::memory_order_release);
 }
 }

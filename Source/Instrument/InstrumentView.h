@@ -1,13 +1,14 @@
 #pragma once
 
 #include "InstrumentSession.h"
+#include "PresetPresentation.h"
 
 namespace Nitride
 {
 class InstrumentView final : public juce::Component
 {
 public:
-    explicit InstrumentView(InstrumentSession&, std::function<void()> showAudioSettings = {});
+    explicit InstrumentView(InstrumentSession&, std::function<void()> showAudioSettings = {}, PresetPresentation = PresetPresentation::standalone);
     ~InstrumentView() override;
     void resized() override;
     void beginPreview();

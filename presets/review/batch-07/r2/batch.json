@@ -1,0 +1,14 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "crooked-velvet-r2",
+      "category": "Basses",
+      "design_lens": "Flying Lotus",
+      "intent": "Clearer played-pitch center through lower settled FM, nominal harmonic ratio, carrier-heavy blend and random depth rather than ratio motion. Preserve modulator attack bend, carrier glide, envelope-shaped triangle, loping amplitude, network/Response/Space and frozen MIDI. Listening hypothesis, not a uniquely diagnosed masking cause or authentic artist recipe.",
+      "seconds": 22
+    }
+  ]
+}

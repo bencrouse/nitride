@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "glass-current-r2",
+      "category": "Leads",
+      "intent": "Preserve the liked lead voice while lowering only base coupling and stress; modest proposed reduction, not a reconstruction of unknown user-adjusted values.",
+      "seconds": 24
+    },
+    {
+      "file": "pulse-lattice-r2",
+      "category": "Sequence elements",
+      "intent": "Keep pluck articulation and add tempo-synced stepped harmonic color: half-note-triplet sample-and-hold drives FM depth and a small FM-ratio excursion against the existing eighth-note cutoff rhythm. MIDI supplies notes.",
+      "seconds": 20
+    }
+  ]
+}

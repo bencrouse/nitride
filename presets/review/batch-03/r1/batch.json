@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "hollow-bronze-r1",
+      "category": "Physical materials",
+      "intent": "Material-like struck resonance: brief FM/filter strike, non-integer partial ratio, zero amplitude sustain, velocity contrast and a damping ring. Network/FM synthesis, not a new physical-model or sample engine.",
+      "seconds": 26
+    },
+    {
+      "file": "fault-bloom-r1",
+      "category": "Experimental",
+      "intent": "Playable stressed network bloom with slow independent motion, sub-unity shaped FM and network-driven ratio, and opposed carrier/modulator glide on overlapping notes. Hold notes and overlap transitions; not an internal sequence.",
+      "seconds": 30
+    }
+  ]
+}

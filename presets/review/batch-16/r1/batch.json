@@ -1,0 +1,28 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "whistle-stem-r1",
+      "category": "Leads",
+      "seconds": 24,
+      "study_axis": "FS1R Kuchibue dominant sine-branch interpretation",
+      "intent": "Dry soft whistle: source2xcarrier register retained with Pitch+12, near-unison sine operator tap substitutes for independently detuned2:1FM branches, mild immediate free vibrato instead of source delayed per-op modulation. Source formant/noise removals barely affect this neutral-part probe, so main tonal role is plausibly transferable. No exact multi-operator envelopes/key scaling/pitchEG/phase/noise claim. Unchanged Reed anchor MIDI+12 aligns settled root."
+    },
+    {
+      "file": "jaw-twang-r1",
+      "category": "Physical materials",
+      "seconds": 26,
+      "study_axis": "FS1R Mukkuri single-resonance architectural-ceiling study",
+      "intent": "Provisional dry low jaw-harp role, NOT faithful Mukkuri: original carrier formants are essential and disappear in sine-only reference. Native Pitch-12 retains source carrier transpose; rich1:1FM through one fixed-register moving resonant Tone peak stands in for six independently enveloped fixed-formant carriers/noise. No real formant bank/window/FMsum bus, no noise generator, no pitch bend. Judge whether this mouth-colored non-bending articulation earns a job beside Taffy; reject if it is merely another generic pluck. Old Taffy MIDI-12 aligns settled root but keeps its opposed bend/Space."
+    },
+    {
+      "file": "vowel-pick-r1",
+      "category": "Physical materials",
+      "seconds": 26,
+      "study_axis": "FS1R Fmt-Pluck partial vowel-key interpretation",
+      "intent": "Provisional dry vowel-colored picked key with normal root: triangle-shaped2:1FM strike, slower damped body and two contours moving one resonant Tone/index color. Source odd2 carrier plus fixed-formant pairs, feedback5, independent EGs and unvoiced layers cannot be imported. Native triangle is NOT FS1R odd2, and one LP peak is NOT the multi-formant bank. No new DSP/noise/Fseq/algorithm or pitch-bend imitation. Judge identity/overlap beside unchanged Classic Koto; reject generic mallet outcomes, don't infer closeness from the name."
+    }
+  ]
+}

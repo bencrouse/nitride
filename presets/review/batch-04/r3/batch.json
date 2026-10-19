@@ -1,0 +1,13 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r3",
+  "sketches": [
+    {
+      "file": "velvet-pulse-r3",
+      "category": "Pads",
+      "intent": "Name-only continuation of accepted Prism Pulse r2 as Velvet Pulse; every sound condition and frozen MIDI byte is unchanged. Earlier revisions and program indices remain available.",
+      "seconds": 26
+    }
+  ]
+}

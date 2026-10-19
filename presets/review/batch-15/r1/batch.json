@@ -1,0 +1,28 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "classic-voice-r1",
+      "category": "Pads",
+      "study_axis": "DX7 ROM1A30 VOICE 1 approximation",
+      "intent": "Dry poly choir/vowel approximation: near-unison FM/tap, soft amplitude/index entrance, fixed shared Tone color, mild free triangle vibrato/index flutter. Source algorithm7 has two carrier branches/5.1stack/detuning/nonflatpitchEG and delayed shared LFO/operatorAMS2; native has no true formant bank/parallel operators/note-triggered LFOdelay-reset. Software A explicitly partial for operatorAMS, not altered source data.",
+      "seconds": 34
+    },
+    {
+      "file": "orch-chime-r1",
+      "category": "Physical materials",
+      "study_axis": "DX7 ROM1A25 ORCH-CHIME approximation",
+      "intent": "Dry single-voice chime-to-held-body interpretation, nominal6.28modulation relative to the.5carrier branch, brief index strike plus delayed secondary index contour. NativePitch-12 preserves source low-branch keyboard root; old Hollow reference MIDI-12 explicitly aligns sound. Source also has independent slow1:1/octave orchestral branches/detuning, not recreated by two envelopes on one voice. Mild immediate triangle vibrato approximates source LFO, no true layering/algorithm5 import.",
+      "seconds": 32
+    },
+    {
+      "file": "classic-koto-r1",
+      "category": "Physical materials",
+      "study_axis": "DX7 ROM1A23 KOTO approximation",
+      "intent": "Dry bright string/nail pluck from4:1 sine FM, brief shape/index entrance and longer damped body. Source algorithm2 adds a serial3/4/1stack alongside its4:1pair, a smallpitchEG and delayed synced-note sine LFO. Native preserves main4:1job but no exact cascade/operator scaling; reduced immediate sine vibrato instead of unavailable note-triggered delay/reset. AMD15 has zero operatorAMS recipients in original; do not add global tremolo.",
+      "seconds": 26
+    }
+  ]
+}

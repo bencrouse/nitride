@@ -3,3 +3,8 @@ build/
 JUCE/
 .DS_Store
 *.log
+__pycache__/
+# Private append-only journal, local research engines/data, rendered evidence and
+# machine-specific installed build archives are preserved locally, not published.
+evaluation/
+evaluation-snapshots/

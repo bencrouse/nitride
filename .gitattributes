@@ -3,3 +3,7 @@ Source/Tests/Fixtures/Audio/manifest.json -text whitespace=blank-at-eol,blank-at
 Source/Tests/Fixtures/Compatibility/*.nitridepreset -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 Source/Tests/Fixtures/Compatibility/*.state binary
 Source/Tests/Fixtures/Audio/*.f32 binary
+
+# Frozen recipe bytes are checksum-pinned; never normalize historical CRLF files.
+*.nitridepreset -text whitespace=cr-at-eol
+*.mid binary

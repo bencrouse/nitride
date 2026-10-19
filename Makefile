@@ -12,8 +12,12 @@ AU_INSTALL_DIR ?= $(HOME)/Library/Audio/Plug-Ins/Components
 AU_BUILD_PATH := $(BUILD_DIR)/nitride_artefacts/$(CONFIG)/AU/$(AU_COMPONENT)
 PERF_BUILD_DIR ?= build/performance
 PERF_ARGS ?= --output "$(PERF_BUILD_DIR)/latest.json"
+REVIEW_BATCH ?= presets/review/batch-01/r1
+REVIEW_OUTPUT ?= $(abspath $(BUILD_DIR))/preset-review/batch-01/r1
 
-.PHONY: help configure build test check check-full benchmark render-pitch studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
+.PHONY: help configure build test check check-full benchmark render-pitch preset-review studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
+.PHONY: evaluation-status evaluation-verify evaluation-backup
+.PHONY: factory-selection factory-pilot factory-install
 help:
 	@echo "make build        Build AU + Standalone"
 	@echo "make test         Check native UI, automation/state and DSP"
@@ -21,6 +25,12 @@ help:
 	@echo "make check-full   Run clean builds, diagnostics and installed AU checks locally"
 	@echo "make benchmark    Measure Release processor rendering; override PERF_ARGS"
 	@echo "make render-pitch Render musical Glide/Autobend comparisons under build/pitch-motion"
+	@echo "make preset-review Export pad/bass r1 sketches, MIDI and production-rendered WAVs"
+	@echo "make evaluation-status Resume evaluation from its persistent journal"
+	@echo "make evaluation-verify Check journal/evidence integrity"
+	@echo "make factory-selection Check the proposed, separate release selection"
+	@echo "make factory-pilot Export and verify a NEW native-AU preset checkpoint (set FACTORY_OUTPUT)"
+	@echo "make factory-install Install verified categories at the preset root (set FACTORY_PACKAGE; requires host confirmation)"
 	@echo "make standalone   Build and open the native app"
 	@echo "make studies      Build and open the sound comparison app"
 	@echo "make gestures     Build and open the playable control-surface study"
@@ -57,6 +67,35 @@ benchmark:
 render-pitch: configure
 	$(CMAKE) --build "$(BUILD_DIR)" --target nitride_pitch_tests --config $(CONFIG) --parallel $(JOBS)
 	"$(BUILD_DIR)/nitride_pitch_tests_artefacts/$(CONFIG)/nitride_pitch_tests" --render-demo "$(abspath $(BUILD_DIR))/pitch-motion"
+
+preset-review:
+	$(CMAKE) --preset local-release
+	$(CMAKE) --build --preset local-release --target nitride_preset_review
+	"build/local-release/nitride_preset_review_artefacts/Release/nitride_preset_review" "$(REVIEW_BATCH)" "$(REVIEW_OUTPUT)"
+
+evaluation-status:
+	python3 scripts/evaluation.py status
+
+evaluation-verify:
+	python3 scripts/evaluation.py verify
+
+evaluation-backup:
+	@test -n "$(BACKUP)" || (echo 'Specify BACKUP=/path/outside/evaluation/snapshot.zip' && exit 1)
+	python3 scripts/evaluation.py backup "$(BACKUP)"
+
+factory-selection:
+	python3 scripts/factory_presets.py selection
+
+factory-pilot:
+	@test -n "$(FACTORY_OUTPUT)" || (echo 'Specify a NEW FACTORY_OUTPUT=/path/to/pilot' && exit 1)
+	$(CMAKE) --preset local-release
+	$(CMAKE) --build --preset local-release --target nitride_au_presets
+	python3 scripts/factory_presets.py export "$(FACTORY_OUTPUT)"
+	python3 scripts/factory_presets.py verify "$(FACTORY_OUTPUT)"
+
+factory-install:
+	@test -n "$(FACTORY_PACKAGE)" || (echo 'Specify FACTORY_PACKAGE=/path/to/verified/candidate' && exit 1)
+	python3 scripts/factory_presets.py install-factory "$(FACTORY_PACKAGE)"
 
 install-au: build
 	mkdir -p "$(AU_INSTALL_DIR)"

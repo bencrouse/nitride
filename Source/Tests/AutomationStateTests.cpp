@@ -185,7 +185,12 @@ int main()
         require(portable.getInstrumentSession().selectedPresetId()==keptId&&portable.getInstrumentSession().selectPreset(keptId),"Session cannot recall a kept sound without its external preset file");
         require(sameSound(portable.getInstrumentSession().read(),kept),"Embedded kept preset changed conditions");
         std::unique_ptr<juce::AudioProcessorEditor> reopened(portable.createEditor());reopened->addToDesktop(0);reopened->setVisible(true);
-        require(child<juce::ComboBox>(*reopened,"Starting patch")->getText()=="Recorded material","Editor reopening lost the custom preset name");reopened.reset();
+        require(child<juce::ComboBox>(*reopened,"Starting patch")==nullptr&&portable.getInstrumentSession().read().name=="Recorded material","Hosted editor lost the portable sound or restored its removed browser");reopened.reset();
+        {
+            Nitride::InstrumentView standalone(portable.getInstrumentSession());
+            const auto* browser=child<juce::ComboBox>(standalone,"Starting patch");
+            require(browser&&browser->getText()=="Recorded material","Standalone migration browser lost the portable custom preset name");
+        }
 
         // The v1 numeric conditions from milestone 1 remain loadable.
         juce::XmlElement v1("NITRIDE_INSTRUMENT");v1.setAttribute("version",1);v1.setAttribute("program",2);v1.setAttribute("fm",2.125);v1.setAttribute("motionRate",.8);

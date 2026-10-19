@@ -1,0 +1,26 @@
+{
+  "format": "nitride-factory-acceptance",
+  "version": 1,
+  "date": "2026-10-19",
+  "user_feedback": "i want all the current presets included. i tested the preset editing and saving so i've confirmed that flow. i checked levels, they seem fine. can you proceed to clean up, do any review you feel should be done, and commit?",
+  "interpretation": "Include the43kept directions plus Classic Tines/Bass/Tubes and the4original programs. Preserve sounds and historical recall, archive superseded iterations. User confirms editing/saving and levels; this does not separately assert project-close/reopen, hardware fidelity or outstanding DSP/performance qualification. Commit authorized, push not requested.",
+  "host_category_confirmation": "confirmed-by-user",
+  "host_category_feedback_event": "29243f7b120e44cf806c46bd1b120866",
+  "host_save_edit": "confirmed-by-user",
+  "levels": "confirmed-by-user",
+  "project_close_reopen": "not-separately-confirmed",
+  "retained": [
+    "factory:0", "factory:1", "factory:2", "factory:3",
+    "review:crooked-velvet:r2", "review:felt-weight:r1", "review:pocket-slap:r1", "review:sub-canvas:r1", "review:tension-core:r2",
+    "review:afterimage-keys:r1", "review:clear-stops:r1", "review:cutoff-alloy:r2",
+    "review:copper-lift:r1", "review:glass-current:r2", "review:reed-snap:r2", "review:replica-voice:r2",
+    "review:classic-voice:r1", "review:soft-alloy:r2", "review:stillwater:r1", "review:prism-pulse:r3",
+    "review:classic-koto:r1", "review:hollow-bronze:r2", "review:orch-chime:r1", "review:rosewood-tap:r1", "review:taffy-coil:r1",
+    "review:bowl-toms:r2", "review:floor-pulse:r1", "review:rivet-kick:r1", "review:skin-knock:r1",
+    "review:buzz-loom:r1", "review:pulse-lattice:r2", "review:socket-dance:r2", "review:undertow-grid:r1",
+    "review:fault-bloom:r1", "review:orbit-shards:r1", "review:overtone-lantern:r1", "review:tendon-drift:r1",
+    "review:brake-bloom:r1", "review:flash-room:r1", "review:pressure-lift:r1", "review:reverse-veil:r1", "review:shred-relay:r1", "review:sinkhole:r1", "review:spectral-cut:r1",
+    "review:classic-tines:r1", "review:classic-bass:r1", "review:classic-tubes:r1",
+    "review:whistle-stem:r1", "review:jaw-twang:r1", "review:vowel-pick:r1"
+  ]
+}

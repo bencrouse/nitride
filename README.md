@@ -33,3 +33,7 @@ as an AU instrument.
 - [Motion LFOs](docs/LFO.md) — waveforms, independent destinations and tempo sync.
 - [Filter modulation](docs/FILTER_MODULATION.md) — key tracking, velocity and audio-rate FM.
 - [FM expansion](docs/FM.md) — primary ratio, independent envelope, shapes and network-preserving operator mix.
+- [Preset exploration](docs/PRESET_REVIEW.md) — versioned review sounds, MIDI demos and iteration notes.
+- [Evaluation journal](docs/EVALUATION.md) — embedded Logic trial presets, persistent feedback and resumable history.
+- [Factory presets](presets/factory/HOST_PRESETS.md) — 50 selected sounds, Logic-native categories and the standalone browser.
+- [Preset provenance](docs/PRESET_PROVENANCE.md) — original Nitride interpretations and the local-only research boundary.

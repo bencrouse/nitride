@@ -1,0 +1,28 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "replica-voice-r1",
+      "category": "Leads",
+      "design_lens": "Oneohtrix Point Never",
+      "intent": "Original imagined uncanny-voice study: fixed-register resonant Tone gesture and inverted FM envelope, poly phrases/dyads with subtly drifting operator relationships. Not vocals, a formant bank or authentic artist settings. Contrast Glass Current's gliding mono lead.",
+      "seconds": 26
+    },
+    {
+      "file": "tendon-drift-r1",
+      "category": "Experimental",
+      "design_lens": "Arca",
+      "intent": "Original imagined supple-body/intermittent-strain study: long linear Pitch + Tone legato drag, stepped stress and network-shaped triangle spectrum. Avoid constant maximal grit or a Fault Bloom clone; artist lens is not an authentic recipe/endorsement.",
+      "seconds": 30
+    },
+    {
+      "file": "socket-dance-r1",
+      "category": "Sequence elements",
+      "design_lens": "Body Meat",
+      "intent": "Original imagined compact dancing-cell study: dry poly triplet amplitude chops, straight-eighth S&H Tone and dotted-eighth FM/operator clock; negative index envelope creates a changing attack/body. Hold notes with transport playing. MIDI supplies pitch/arrangement, not every pulse; no internal sequencing, sampled vocal chops or authentic artist recipe.",
+      "seconds": 22
+    }
+  ]
+}

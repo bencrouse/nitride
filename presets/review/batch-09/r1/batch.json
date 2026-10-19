@@ -1,0 +1,49 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "sub-canvas-r1",
+      "category": "Basses",
+      "study_axis": "clean foundation",
+      "intent": "Bare sustained foundation: zero coupling/stress/oscillator FM, no routes/motion/Space. Near-sine impression, not perfect sine after common soft ceiling/Tone. Contrast Felt Weight's damped pluck.",
+      "seconds": 18
+    },
+    {
+      "file": "afterimage-keys-r1",
+      "category": "Leads",
+      "study_axis": "two-envelope harmonic key",
+      "intent": "Harmonic key with short independent FM strike and delayed filter-envelope-to-depth bloom, neutral Tone-envelope amount. Hold through second stage; not a sampled piano or layer engine. Contrast Reed Snap articulation.",
+      "seconds": 22
+    },
+    {
+      "file": "overtone-lantern-r1",
+      "category": "Experimental",
+      "study_axis": "operator-dominant partial voice",
+      "intent": "Exposed fifth-ratio triangle operator dominates carrier, giving a higher implied pitch/partial identity. Sparse notes/dyads, no pitch-step LFO. Not a new oscillator or proof of novel territory; contrast Orbit Shards.",
+      "seconds": 24
+    },
+    {
+      "file": "buzz-loom-r1",
+      "category": "Sequence elements",
+      "study_axis": "fast AM and ramp-reset timbre",
+      "intent": "Fast unipolar AM at 1/64 triplet (48 cycles/s at 120 BPM) against independent .25 Hz saw Tone motion. Hold low/mid notes with transport; sidebands are clock-relative, not key-tracked ring modulation or MIDI sequencing. Contrast Socket Dance chops.",
+      "seconds": 22
+    },
+    {
+      "file": "cutoff-alloy-r1",
+      "category": "Physical materials",
+      "study_axis": "filter-side FM texture",
+      "intent": "Tuned struck texture centered on audio-rate cutoff FM depth 2.5 with small oscillator FM, rather than high network stress. Velocity/dyads affect shared filter drive. Not a noise source or new filter type; contrast ringing Hollow Bronze.",
+      "seconds": 20
+    },
+    {
+      "file": "brake-bloom-r1",
+      "category": "Experimental",
+      "study_axis": "self-braking activity route",
+      "intent": "Negative network-activity-to-FM-depth restrains index as measured activity grows; modulator-only legato glide smears overtones while carrier takes the played note. Not a loudness limiter, new feedback topology or guarantee of autonomous pulsing. Contrast Tendon Drift.",
+      "seconds": 26
+    }
+  ]
+}

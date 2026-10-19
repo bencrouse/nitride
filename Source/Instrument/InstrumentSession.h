@@ -41,6 +41,11 @@ inline const std::array<Patch, 4>& factoryPatches()
     return patches;
 }
 
+// Initialized by the session constructor before render-thread program changes.
+// Original factory indices remain unchanged; review revisions append only.
+const std::vector<StoredPreset>& builtInPresets();
+int builtInIndex(const juce::String& id);
+
 struct LiveState
 {
     std::array<std::atomic<float>, 6> offsets {};

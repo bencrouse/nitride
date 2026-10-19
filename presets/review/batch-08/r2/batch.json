@@ -1,0 +1,21 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "replica-voice-r2",
+      "category": "Leads",
+      "design_lens": "Oneohtrix Point Never",
+      "intent": "Amplitude-release-only refinement .9 -> .4 seconds to shorten active coloured tail. Preserve held-note voice gesture, all FM/filter/Space/network conditions and output, and original MIDI. No unique distortion cause claimed; artist lens remains an original imagined brief.",
+      "seconds": 26
+    },
+    {
+      "file": "socket-dance-r2",
+      "category": "Sequence elements",
+      "design_lens": "Body Meat",
+      "intent": "Amplitude-release-only refinement .1 -> .045 seconds, retaining a useful basic anchor rather than adding novelty. All clock/FM/filter/network/Space/output conditions and original MIDI unchanged; transport playing for held-note chops.",
+      "seconds": 22
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "bowl-toms-r2",
+      "category": "Physical materials",
+      "study_axis": "attack-forward drum-machine tom",
+      "intent": "Respond to too much tone/not enough attack: short dry poly tom with almost bare harmonic body, brief 2:1 sine-FM strike, faster/deeper pitch entrance and open transient bandwidth. Same original MIDI/output as r1; not an exact drum-machine model, noise layer, phase reset or one-shot mode. Keep both praised kicks unchanged.",
+      "seconds": 22
+    }
+  ]
+}

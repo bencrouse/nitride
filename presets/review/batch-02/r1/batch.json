@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "glass-current-r1",
+      "category": "Leads",
+      "intent": "Singing upper-register mono voice with a glassy edge, gentle vibrato, velocity contrast and legato-only glide; no automatic attack bend.",
+      "seconds": 24
+    },
+    {
+      "file": "pulse-lattice-r1",
+      "category": "Sequence elements",
+      "intent": "Short metallic plucks with velocity accents, eighth-note cutoff motion and slower beat-synced network/FM variation. Notes are supplied by MIDI, not an internal sequencer.",
+      "seconds": 20
+    }
+  ]
+}

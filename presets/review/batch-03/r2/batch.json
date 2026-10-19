@@ -1,0 +1,13 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "hollow-bronze-r2",
+      "category": "Physical materials",
+      "intent": "Reduce settled FM sideband density while retaining the strike peak: FM depth .42 to .22 and short FM envelope amount 2.2 to 2.4. All other conditions and the fixed MIDI are unchanged. Perceived buzz reduction awaits listening.",
+      "seconds": 26
+    }
+  ]
+}

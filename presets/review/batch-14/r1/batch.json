@@ -1,0 +1,28 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "classic-tines-r1",
+      "category": "Physical materials",
+      "study_axis": "DX7 ROM1A E.PIANO 1 approximation",
+      "intent": "Dry FM-centered EP1 interpretation: warm1:1 main body, independently short shape strike and longer index decay, no pitch tricks. Original algorithm5 has three parallel detuned pairs including14:1 attack beyond Nitride ratio8 limit; no faithful algorithm/operator-EG/velocity/detune conversion claimed. Compare unchanged Tine Keys, not a rename.",
+      "seconds": 26
+    },
+    {
+      "file": "classic-bass-r1",
+      "category": "Basses",
+      "study_axis": "DX7 ROM1A BASS 1 approximation",
+      "intent": "Dry restrained1:1 bass body with brief harder FM/shape front, no glide/Autobend. Original algorithm16 feeds one.5carrier through three branches including9x/5x operators and feedback7. ROMglobal-12 plus.5carrier sounds24stbelow input; this Nitride utility maps root to played note, reference MIDI+24 explicitly aligns sound, not keyboard map. Compare Pocket Slap; not exact topology/velocity scaling.",
+      "seconds": 24
+    },
+    {
+      "file": "classic-tubes-r1",
+      "category": "Physical materials",
+      "study_axis": "DX7 ROM1A TUB BELLS approximation",
+      "intent": "Dry long FM bell using nominal3.5:1 ratio and slowly relaxing index. Original algorithm5 has two detuned3.5:1 pairs plus a fixed~323.6Hz carrier strike; Nitride has no independent fixed-frequency layer/detuned pairs. Preserve clang/body/decay role, not exact six-op spectrum. Compare Hollow Bronze on identical notes.",
+      "seconds": 36
+    }
+  ]
+}

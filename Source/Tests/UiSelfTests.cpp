@@ -95,6 +95,12 @@ int main(int argc,char** argv)
         std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor());
         editor->addToDesktop(0);editor->setVisible(true);
         require(editor->getWidth()==1200&&editor->getHeight()==960,"Filter-envelope editor size changed");
+        require(namedChild<juce::ComboBox>(*editor,"Starting patch")==nullptr&&button(*editor,"KEEP")==nullptr,"Hosted editor retained its duplicate preset selector/Keep control");
+        {
+            Nitride::InstrumentView standalone(processor.getInstrumentSession());
+            auto* browser=namedChild<juce::ComboBox>(standalone,"Starting patch");
+            require(browser&&browser->getNumItems()==50&&button(standalone,"KEEP"),"Standalone lost its curated browser/Keep fallback");
+        }
         auto* depth=namedChild<juce::Component>(*editor,"FM depth");require(depth!=nullptr,"Source control missing");
         auto* accessibility=depth->getAccessibilityHandler();require(accessibility!=nullptr&&accessibility->getValueInterface()!=nullptr,"Source accessibility control unavailable");
         accessibility->getValueInterface()->setValue(3.2);
@@ -119,9 +125,11 @@ int main(int argc,char** argv)
         require(std::abs(restored.getInstrumentSession().values[Nitride::fm].load()-3.2)<.001,"Basic condition recall lost the edited source");
         require(restored.getCurrentProgram()==1,"Basic condition recall lost the current program");
 
-        if(argc==3&&juce::String(argv[1])=="--snapshot")
+        if(argc==3&&(juce::String(argv[1])=="--snapshot"||juce::String(argv[1])=="--snapshot-standalone"))
         {
-            std::unique_ptr<juce::AudioProcessorEditor> preview(processor.createEditor());
+            std::unique_ptr<juce::Component> preview;
+            if(juce::String(argv[1])=="--snapshot-standalone")preview=std::make_unique<Nitride::InstrumentView>(processor.getInstrumentSession());
+            else preview.reset(processor.createEditor());
             const auto image=preview->createComponentSnapshot(preview->getLocalBounds(),true,2);
             auto stream=juce::File(juce::String::fromUTF8(argv[2])).createOutputStream();
             require(stream!=nullptr&&stream->setPosition(0)&&stream->truncate().wasOk(),"Could not write AU editor snapshot");

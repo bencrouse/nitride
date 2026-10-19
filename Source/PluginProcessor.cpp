@@ -1,6 +1,23 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Instrument/PresetStore.h"
+#include <bit>
+
+namespace
+{
+struct OwnEcho
+{
+    const NitrideAudioProcessor* processor=nullptr;int index=-1;float value=0;const Nitride::Patch* restored=nullptr;
+};
+thread_local OwnEcho ownEcho;
+struct EchoScope
+{
+    explicit EchoScope(OwnEcho echo):previous(ownEcho){ownEcho=echo;}
+    ~EchoScope(){ownEcho=previous;}
+    OwnEcho previous;
+};
+bool sameFloat(float a,float b){return std::bit_cast<std::uint32_t>(a)==std::bit_cast<std::uint32_t>(b);}
+}
 
 NitrideAudioProcessor::NitrideAudioProcessor(juce::File presetDirectory)
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
@@ -13,7 +30,11 @@ NitrideAudioProcessor::NitrideAudioProcessor(juce::File presetDirectory)
     }
     hostBindings[Nitride::monoHostIndex]=apvts.getParameter(Nitride::monoParameterId);
     apvts.addParameterListener(Nitride::monoParameterId,this);
-    session.writeHostParameter=[this](int index,double value){auto* p=hostBindings[static_cast<size_t>(index)];p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(value)));};
+    session.writeHostParameter=[this](int index,double value)
+    {
+        auto* p=hostBindings[static_cast<size_t>(index)];const auto normalized=p->convertTo0to1(static_cast<float>(value));
+        EchoScope echo({this,index,p->convertFrom0to1(normalized),nullptr});p->setValueNotifyingHost(normalized);
+    };
     session.beginHostGesture=[this](int index){hostBindings[static_cast<size_t>(index)]->beginChangeGesture();};
     session.endHostGesture=[this](int index){hostBindings[static_cast<size_t>(index)]->endChangeGesture();};
 }
@@ -45,9 +66,25 @@ juce::AudioProcessorValueTreeState::ParameterLayout NitrideAudioProcessor::creat
 
 void NitrideAudioProcessor::parameterChanged(const juce::String& id,float value)
 {
+    const auto receive=[this,value](int index)
+    {
+        if(ownEcho.processor==this)
+        {
+            if(ownEcho.index==index&&sameFloat(value,ownEcho.value))return;
+            if(ownEcho.restored)
+            {
+                const auto physical=index==Nitride::monoHostIndex?(ownEcho.restored->mono?1.0:0.0):ownEcho.restored->values[static_cast<size_t>(Nitride::conditionIndex(index))];
+                const auto* p=hostBindings[static_cast<size_t>(index)];const auto expected=p->convertFrom0to1(p->convertTo0to1(static_cast<float>(physical)));
+                if(sameFloat(value,expected))return;
+            }
+        }
+        // Only the known synchronous echo is ignored. Other values, processors
+        // and threads still publish automation normally, including reentrant writes.
+        session.storeFromHost(index,value);
+    };
     for(size_t i=0;i<Nitride::hostParameters.size();++i)
-        if(id==Nitride::hostParameters[i].id){session.storeFromHost(Nitride::hostIndex(static_cast<Nitride::Parameter>(i)),value);return;}
-    if(id==Nitride::monoParameterId)session.storeFromHost(Nitride::monoHostIndex,value);
+        if(id==Nitride::hostParameters[i].id){receive(Nitride::hostIndex(static_cast<Nitride::Parameter>(i)));return;}
+    if(id==Nitride::monoParameterId)receive(Nitride::monoHostIndex);
 }
 
 void NitrideAudioProcessor::prepareToPlay(double sampleRate, int)
@@ -91,11 +128,11 @@ juce::AudioProcessorEditor* NitrideAudioProcessor::createEditor()
     return new NitrideAudioProcessorEditor(*this);
 }
 
-int NitrideAudioProcessor::getNumPrograms() { return static_cast<int>(Nitride::factoryPatches().size()); }
+int NitrideAudioProcessor::getNumPrograms() { return static_cast<int>(Nitride::builtInPresets().size()); }
 const juce::String NitrideAudioProcessor::getProgramName(int index)
 {
     if(index<0||index>=getNumPrograms())return{};
-    return Nitride::factoryPatches()[static_cast<size_t>(index)].name;
+    return Nitride::builtInPresets()[static_cast<size_t>(index)].patch.name;
 }
 void NitrideAudioProcessor::applyPreset(int index) { session.applyProgram(index); }
 
@@ -139,7 +176,7 @@ void NitrideAudioProcessor::setStateInformation(const void* data,int size)
             if(session.restoreDocument(json).failed())return;
         }
         else return;
-        apvts.replaceState(parameterStateFor(session.read()));
+        const auto restored=session.read();EchoScope echo({this,-1,0,&restored});apvts.replaceState(parameterStateFor(restored));
     }
 }
 

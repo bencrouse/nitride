@@ -1,0 +1,31 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "pressure-lift-r1",
+      "category": "Experimental",
+      "study_axis": "rising pressure transition",
+      "design_lens": "SOPHIE",
+      "intent": "Original tactile pressure-riser brief, not an artist recipe: hold a single note about 4s as pitch rises from two octaves below and amplitude/index/Tone open. Release into the next section; small Space may linger. Envelopes/Autobend in seconds, not bar-synced; no noise/reverse-audio or automatic handoff.",
+      "seconds": 28
+    },
+    {
+      "file": "sinkhole-r1",
+      "category": "Experimental",
+      "study_axis": "falling impact and spacious tail",
+      "design_lens": "Arca",
+      "intent": "Original downward implosion brief, not an artist recipe: quick metallic entrance falls into low weight and a spacious tail. Trigger around MIDI43 and allow the release/room to clear. Pitch/Tone/FM gesture in seconds, not tempo-synced; gated synth envelope, no sample reversal, noise layer or one-shot switch.",
+      "seconds": 32
+    },
+    {
+      "file": "shred-relay-r1",
+      "category": "Sequence elements",
+      "study_axis": "held-note rhythmic disintegration",
+      "design_lens": "Oneohtrix Point Never",
+      "intent": "Original signal-breakup brief, not an artist recipe: a held pitched tone becomes more inharmonic while its spectrum closes inside a steady 1/16 sine-AM clock. Hold 3-4s with playing transport, then release for a dry handoff. Fixed clock, not accelerating stutter/generated MIDI; envelopes in seconds. Contrast static Socket/Buzz cells.",
+      "seconds": 26
+    }
+  ]
+}

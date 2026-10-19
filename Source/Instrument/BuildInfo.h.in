@@ -1,0 +1,6 @@
+#pragma once
+namespace Nitride
+{
+inline constexpr const char* buildVersion="@PROJECT_VERSION@";
+inline constexpr const char* evaluationBuild="@NITRIDE_EVALUATION_BUILD@";
+}

@@ -1,0 +1,28 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "floor-pulse-r1",
+      "category": "Physical materials",
+      "study_axis": "rounded low kick",
+      "intent": "Dry rounded low kick: fast two-octave downward entrance over an almost bare low body, no ring/Space or cyclic motion. MIDI 36 with Pitch -3 nominally settles at 55 Hz. Not a one-shot, phase-reset oscillator or drum-machine clone; note length/release still matter. Contrast Skin Knock and the shorter harmonic Rivet kick.",
+      "seconds": 20
+    },
+    {
+      "file": "rivet-kick-r1",
+      "category": "Physical materials",
+      "study_axis": "compact harmonic kick",
+      "intent": "Hard compact synthetic kick: short harmonic FM/index bite and stronger network over a rapidly damped body, no ambience. A tactile synthetic front, not Floor Pulse with more gain or a noise-click layer. MIDI 36 with Pitch -1 nominally settles near 61.74 Hz. No one-shot/phase-reset added; compare both kicks on identical notes.",
+      "seconds": 20
+    },
+    {
+      "file": "bowl-toms-r1",
+      "category": "Physical materials",
+      "study_axis": "pitched floor and rack toms",
+      "intent": "Poly tuned tom fills: gently relaxing pitch with a longer lightly inharmonic hollow body, room kept minimal. Intended MIDI 41-57; no GM drum map, sampled shell or membrane model. Lower FM/index and gentler/slower bend than Skin Knock, with overlapping pitches allowed to ring. Shared Tone still follows note ownership. Gate length matters; not a one-shot.",
+      "seconds": 22
+    }
+  ]
+}

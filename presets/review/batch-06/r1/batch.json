@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "skin-knock-r1",
+      "category": "Physical materials",
+      "intent": "Contrast ringing Hollow Bronze: dry short membrane-like impacts with 26 ms pitch relaxation, nominal sub-unity triangle FM strike, fast damping and velocity-sensitive Tone; no cyclic motion. A material impression, not a physical-model claim.",
+      "seconds": 18
+    },
+    {
+      "file": "orbit-shards-r1",
+      "category": "Experimental",
+      "intent": "Contrast continuous stressed mono Fault Bloom: low-stress poly inharmonic glints with shared free-running stepped pitch, drifting operator ratio/mix and diffused tails. Not quantized, not an internal sequencer, not independently randomized per voice.",
+      "seconds": 28
+    }
+  ]
+}

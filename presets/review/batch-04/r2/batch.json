@@ -1,0 +1,13 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "prism-pulse-r2",
+      "category": "Pads",
+      "intent": "Chord-friendly nominal 2:1 FM, no ratio wander, gentler triangle shaping and less operator mix; level trimmed to avoid a louder comparison. Quarter-note pulse, triplet cutoff, envelopes and fixed chord MIDI retained. Beauty/harshness preference awaits listening.",
+      "seconds": 26
+    }
+  ]
+}

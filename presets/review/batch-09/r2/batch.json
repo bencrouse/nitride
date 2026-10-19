@@ -1,0 +1,13 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "tine-keys-r2",
+      "category": "Physical materials",
+      "seconds": 20,
+      "intent": "Name-only continuation of liked Cutoff Alloy as Tine Keys after user hears an electric-piano role. Every parameter, mono/chord and frozen MIDI byte unchanged; internal cutoff-alloy lineage/old index retained. Not a specific commercial instrument model."
+    }
+  ]
+}

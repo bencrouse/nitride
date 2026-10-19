@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "reed-snap-r1",
+      "category": "Leads",
+      "intent": "Contrast Glass Current: dry, fast, polyphonic/retriggered resonant reed-like lead for detached runs, stabs and dyads; no vibrato, legato glide or cyclic motion.",
+      "seconds": 20
+    },
+    {
+      "file": "undertow-grid-r1",
+      "category": "Sequence elements",
+      "intent": "Contrast Pulse Lattice: sustained mono held-note bed with sixteenth amplitude pulses and dotted-eighth stepped cutoff, rather than short metallic MIDI plucks. Transport moves timbre; MIDI supplies pitch.",
+      "seconds": 26
+    }
+  ]
+}

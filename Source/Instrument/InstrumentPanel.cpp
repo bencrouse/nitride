@@ -5,6 +5,8 @@
 #include "MotionPanel.h"
 #include "FmPanel.h"
 #include "../DSP/Fm.h"
+#include "BuildInfo.h"
+#include "FactoryPrograms.h"
 #include <iostream>
 
 namespace Nitride
@@ -13,8 +15,8 @@ using namespace UI;
 class InstrumentPanel::Content final : public juce::Component,private juce::Timer
 {
 public:
-    Content(InstrumentSession& s,std::function<void()> settingsCallback)
-        :session(s),live(s.live),audioSettings(std::move(settingsCallback)),glidePanel(s,false),autobendPanel(s,true),field(live),ribbon(live),keyboard(s),
+    Content(InstrumentSession& s,std::function<void()> settingsCallback,PresetPresentation presentation)
+        :session(s),live(s.live),audioSettings(std::move(settingsCallback)),presetPresentation(presentation),glidePanel(s,false),autobendPanel(s,true),field(live),ribbon(live),keyboard(s),
         fmValue("FM depth",0,4,1.65),pitchValue("Pitch",-12,12,0),attackValue("Attack",.001,4,.65,true),decayValue("Decay",.01,4,.7,true),
         sustainValue("Sustain",0,1,.72),releaseValue("Release",.02,8,1.4,true),outputValue("Output",-24,0,-6),
         filterAttackValue("Attack",.001,4,.01,true),filterDecayValue("Decay",.01,4,.3,true),filterSustainValue("Sustain",0,1,.5),
@@ -35,7 +37,8 @@ public:
         keep.setButtonText("KEEP");keep.setTooltip("Name and save this sound to your Nitride preset library");keep.onClick=[this]{promptKeep();};
         hold.setButtonText("HOLD");hold.setClickingTogglesState(true);hold.onClick=[this]{if(hold.getToggleState())startAudition(true);else if(!touching)endAudition();};
         settings.setButtonText("...");settings.onClick=[this]{showSettings();};
-        for(auto* button:{&undo,&compare,&keep,&hold,&settings})addAndMakeVisible(button);addAndMakeVisible(patchBox);
+        for(auto* button:{&undo,&compare,&hold,&settings})addAndMakeVisible(button);
+        if(!hostPresets()){addAndMakeVisible(keep);addAndMakeVisible(patchBox);}
         fmDisclosure.setButtonText("FM...");fmDisclosure.setName("Open advanced FM");fmDisclosure.setClickingTogglesState(true);
         fmDisclosure.onClick=[this]{advancedFm.finishEdits();advancedFm.setVisible(fmDisclosure.getToggleState());if(advancedFm.isVisible()){advancedFm.toFront(true);advancedFm.grabKeyboardFocus();}};
         advancedFm.onClose=[this]{fmDisclosure.setToggleState(false,juce::dontSendNotification);advancedFm.setVisible(false);fmDisclosure.grabKeyboardFocus();};
@@ -126,7 +129,13 @@ public:
         g.fillAll(chassis());g.setColour(juce::Colour(0xff1b201d));g.fillRect(0,92,286,424);g.fillRect(918,92,282,424);g.setColour(juce::Colour(0xff30372f));
         for(int y:{92,530,726,846})g.drawHorizontalLine(y,24,1176);g.drawVerticalLine(286,110,510);g.drawVerticalLine(918,110,510);g.drawVerticalLine(392,553,710);g.drawVerticalLine(800,553,710);
         g.setColour(ink());g.setFont(juce::Font(juce::FontOptions("Helvetica Neue",36,juce::Font::bold)));g.drawText("nitride",25,23,200,43,juce::Justification::left);
-        text(g,"PATCH",{300,13,120,14},muted(),8);section(g,"SOUND",{24,112,238,18});section(g,"NETWORK",{310,112,584,18});section(g,"AMPLITUDE",{942,112,234,18});
+        if(hostPresets())
+        {
+            text(g,"HOST PRESETS",{310,26,320,14},muted(),8);
+            text(g,"Load and save in the host header",{310,46,350,18},muted(),9);
+        }
+        else text(g,"PATCH",{300,13,120,14},muted(),8);
+        section(g,"SOUND",{24,112,238,18});section(g,"NETWORK",{310,112,584,18});section(g,"AMPLITUDE",{942,112,234,18});
         text(g,"COUPLING "+juce::String(current.values[coupling]*100,0)+"%   /   STRESS "+juce::String(current.values[stress]*100,0)+"%",{310,428,584,17},muted(),8);
         sourceWave(g);text(g,"SOURCE / NETWORK FM",{36,190,225,14},muted(),8);
         section(g,"TONE",{24,550,344,18});text(g,"LP / 12 dB",{205,550,163,18},muted(),8,juce::Justification::right);
@@ -143,6 +152,7 @@ public:
     void resized() override
     {
         patchBox.setBounds(300,33,330,34);undo.setBounds(668,33,70,34);compare.setBounds(746,33,94,34);keep.setBounds(848,33,70,34);hold.setBounds(968,33,80,34);settings.setBounds(1102,33,74,34);
+        if(hostPresets()){undo.setBounds(746,33,70,34);compare.setBounds(824,33,94,34);}
         field.setBounds(310,145,584,274);ribbon.setBounds(310,448,584,82);fmValue.setBounds(36,208,226,28);pitchValue.setBounds(36,242,226,28);
         fmDisclosure.setBounds(192,108,70,26);advancedFm.setBounds(310,145,584,385);
         poly.setBounds(36,280,70,24);monoButton.setBounds(112,280,70,24);legatoButton.setBounds(188,280,74,24);glidePanel.setBounds(36,317,226,85);autobendPanel.setBounds(36,418,226,85);
@@ -155,6 +165,7 @@ public:
         keyboard.setBounds(26,861,1148,53);keyboard.setKeyWidth(1148.0f/22);outputValue.setBounds(914,923,262,28);
     }
 private:
+    bool hostPresets()const noexcept{return presetPresentation==PresetPresentation::host;}
     void set(Parameter p,double value){session.setIfCurrent(p,value,lastEpoch);sync();}
     void group(std::initializer_list<std::pair<Parameter,double>> updates){session.setGroupIfCurrent(updates,lastEpoch);sync();}
     void begin(std::initializer_list<int> parameters)
@@ -168,8 +179,23 @@ private:
     {session.beginEdit({monoHostIndex,hostIndex(legato)});session.setMono(mode!=0);session.set(legato,mode==2?1:0);session.endEdit({monoHostIndex,hostIndex(legato)});sync();}
     void rebuildPresets()
     {
-        const auto revision=session.libraryRevision.load();presetIds.clear();patchBox.clear(juce::dontSendNotification);const auto presets=session.presets();
-        for(size_t i=0;i<presets.size();++i){if(i==0)patchBox.addSectionHeading("Starting patches");if(i==4)patchBox.addSectionHeading("Kept sounds");patchBox.addItem(presets[i].patch.name,static_cast<int>(i)+1);presetIds.push_back(presets[i].id);}lastLibrary=revision;
+        const auto revision=session.libraryRevision.load();presetIds.clear();patchBox.clear(juce::dontSendNotification);
+        if(!hostPresets())
+        {
+            juce::String category;
+            for(const auto& entry:factoryPrograms)
+            {
+                if(category!=entry.category){category=entry.category;patchBox.addSectionHeading(category);}
+                presetIds.emplace_back(entry.id);patchBox.addItem(entry.name,static_cast<int>(presetIds.size()));
+            }
+            bool keptHeading=false;
+            for(const auto& preset:session.presets())if(!preset.id.startsWith("factory:")&&!preset.id.startsWith("review:"))
+            {
+                if(!keptHeading){patchBox.addSectionHeading("Kept sounds");keptHeading=true;}
+                presetIds.push_back(preset.id);patchBox.addItem(preset.patch.name,static_cast<int>(presetIds.size()));
+            }
+        }
+        lastLibrary=revision;
     }
     void sync()
     {
@@ -218,8 +244,36 @@ private:
     }
     void showSettings()
     {
-        juce::PopupMenu menu;if(audioSettings)menu.addItem(1,"Audio / MIDI...");menu.addItem(2,"Reduced motion",true,field.reducedMotion);menu.addItem(3,"About Nitride");menu.addSeparator();menu.addItem(4,"Redo",session.canRedo());menu.addItem(5,"Import preset...");menu.addItem(6,"Export preset...");menu.addItem(7,"Refresh kept sounds");
-        const juce::Component::SafePointer<Content> safe(this);menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&settings),[safe](int choice){if(!safe)return;if(choice==1&&safe->audioSettings)safe->audioSettings();else if(choice==2){safe->field.reducedMotion=!safe->field.reducedMotion;safe->ribbon.reducedMotion=safe->field.reducedMotion;}else if(choice==4){safe->session.redo();safe->sync();}else if(choice==5)safe->filePreset(true);else if(choice==6)safe->filePreset(false);else if(choice==7){safe->session.refreshPresets();safe->rebuildPresets();safe->sync();}else if(choice==3)juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon,"Nitride","The native field, pitch motion, source, envelope, tone, motion and space are connected to the audio processor. Keep saves presets; Compare retains edits.");});
+        juce::PopupMenu menu;if(audioSettings)menu.addItem(1,"Audio / MIDI...");menu.addItem(2,"Reduced motion",true,field.reducedMotion);menu.addItem(3,"About Nitride");menu.addSeparator();menu.addItem(4,"Redo",session.canRedo());
+        juce::PopupMenu legacy;legacy.addItem(5,"Load .nitridepreset...");legacy.addItem(6,"Export current .nitridepreset...");legacy.addItem(7,"Refresh kept sounds");
+        std::vector<juce::String> legacyIds;
+        for(const auto& preset:session.presets())if(!preset.id.startsWith("factory:")&&!preset.id.startsWith("review:"))
+        {
+            if(legacyIds.empty())legacy.addSectionHeader("Legacy kept sounds — load, then save in host");
+            legacyIds.push_back(preset.id);legacy.addItem(2000+static_cast<int>(legacyIds.size())-1,preset.patch.name);
+        }
+        if(hostPresets())menu.addSubMenu("Legacy preset migration",legacy);
+        else
+        {
+            menu.addItem(5,"Import preset...");menu.addItem(6,"Export preset...");menu.addItem(7,"Refresh kept sounds");
+            juce::PopupMenu archive;
+            for(size_t i=0;i<builtInPresets().size();++i)if(!factoryProgramName(static_cast<int>(i)))archive.addItem(1000+static_cast<int>(i),builtInPresets()[i].patch.name);
+            menu.addSubMenu("Evaluation archive",archive);
+        }
+        const juce::Component::SafePointer<Content> safe(this);
+        menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&settings),[safe,legacyIds](int choice)
+        {
+            if(!safe)return;
+            if(choice==1&&safe->audioSettings)safe->audioSettings();
+            else if(choice==2){safe->field.reducedMotion=!safe->field.reducedMotion;safe->ribbon.reducedMotion=safe->field.reducedMotion;}
+            else if(choice==4){safe->session.redo();safe->sync();}
+            else if(choice==5)safe->filePreset(true);
+            else if(choice==6)safe->filePreset(false);
+            else if(choice==7){safe->session.refreshPresets();safe->rebuildPresets();safe->sync();}
+            else if(choice>=2000&&choice-2000<static_cast<int>(legacyIds.size())){safe->session.selectPreset(legacyIds[static_cast<size_t>(choice-2000)]);safe->sync();}
+            else if(choice>=1000&&choice-1000<static_cast<int>(builtInPresets().size())){safe->session.selectPreset(builtInPresets()[static_cast<size_t>(choice-1000)].id);safe->sync();}
+            else if(choice==3)juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::InfoIcon,"Nitride",juce::String("Nitride ")+buildVersion+" / "+evaluationBuild+"\n\n"+(safe->hostPresets()?"Use the host Settings menu to load and save categorized presets. Legacy Nitride sounds remain available in the migration menu.":"Choose a factory category or kept sound. Keep saves to your Nitride library; Compare retains edits."));
+        });
     }
     static void section(juce::Graphics& g,const juce::String& label,juce::Rectangle<int> r){g.setColour(ink());g.setFont(juce::Font(juce::FontOptions("Helvetica Neue",11,juce::Font::bold)));g.drawText(label,r,juce::Justification::left);}
     static juce::String formatCutoff(double hz){return hz>=1000?juce::String(hz/1000,2)+" kHz":juce::String(hz,0)+" Hz";}
@@ -234,7 +288,7 @@ private:
         if(editorGeneration!=session.editorMidi.epoch()){editorGeneration=session.editorMidi.epoch();session.synchronizeEditorInput();notes.clear();hold.setToggleState(false,juce::dontSendNotification);touching=false;}
         if(lastRevision!=session.revision.load(std::memory_order_acquire)||lastLibrary!=session.libraryRevision.load())sync();keyboard.repaint();field.repaint();ribbon.repaint();motion.repaint();repaint(24,923,1152,34);
     }
-    juce::LookAndFeel_V4 look;InstrumentSession& session;LiveState& live;std::function<void()> audioSettings;
+    juce::LookAndFeel_V4 look;InstrumentSession& session;LiveState& live;std::function<void()> audioSettings;const PresetPresentation presetPresentation;
     PitchMotionPanel glidePanel,autobendPanel;PlayingField field;ResponseRibbon ribbon;InstrumentKeyboard keyboard;
     ValueControl fmValue,pitchValue,attackValue,decayValue,sustainValue,releaseValue,outputValue;
     ValueControl filterAttackValue,filterDecayValue,filterSustainValue,filterReleaseValue,filterAmountValue;
@@ -244,7 +298,7 @@ private:
     std::vector<juce::String> presetIds;std::unique_ptr<juce::FileChooser> chooser;Patch current;juce::Array<int> notes;
     std::array<bool,hostParameterCount> edits{};std::uint64_t lastRevision=0,lastLibrary=0,lastEpoch=0,editorGeneration=0;bool touching=false;
 };
-InstrumentPanel::InstrumentPanel(InstrumentSession& s,std::function<void()> settings):content(std::make_unique<Content>(s,std::move(settings))){addAndMakeVisible(*content);setSize(1200,960);}
+InstrumentPanel::InstrumentPanel(InstrumentSession& s,std::function<void()> settings,PresetPresentation presentation):content(std::make_unique<Content>(s,std::move(settings),presentation)){addAndMakeVisible(*content);setSize(1200,960);}
 InstrumentPanel::~InstrumentPanel()=default;
 void InstrumentPanel::resized(){content->setBounds(getLocalBounds());}
 void InstrumentPanel::beginPreview(){content->beginPreview();}

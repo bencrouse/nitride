@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "prism-pulse-r1",
+      "category": "Pads",
+      "intent": "Contrast Soft Alloy: quicker, crystalline held-chord pad with quarter-note amplitude breathing, triplet cutoff and slower harmonic color; no internal note sequence or chord helper.",
+      "seconds": 26
+    },
+    {
+      "file": "felt-weight-r1",
+      "category": "Basses",
+      "intent": "Contrast Tension Core: rounded, dry, damped pluck with low network stress/FM, short low-sustain envelope, retriggered articulation, no slides and no cyclic modulation.",
+      "seconds": 14
+    }
+  ]
+}

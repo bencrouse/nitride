@@ -1,0 +1,19 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "soft-alloy-r2",
+      "category": "Pads",
+      "intent": "Less uniform network texture: stronger, slower independent coupling/stress motion and network-driven FM shape. Original envelope, tone, pitch and Space preserved.",
+      "seconds": 32
+    },
+    {
+      "file": "tension-core-r2",
+      "category": "Basses",
+      "intent": "Isolate the initial burp hypothesis: disable only the 25 ms phrase-onset carrier pitch bend; keep dirty FM/network body, filter bite and legato glide unchanged. Listening confirmation pending.",
+      "seconds": 12
+    }
+  ]
+}

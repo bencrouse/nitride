@@ -6,8 +6,8 @@ namespace Nitride
 class InstrumentView::Panel final : public juce::Component
 {
 public:
-    Panel(InstrumentSession& session, std::function<void()> audioSettings)
-        : content(session, std::move(audioSettings))
+    Panel(InstrumentSession& session, std::function<void()> audioSettings, PresetPresentation presentation)
+        : content(session, std::move(audioSettings), presentation)
     {
         addAndMakeVisible(content);
         setSize(content.getWidth(), content.getHeight());
@@ -16,8 +16,8 @@ public:
     InstrumentPanel content;
 };
 
-InstrumentView::InstrumentView(InstrumentSession& session, std::function<void()> audioSettings)
-    : panel(std::make_unique<Panel>(session, std::move(audioSettings)))
+InstrumentView::InstrumentView(InstrumentSession& session, std::function<void()> audioSettings, PresetPresentation presentation)
+    : panel(std::make_unique<Panel>(session, std::move(audioSettings), presentation))
 {
     setName("Nitride instrument");
     addAndMakeVisible(*panel);
