@@ -47,6 +47,8 @@ def main():
             shutil.rmtree(directory)
         run(["cmake", "--preset", preset], log=reports / (profile + "-configure.log"))
         targets = ["nitride_safety_tests"] if profile in ("asan", "tsan") else ["nitride", "nitride_ui_tests", "nitride_automation_tests", "nitride_pitch_tests", "nitride_reference_tests", "nitride_study_tests", "nitride_safety_tests"]
+        if profile not in ("asan", "tsan"):
+            targets.append("nitride_socket_tests")
         if profile == "release" or (args.full and profile == "debug"):
             targets += ["nitride_AU", "nitride_Standalone", "nitride_review", "nitride_perf", "nitride_au_component_tests"]
         run(["cmake", "--build", "--preset", preset, "--target", *targets], log=reports / (profile + "-build.log"))

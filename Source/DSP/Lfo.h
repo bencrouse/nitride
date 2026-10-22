@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <limits>
 #include <numbers>
 
 namespace Nitride::DSP
@@ -92,10 +91,10 @@ public:
             const auto beats=beatsPerCycle(s.division,transport.beatsPerBar);
             if(s.sync&&transport.hasPosition)
             {
-                // A discrete cycle hash must not change one sample earlier/later
+                // A discrete cycle/half-cycle must not change one sample earlier/later
                 // with host block size due to accumulated PPQ addition error.
                 // Continuous waves retain their existing interpolation arithmetic.
-                const auto discrete=s.wave==LfoWave::sampleHold;
+                const auto discrete=s.wave==LfoWave::sampleHold||s.wave==LfoWave::square;
                 const auto syncedPosition=discrete&&transport.playing?transport.ppq+static_cast<double>(positionSamples)*transport.bpm/(60*rate):position;
                 auto cycles=syncedPosition/beats;
                 const auto& subdivision=subdivisions[static_cast<size_t>(s.division)];
@@ -106,9 +105,15 @@ public:
                 }
                 if(discrete)
                 {
-                    const auto boundary=std::round(cycles);
-                    const auto tolerance=std::min(1e-12,8*std::numeric_limits<double>::epsilon()*std::max(1.0,std::abs(cycles)));
-                    if(std::abs(cycles-boundary)<=tolerance)cycles=boundary;
+                    const auto divisions=s.wave==LfoWave::square?2.0:1.0;
+                    const auto edges=cycles*divisions;
+                    const auto boundary=std::round(edges);
+                    // Loop/seek PPQ can include cancellation from a larger host
+                    // timeline origin, even when the resulting cycle is near0.
+                    // Canonicalize only within one trillionth of an edge unit;
+                    // genuine pre-boundary positions remain on their own side.
+                    constexpr auto tolerance=1e-12;
+                    if(std::abs(edges-boundary)<=tolerance)cycles=boundary/divisions;
                 }
                 cycle=static_cast<std::int64_t>(std::floor(cycles));phase=cycles-std::floor(cycles);
             }

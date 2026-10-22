@@ -88,6 +88,34 @@ void sampleHoldBoundaryClock()
     for(int i=0;i<10000;++i)stopped.next();near(stopped.fmWave(),DSP::lfoWave(DSP::LfoWave::sampleHold,0,4,2),1e-10,"Stopped S&H seek did not follow the new cycle");
 }
 
+void squareBoundaryClock()
+{
+    const auto renderClock=[](double rate,int block)
+    {
+        DSP::LfoBank bank;bank.prepare(rate);std::array<DSP::LfoSettings,DSP::lfoCount> settings{};
+        settings[3]={true,true,DSP::LfoWave::square,.25,.92,17};
+        std::vector<double> result(static_cast<size_t>(rate*8));
+        for(size_t offset=0;offset<result.size();offset+=static_cast<size_t>(block))
+        {
+            bank.configure(settings,{120,static_cast<double>(offset)*120/(60*rate),4,true,true,true},120);
+            for(size_t i=offset;i<std::min(offset+static_cast<size_t>(block),result.size());++i)result[i]=bank.next()[3];
+        }
+        return result;
+    };
+    for(double rate:{44100.0,48000.0,96000.0})
+    {
+        const auto expected=renderClock(rate,64);
+        require(expected==renderClock(rate,257),"Square half-cycle depends on host block size");
+        require(expected==renderClock(rate,1024),"Square half-cycle depends on large blocks");
+    }
+    DSP::LfoBank stopped;stopped.prepare(48000);std::array<DSP::LfoSettings,DSP::lfoCount> settings{};
+    settings[3]={true,true,DSP::LfoWave::square,.25,1,17};
+    DSP::Transport transport{120,DSP::beatsPerCycle(17)*(.5-1e-7),4,true,true,false};stopped.configure(settings,transport,120);
+    for(int i=0;i<10000;++i)stopped.next();near(stopped.next()[3],0,1e-10,"Square correction moved a genuine pre-half-cycle position");
+    transport.ppq=DSP::beatsPerCycle(17)*.5;stopped.configure(settings,transport,120);
+    for(int i=0;i<10000;++i)stopped.next();near(stopped.next()[3],1,1e-10,"Square seek did not select the exact half-cycle");
+}
+
 struct Playhead final:juce::AudioPlayHead
 {
     PositionInfo position;
@@ -187,4 +215,4 @@ void uiAndState()
     p.getStateInformation(state);rate->onDragStart();p.setStateInformation(state.getData(),static_cast<int>(state.getSize()));rate->setValue(10,juce::sendNotificationSync);rate->onDragEnd();near(s.read().values[pitchLfoRate],3,1e-6,"Stale LFO drag overwrote recalled rate");
 }
 }
-void runLfoTests(){wavesAndClock();sampleHoldBoundaryClock();hostTiming();destinations();pitchComposition();uiAndState();std::cout<<"LFO waves, independent clocks, musical sync/meter/seek/fallback, all destinations, deterministic S&H/triplet boundaries, pitch composition/band suppression, UI and scalable recall/history passed\n";}
+void runLfoTests(){wavesAndClock();sampleHoldBoundaryClock();squareBoundaryClock();hostTiming();destinations();pitchComposition();uiAndState();std::cout<<"LFO waves, independent clocks, musical sync/meter/seek/fallback, all destinations, deterministic S&H/square boundaries, pitch composition/band suppression, UI and scalable recall/history passed\n";}

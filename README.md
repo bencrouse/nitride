@@ -37,3 +37,4 @@ as an AU instrument.
 - [Evaluation journal](docs/EVALUATION.md) — embedded Logic trial presets, persistent feedback and resumable history.
 - [Factory presets](presets/factory/HOST_PRESETS.md) — 53 finalized sounds, Logic-native categories and the standalone browser.
 - [Preset provenance](docs/PRESET_PROVENANCE.md) — original Nitride interpretations and the local-only research boundary.
+- [Release qualification](docs/RELEASE_QUALIFICATION.md) — measured timing/performance evidence and pending M2/Logic acceptance.
