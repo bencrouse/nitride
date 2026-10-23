@@ -1,6 +1,9 @@
 # Factory preset library
 
 **Current workflow:** [Host-native presets / eval-029](HOST_PRESETS.md).
+Run `make reload-au` to install the AU and any missing categorized factory presets,
+including from a clean clone. Existing presets/user edits are never overwritten;
+no private evaluation workspace or separate preset package is required.
 The user finalized **53 sounds**: the prior50 plus Plastic Hero, Budget Heaven and
 Sugar Teeth, unchanged from the approved pop-lens audition. Editing/saving and levels
 for the prior library are confirmed. Logic and the

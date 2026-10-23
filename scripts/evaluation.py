@@ -118,7 +118,8 @@ def project_state(events):
     return state
 
 
-def validate_builtins(project=PROJECT):
+def validate_builtins(project=PROJECT, *, check_history=True):
+    """Always validate checked-in identities/hashes; optionally cross-check private history."""
     root = Path(project) / "presets/review"
     catalog = json.loads((root / "builtins.json").read_text())
     if catalog.get("format") != "nitride-review-builtins" or catalog.get("version") != 1 or not catalog.get("entries"):
@@ -137,7 +138,7 @@ def validate_builtins(project=PROJECT):
             raise ValueError("Unsupported embedded preset schema")
         ids.add(entry["id"])
         filenames.add(path.name)
-    events = read_events(Path(project) / "evaluation/events.jsonl")
+    events = read_events(Path(project) / "evaluation/events.jsonl") if check_history else []
     for event in events:
         if event["type"] == "revision":
             old = event["payload"]

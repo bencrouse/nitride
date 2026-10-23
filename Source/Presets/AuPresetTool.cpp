@@ -8,9 +8,11 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 #include "FactoryPrograms.h"
 
@@ -32,6 +34,39 @@ template<class T> struct Owned
     Owned& operator=(const Owned&)=delete;
     T value;
 };
+AudioComponent explicitComponent=nullptr;
+struct ComponentBundle
+{
+    explicit ComponentBundle(const char* path):url(CFURLCreateFromFileSystemRepresentation(
+        nullptr,reinterpret_cast<const UInt8*>(path),static_cast<CFIndex>(std::char_traits<char>::length(path)),true)),
+        bundle(url.value?CFBundleCreate(nullptr,url.value):nullptr)
+    {
+        require(bundle.value!=nullptr,"Cannot open component bundle");
+        const auto info=CFBundleGetInfoDictionary(bundle.value);
+        require(info!=nullptr,"Missing component Info.plist");
+        const auto identity=CFDictionaryGetValue(info,CFSTR("CFBundleIdentifier"));
+        require(identity&&CFEqual(identity,CFSTR("com.nitride.audio.nitride")),"Not a Nitride component bundle");
+        const auto components=CFDictionaryGetValue(info,CFSTR("AudioComponents"));
+        require(components&&CFGetTypeID(components)==CFArrayGetTypeID()&&CFArrayGetCount(static_cast<CFArrayRef>(components))==1,"Invalid component registration");
+        const auto entry=CFArrayGetValueAtIndex(static_cast<CFArrayRef>(components),0);
+        require(entry&&CFGetTypeID(entry)==CFDictionaryGetTypeID(),"Invalid component description");
+        const auto dictionary=static_cast<CFDictionaryRef>(entry);
+        for(const auto& pair:{std::pair{CFSTR("type"),CFSTR("aumu")},std::pair{CFSTR("subtype"),CFSTR("NT01")},std::pair{CFSTR("manufacturer"),CFSTR("NTRD")}})
+        {
+            const auto value=CFDictionaryGetValue(dictionary,pair.first);
+            require(value&&CFEqual(value,pair.second),"Unexpected component identity");
+        }
+        const auto name=CFDictionaryGetValue(dictionary,CFSTR("factoryFunction"));
+        require(name&&CFGetTypeID(name)==CFStringGetTypeID(),"Missing component factory entry point");
+        const auto factory=reinterpret_cast<AudioComponentFactoryFunction>(CFBundleGetFunctionPointerForName(bundle.value,static_cast<CFStringRef>(name)));
+        require(factory!=nullptr,"Cannot load component factory entry point");
+        AudioComponentDescription description{};description.componentType='aumu';description.componentSubType='NT01';description.componentManufacturer='NTRD';
+        explicitComponent=AudioComponentRegister(&description,CFSTR("nitride: preset export"),0,factory);
+        require(explicitComponent!=nullptr,"Cannot register isolated component factory");
+    }
+    Owned<CFURLRef> url;
+    Owned<CFBundleRef> bundle;
+};
 struct Instance
 {
     Instance()
@@ -39,7 +74,7 @@ struct Instance
         AudioComponentDescription description{};
         description.componentType=kAudioUnitType_MusicDevice;
         description.componentSubType='NT01';description.componentManufacturer='NTRD';
-        const auto component=AudioComponentFindNext(nullptr,&description);
+        const auto component=explicitComponent?explicitComponent:AudioComponentFindNext(nullptr,&description);
         require(component!=nullptr,"Installed Nitride AU not found");
         check(AudioComponentInstanceNew(component,&unit),"Create isolated AU instance");
     }
@@ -176,6 +211,13 @@ int main(int argc,char** argv)
 {
     try
     {
+        // Explicit source installs use exactly the requested bundle, even with an
+        // older AU cached by the registrar. Registration is private to this process.
+        std::unique_ptr<ComponentBundle> bundle;
+        if(argc>=3&&std::string(argv[1])=="--component")
+        {
+            bundle=std::make_unique<ComponentBundle>(argv[2]);argc-=2;argv+=2;
+        }
         if(argc==6&&std::string(argv[1])=="export")
         {
             Instance instance;instance.select(std::stoi(argv[2]),argv[3]);
@@ -188,7 +230,7 @@ int main(int argc,char** argv)
             std::cout<<"Exported clean isolated AU ClassInfo; only outer host label changed\n";
         }
         else if(argc==5&&std::string(argv[1])=="verify")verify(argv[2],std::stoi(argv[3]),argv[4]);
-        else throw std::runtime_error("Usage: nitride_au_presets export PROGRAM EXPECTED-FACTORY-NAME HOST-LABEL NEW.aupreset | verify FILE PROGRAM EXPECTED-FACTORY-NAME");
+        else throw std::runtime_error("Usage: nitride_au_presets [--component PATH] export PROGRAM EXPECTED-FACTORY-NAME HOST-LABEL NEW.aupreset | verify FILE PROGRAM EXPECTED-FACTORY-NAME");
         return 0;
     }
     catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

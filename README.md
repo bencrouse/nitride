@@ -19,8 +19,11 @@ make standalone
 ```
 
 For your DAW, run `make reload-au` to build, install and validate the AU in
-`~/Library/Audio/Plug-Ins/Components`. Restart your DAW, then look for **nitride**
-as an AU instrument.
+`~/Library/Audio/Plug-Ins/Components`. It also generates and installs the 53 categorized
+native presets in `~/Library/Audio/Presets/nitride/nitride/`, including on a fresh clone.
+Existing preset files and user edits are left untouched. Restart your DAW, then look
+for **nitride** as an AU instrument; in Logic, browse its host **Settings** menu above
+the plugin interface. No private evaluation workspace or separate preset download is needed.
 
 ## Poke around
 

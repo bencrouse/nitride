@@ -77,6 +77,43 @@ not certification of every register, hardware reference or maximum-polyphony cas
 
 ## Safe export and installation
 
+### Normal source installation (including a fresh clone)
+
+```sh
+make reload-au
+```
+
+This builds/installs the AU, then exports and verifies all 53 categorized `.aupreset`
+files directly from that exact component and installs any missing files. Restart Logic
+and create a new instance, then use the host's **Settings** menu above the interface.
+The AU intentionally does not advertise the separate **AU Presets** submenu.
+
+Only checked-in selection, acceptance and sound definitions are needed. No private
+`evaluation/` journal, archived build, manual preset copying or separate package is required.
+The native export helper is built even with `NITRIDE_BUILD_TESTS=OFF`. It loads the specified
+bundle directly in an isolated process, avoiding an older component cached by AU discovery.
+Every generated preset receives the same full-document, 89-parameter and stereo-audio
+recall checks used by the checkpoint exporter before any preset is published.
+
+Re-running the command adds only missing factory paths. **No existing path is replaced**,
+including factory files edited in Logic or unrelated user saves. Existing ownership receipts
+and old Study/Preview folders are also untouched. It reports how many files were installed
+and how many paths were preserved; a preserved path is not a claim that its contents match
+the factory sound. This additive installer does not claim ownership of existing files or
+provide an automatic sound updater/uninstaller. New files use exclusive, staged publication;
+on failure it rolls back only unchanged files newly created by that attempt.
+
+`BUILD_DIR` and `CONFIG` select the build as usual. `AU_INSTALL_DIR` selects the component
+destination; `AU_PRESET_INSTALL_DIR` can select a different preset destination for testing.
+`make install-au-presets` performs the build/install/export steps without the final `auval`
+run; `make install-au` remains the component-only operation.
+
+### Historical checkpoint workflow
+
+The explicit checkpoint exporter below still defaults to a journal-recorded evaluation
+build. For journal-free export to a new package, add `--component /path/to/nitride.component`
+and `--tool /path/to/nitride_au_presets`. Normal source installs use the command above instead.
+
 ```sh
 python3 scripts/factory_presets.py export /new/output/path --scope candidate
 python3 scripts/factory_presets.py verify /new/output/path

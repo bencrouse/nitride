@@ -152,6 +152,10 @@ add_executable(nitride_study_render Source/Studies/RenderStudies.cpp)
 target_link_libraries(nitride_study_render PRIVATE nitride_study_engine)
 endif()
 
+# Needed for source installs too, including builds with regression tools disabled.
+add_executable(nitride_au_presets Source/Presets/AuPresetTool.cpp)
+target_link_libraries(nitride_au_presets PRIVATE "-framework AudioToolbox" "-framework CoreFoundation")
+
 if(NITRIDE_BUILD_TESTS)
     enable_testing()
     juce_add_console_app(nitride_ui_tests PRODUCT_NAME "nitride_ui_tests")
@@ -232,9 +236,6 @@ if(NITRIDE_BUILD_TESTS)
     add_test(NAME nitride_evaluation_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_evaluation.py")
     add_executable(nitride_au_component_tests Source/Tests/AuComponentTests.cpp)
     target_link_libraries(nitride_au_component_tests PRIVATE "-framework AudioToolbox" "-framework CoreFoundation")
-    # Offline host-preset checkpoint: uses the installed AU, never links plugin code.
-    add_executable(nitride_au_presets Source/Presets/AuPresetTool.cpp)
-    target_link_libraries(nitride_au_presets PRIVATE "-framework AudioToolbox" "-framework CoreFoundation")
     add_test(NAME nitride_factory_preset_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_factory_presets.py")
     add_test(NAME nitride_pop_study_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_pop_studies.py")
     add_test(NAME nitride_qualification_tool_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_qualification.py")

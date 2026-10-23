@@ -505,4 +505,150 @@ class PackageTests(unittest.TestCase):
         self.assertFalse(list(self.destination.glob(".nitride-factory-stage-*")))
 
 
+class SourceInstallTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="nitride-source-install-test-")
+        self.root = Path(self.temporary.name).resolve()
+        self.destination = self.root / "presets"
+        self.component = self.root / "nitride.component"
+        self.binary = self.component / "Contents/MacOS/nitride"
+        self.binary.parent.mkdir(parents=True)
+        self.binary.write_bytes(b"unit-test-only, not a real AU")
+        (self.component / "Contents/Info.plist").write_bytes(plistlib.dumps({
+            "CFBundleIdentifier": "com.nitride.audio.nitride", "CFBundleExecutable": "nitride",
+            "CFBundleShortVersionString": "unit-test"}))
+        self.tool = self.root / "nitride_au_presets"
+        self.tool.write_bytes(b"unit-test-only native tool")
+        self.selection, self.entries = fp.validate_selection()
+        self.by_program = {e["program"]: e for e in self.entries}
+        self.package = self.root / "package"
+        self.journal = mock.patch.object(ev, "read_events", side_effect=AssertionError("Private journal accessed"))
+        self.journal.start()
+        self.native = mock.patch.object(fp, "native", side_effect=self.native_fixture)
+        self.native.start()
+
+    def tearDown(self):
+        self.native.stop()
+        self.journal.stop()
+        self.temporary.cleanup()
+
+    def native_fixture(self, command, tool, component=None):
+        self.assertEqual(Path(component), self.component)
+        self.assertEqual(Path(tool), self.tool)
+        if command[0] == "export":
+            entry = self.by_program[int(command[1])]
+            source = json.loads((fp.ROOT / entry["source"]).read_text())
+            self.assertEqual(command[2:4], [source["name"], entry["name"]])
+            Path(command[4]).write_bytes(plistlib.dumps(synthetic_native(source, entry)))
+            return "Unit test fixture only"
+        self.assertEqual(command[0], "verify")
+        return json.dumps({"full_document_exact": True, "parameters": 89, "audio_exact": True})
+
+    def export(self):
+        # Quiet only the per-file progress; validation remains exercised for all53sounds.
+        with mock.patch("builtins.print"):
+            return fp.export_package(self.package, "candidate", self.tool, component=self.component)
+
+    def test_explicit_bundle_export_and_deploy_need_no_private_journal(self):
+        with mock.patch("builtins.print"):
+            result = fp.deploy(self.component, self.tool, self.destination)
+        self.assertEqual(len(result["installed"]), 53)
+        self.assertEqual(result["preserved"], [])
+        self.assertEqual(len(list(self.destination.rglob("*.aupreset"))), 53)
+        for entry in self.entries:
+            path = self.destination / entry["category"] / (entry["name"] + ".aupreset")
+            source = json.loads((fp.ROOT / entry["source"]).read_text())
+            fp.validate_native(path, entry, source)
+
+    def test_fresh_export_on_reinstall_preserves_user_edits_saves_and_receipts(self):
+        with mock.patch("builtins.print"):
+            fp.deploy(self.component, self.tool, self.destination)
+        entry = self.entries[0]
+        edited = self.destination / entry["category"] / (entry["name"] + ".aupreset")
+        edited.write_bytes(b"my edited factory sound")
+        user = self.destination / "My own.aupreset"; user.write_bytes(b"my save")
+        receipt = self.destination / fp.FACTORY_RECEIPT; receipt.write_bytes(b"old ownership receipt")
+        with mock.patch("builtins.print"):
+            result = fp.deploy(self.component, self.tool, self.destination)
+        self.assertEqual(result["installed"], [])
+        self.assertEqual(len(result["preserved"]), 53)
+        self.assertEqual(edited.read_bytes(), b"my edited factory sound")
+        self.assertEqual(user.read_bytes(), b"my save")
+        self.assertEqual(receipt.read_bytes(), b"old ownership receipt")
+
+    def test_missing_files_are_repaired_without_claiming_existing_paths(self):
+        self.export()
+        result = fp.install_missing(self.package, self.destination)
+        absent = self.destination / result["installed"][0]; absent.unlink()
+        result = fp.install_missing(self.package, self.destination)
+        self.assertEqual(result["installed"], [str(absent.relative_to(self.destination))])
+        self.assertEqual(len(result["preserved"]), 52)
+        self.assertFalse((self.destination / fp.FACTORY_RECEIPT).exists())
+
+    def test_partial_or_relabelled_catalog_is_refused(self):
+        manifest = self.export()
+        for entries in (manifest["entries"][:-1], [{**e, "program": 0} for e in manifest["entries"]]):
+            changed = {**manifest, "entries": entries}
+            (self.package / "manifest.json").write_text(json.dumps(changed))
+            with self.assertRaises(ValueError): fp.install_missing(self.package, self.destination)
+            self.assertFalse(self.destination.exists())
+
+    def test_linked_category_is_refused_without_writing_through_it(self):
+        self.export()
+        outside = self.root / "outside"; outside.mkdir()
+        self.destination.mkdir()
+        (self.destination / self.entries[0]["category"]).symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "Unsafe category"):
+            fp.install_missing(self.package, self.destination)
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_concurrent_save_wins_exclusive_publication(self):
+        self.export()
+        real_link = fp.os.link
+        saved = []
+        def concurrent_save(source, target):
+            if not saved:
+                Path(target).write_bytes(b"concurrent user save")
+                saved.append(Path(target))
+            real_link(source, target)
+        with mock.patch.object(fp.os, "link", side_effect=concurrent_save):
+            result = fp.install_missing(self.package, self.destination)
+        self.assertEqual(len(result["installed"]), 52)
+        self.assertEqual(result["preserved"], [str(saved[0].relative_to(self.destination))])
+        self.assertEqual(saved[0].read_bytes(), b"concurrent user save")
+
+    def test_publication_failure_rolls_back_only_new_unchanged_files(self):
+        self.export()
+        self.destination.mkdir()
+        user = self.destination / "User.aupreset"; user.write_bytes(b"user sound")
+        real_link = fp.os.link
+        calls = 0
+        def fail_second(source, target):
+            nonlocal calls
+            calls += 1
+            if calls == 2: raise OSError("injected source install failure")
+            real_link(source, target)
+        with mock.patch.object(fp.os, "link", side_effect=fail_second):
+            with self.assertRaisesRegex(OSError, "injected"):
+                fp.install_missing(self.package, self.destination)
+        self.assertEqual(list(self.destination.iterdir()), [user])
+        self.assertEqual(user.read_bytes(), b"user sound")
+
+    def test_bundle_identity_and_mid_export_changes_are_checked(self):
+        plist = self.component / "Contents/Info.plist"
+        original = plist.read_bytes()
+        plist.write_bytes(plistlib.dumps({"CFBundleIdentifier": "another.synth"}))
+        with self.assertRaisesRegex(ValueError, "Not a Nitride"):
+            fp.component_build(self.component)
+        plist.write_bytes(original)
+        def changing_bundle(command, tool, component=None):
+            result = self.native_fixture(command, tool, component)
+            if command[0] == "verify": self.binary.write_bytes(b"changed during export")
+            return result
+        with mock.patch.object(fp, "native", side_effect=changing_bundle):
+            with mock.patch("builtins.print"), self.assertRaisesRegex(ValueError, "changed during preset export"):
+                fp.deploy(self.component, self.tool, self.destination)
+        self.assertFalse(self.destination.exists())
+
+
 if __name__ == "__main__": unittest.main()

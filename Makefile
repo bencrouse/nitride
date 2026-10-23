@@ -10,6 +10,8 @@ AU_MANUFACTURER ?= NTRD
 AU_COMPONENT ?= nitride.component
 AU_INSTALL_DIR ?= $(HOME)/Library/Audio/Plug-Ins/Components
 AU_BUILD_PATH := $(BUILD_DIR)/nitride_artefacts/$(CONFIG)/AU/$(AU_COMPONENT)
+AU_PRESET_TOOL ?= $(BUILD_DIR)/nitride_au_presets
+AU_PRESET_INSTALL_DIR ?= $(HOME)/Library/Audio/Presets/nitride/nitride
 PERF_BUILD_DIR ?= build/performance
 PERF_ARGS ?= --output "$(PERF_BUILD_DIR)/latest.json"
 REVIEW_BATCH ?= presets/review/batch-01/r1
@@ -17,7 +19,7 @@ REVIEW_OUTPUT ?= $(abspath $(BUILD_DIR))/preset-review/batch-01/r1
 
 .PHONY: help configure build test check check-full benchmark render-pitch preset-review studies gestures deformation review render-studies render-studies-02 render-studies-03 render-studies-04 render-studies-05 install-au validate-au reload-au standalone clean
 .PHONY: evaluation-status evaluation-verify evaluation-backup
-.PHONY: factory-selection factory-pilot factory-install
+.PHONY: factory-selection factory-pilot factory-install install-au-presets
 help:
 	@echo "make build        Build AU + Standalone"
 	@echo "make test         Check native UI, automation/state and DSP"
@@ -41,8 +43,9 @@ help:
 	@echo "make render-studies-03  Compare original and note-coupled phase/delay at 30/70/100%"
 	@echo "make render-studies-04  Compare adaptive oscillator coupling against F at 50%"
 	@echo "make render-studies-05  Compare G with the extended network stress range"
-	@echo "make reload-au    Build, install, and validate AU"
-	@echo "Overrides: JUCE_DIR, BUILD_DIR, CONFIG, JOBS, AU_INSTALL_DIR"
+	@echo "make reload-au    Build, install, and validate AU + missing factory presets"
+	@echo "make install-au-presets Build/install AU and add missing native factory presets; existing saves preserved"
+	@echo "Overrides: JUCE_DIR, BUILD_DIR, CONFIG, JOBS, AU_INSTALL_DIR, AU_PRESET_INSTALL_DIR"
 
 configure:
 	$(CMAKE) -S . -B "$(BUILD_DIR)" -DCMAKE_BUILD_TYPE=$(CONFIG) -DJUCE_DIR="$(JUCE_DIR)"
@@ -106,7 +109,11 @@ install-au: build
 validate-au:
 	launchctl asuser $(shell id -u) /usr/bin/auval -v $(AU_TYPE) $(AU_SUBTYPE) $(AU_MANUFACTURER)
 
-reload-au: install-au
+install-au-presets: install-au
+	$(CMAKE) --build "$(BUILD_DIR)" --config $(CONFIG) --parallel $(JOBS) --target nitride_au_presets
+	python3 scripts/factory_presets.py deploy --component "$(AU_INSTALL_DIR)/$(AU_COMPONENT)" --tool "$(AU_PRESET_TOOL)" --destination "$(AU_PRESET_INSTALL_DIR)"
+
+reload-au: install-au-presets
 	$(MAKE) validate-au
 
 standalone: build
