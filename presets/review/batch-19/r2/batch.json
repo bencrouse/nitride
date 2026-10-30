@@ -1,0 +1,79 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "low-battery-piano-r2",
+      "category": "Physical materials",
+      "host_category": "Keys & Organs",
+      "seconds": 32,
+      "study_axis": "worn piano-like strike and near-unison ring / slightly stronger detune",
+      "design_lens": "Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Low Battery Piano: static FM ratio 1.003 to 1.006. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. An FM piano interpretation, not acoustic piano samples, independently detuned strings, stretch tuning, a tape processor or an artist-authentic instrument. Velocity opens the shared Tone filter, not a separate filter per key."
+    },
+    {
+      "file": "slack-drum-r2",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 27,
+      "study_axis": "loose pitched drum with beating body / slightly stronger detune",
+      "design_lens": "Beak> / Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Slack Drum: static FM ratio 1.011 to 1.017. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. Not a drum kit, sampled acoustic shell, independently tuned membrane modes or per-hit random pitch. The five-semitone attack drop is a separate transient gesture, not the persistent detuning. No pitch LFO is needed for the detuned body."
+    },
+    {
+      "file": "brown-console-r2",
+      "category": "Leads",
+      "host_category": "Keys & Organs",
+      "seconds": 32,
+      "study_axis": "dark beating combo-organ surrogate / slightly stronger detune",
+      "design_lens": "Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Brown Console: static FM ratio 0.997 to 0.994. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. Not tonewheel/crosstalk modeling, a Leslie, stereo chorus or separately drifting voices. The three motions are global; the note-dependent beat rates arise from the actual relative frequency offset."
+    },
+    {
+      "file": "silt-bass-r2",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 29,
+      "study_axis": "dry round bass with shallow relative detune / slightly stronger detune",
+      "design_lens": "Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Silt Bass: static FM ratio 0.998 to 0.996. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. No added sub-oscillator, tape saturation, pitch sequencer or big modulated cutoff. The quiet tap is an existing FM branch, not a new analog oscillator. No Space to blur the low end."
+    },
+    {
+      "file": "bent-aerial-r2",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 29,
+      "study_axis": "narrow fuzzy lead with relative and common drift / slightly stronger detune",
+      "design_lens": "Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Bent Aerial: static FM ratio 1.0065 to 1.01. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. Not a named vintage monosynth, saw oscillator bank, tape echo or independently drifting analog VCOs. No fast vibrato or large pitch scoop; strain comes from partials, not a blanket high-stress distortion setting."
+    },
+    {
+      "file": "melted-ensemble-r2",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 40,
+      "study_axis": "dark detuned ensemble without a chorus engine / slightly stronger detune",
+      "design_lens": "Portishead / Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Melted Ensemble: static FM ratio 1.0035 to 1.007. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. Unlike Budget Heaven, this is dark, slowly moving and deliberately less glossy. No chorus, stereo VCO spread, independently phased drift per voice, giant ambient wash or new oscillator model is implied."
+    },
+    {
+      "file": "oxide-rim-r2",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 22,
+      "study_axis": "short inharmonic rim-like edge / slightly stronger detune",
+      "design_lens": "Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Oxide Rim: static FM ratio 2.013 to 2.022. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. Not a snare-wire/noise source, sampled rim, tape clipping or a kit mapping. The short sound emphasizes inharmonic attack color rather than claiming a slow audible unison beat in every hit."
+    },
+    {
+      "file": "reel-clav-r2",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 27,
+      "study_axis": "damped key with held-cycle pitch wander / slightly stronger detune",
+      "design_lens": "Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "r2 of Reel Clav: static FM ratio 2.003 to 2.006. Original MIDI, amplitude/FM/filter envelopes, tone, Output, tap mix and all LFO/drift settings unchanged; more relative separation rather than extra vibrato. Not sampled clavinet, random tuning per key or actual tape wow/flutter processing. The sample-and-hold lane is global and deterministic by cycle; short repeated notes can share a held pitch offset."
+    }
+  ]
+}

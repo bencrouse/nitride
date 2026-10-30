@@ -1,8 +1,9 @@
 # LFO and envelope presets — batch 18
 
 All eight original Nitride studies are **finalized unchanged in 0.7.32 / eval-032**.
-The user's explicit 2026-10-30 promotion request brings the catalog to 61, preserving
-the prior 53 sounds. This does not infer per-sound commentary or extra host/release
+That explicit promotion brought the catalog to 61, preserving the prior 53 sounds;
+the later [analog r2 promotion](ANALOG_STUDIES.md) brings the current total to 69.
+This does not infer per-sound commentary or extra host/release
 qualification. These are parameter recipes using the existing synth, not new DSP,
 per-voice LFOs, an arpeggiator or a
 modulation-matrix expansion. Existing programs 0–65 remain unchanged; the studies
@@ -25,7 +26,7 @@ not invent detailed listening observations. The r1 recipes and MIDI are untouche
 
 ## Install in Logic
 
-The normal source-install command now includes all 61 finalized sounds, including
+The normal source-install command now includes all 69 finalized sounds, including
 these eight with clean names:
 
 ```sh
@@ -41,7 +42,7 @@ archives only receipt-owned, unchanged duplicates with exact clean replacements.
 See [host installation and managed migration](../presets/factory/HOST_PRESETS.md).
 
 In Logic, restart after updating and use the instrument's host **Settings** menu
-above the interface. Standalone includes all 61 sounds in its normal category browser.
+above the interface. Standalone includes all 69 sounds in its normal category browser.
 The original internal `Review / … r1` names and programs 66–73 remain available for
 saved-session recall; clean display labels do not rewrite sound documents.
 

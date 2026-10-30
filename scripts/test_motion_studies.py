@@ -37,9 +37,10 @@ class MotionStudyTests(unittest.TestCase):
         self.assertEqual([e["program"] for e in entries], list(range(66, 74)))
         selection, selected = fp.validate_selection()
         motion_ids = {e["id"] for e in entries}
-        self.assertEqual(len(selected), 61)
+        self.assertEqual(len(selected), 69)
         self.assertTrue(motion_ids <= {e["id"] for e in selected})
-        prior = [e for e in selection["entries"] if e["id"] not in motion_ids]
+        selected_programs = {e["id"]: e["program"] for e in selected}
+        prior = [e for e in selection["entries"] if selected_programs[e["id"]] < 66]
         self.assertEqual(hashlib.sha256(ev.canonical(prior)).hexdigest(),
                          "ef0b0981aa6ec0180bdd55d66d3a80d75f444470463e90d700734464bc31ddef")
         feedback = next(f for f in fp.acceptance()["additional_feedback"] if set(f["revisions"]) == motion_ids)
@@ -100,7 +101,7 @@ class MotionStudyTests(unittest.TestCase):
         # Preserve coverage of the original audition workflow using its pre-promotion
         # selection. Current finalized sounds must not be re-exported as new studies.
         selection, selected = fp.validate_selection(check_history=False)
-        prior = [e for e in selected if not e["source"].startswith("presets/review/batch-18/")]
+        prior = [e for e in selected if e["program"] < 66]
         definitions = {66 + i: d for i, d in enumerate(self.definitions())}
         with tempfile.TemporaryDirectory(prefix="nitride-motion-study-test-") as folder:
             root = Path(folder).resolve()
@@ -150,6 +151,7 @@ class MotionStudyTests(unittest.TestCase):
 
     def test_all_eight_owned_duplicates_retire_only_after_exact_factory_replacement(self):
         selection, selected = fp.validate_selection()
+        selected = [e for e in selected if e["program"] < 74]  # Historical 53→61 promotion fixture.
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve(); package = root / "package"; package.mkdir()
             destination = root / "installed"; archive = root / "archive"

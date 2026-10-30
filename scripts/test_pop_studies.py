@@ -27,7 +27,7 @@ class PopStudyTests(unittest.TestCase):
         self.assertEqual([e["program"] for e in entries], [63, 64, 65])
         self.assertEqual([e["family"] for e in entries], ["plastic-hero", "budget-heaven", "sugar-teeth"])
         self.assertTrue(all("imagined taste brief" in e["design_lens"] for e in entries))
-        _, selected = fp.validate_selection(); self.assertEqual(len(selected), 61)
+        _, selected = fp.validate_selection(); self.assertEqual(len(selected), 69)
         self.assertTrue({e["id"] for e in entries} <= {e["id"] for e in selected})
 
     def test_frozen_generator_and_contrasting_controls(self):

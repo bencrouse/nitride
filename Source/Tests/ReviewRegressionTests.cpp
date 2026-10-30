@@ -324,6 +324,51 @@ void embeddedReviewPrograms()
     p.getInstrumentSession().set(autobendDepth,.7);automation.parameter->removeListener(&automation);
     require(std::abs(p.getInstrumentSession().read().values[autobendDepth]-.9)<1e-5,"Own float-echo guard suppressed genuine reentrant automation");
 }
+void analogDetune()
+{
+    constexpr std::array ids{"review:low-battery-piano:r1","review:slack-drum:r1","review:brown-console:r1","review:silt-bass:r1",
+        "review:bent-aerial:r1","review:melted-ensemble:r1","review:oxide-rim:r1","review:reel-clav:r1"};
+    for(size_t i=0;i<ids.size();++i)
+    {
+        const auto program=74+static_cast<int>(i);
+        require(builtInIndex(ids[i])==program,"Analog studies displaced historical programs");
+        require(factoryProgramName(program)==nullptr,"Unapproved analog study entered normal factory browsing");
+        const auto& patch=builtInPresets()[static_cast<size_t>(program)].patch;
+        require(!patch.chord&&patch.values[fmMix]>0&&patch.values[pitchLfoSync]==0&&patch.values[fmLfoSync]==0,"Analog study lost its explicit branch/free-motion design");
+        const auto revisedId=juce::String(ids[i]).dropLastCharacters(2)+"r2";
+        const auto revisedProgram=82+static_cast<int>(i);
+        require(builtInIndex(revisedId)==revisedProgram&&factoryProgramName(revisedProgram)!=nullptr,"Finalized analog r2 lost its stable program or clean factory label");
+        const auto& revised=builtInPresets()[static_cast<size_t>(revisedProgram)].patch;
+        require(revised.mono==patch.mono&&revised.chord==patch.chord,"Detune refinement changed mono/chord behavior");
+        for(size_t parameter=0;parameter<parameterCount;++parameter)
+            if(parameter!=fmRatio)require(revised.values[parameter]==patch.values[parameter],"Detune refinement changed another sound setting");
+        const auto harmonic=i<6?1.0:2.0;
+        const auto oldCents=std::log2(patch.values[fmRatio]/harmonic),newCents=std::log2(revised.values[fmRatio]/harmonic);
+        require(oldCents*newCents>0&&std::abs(newCents/oldCents)>1.5&&std::abs(newCents/oldCents)<2.05,"Analog r2 lost the small same-direction detune increase");
+        if(i<6)
+        {
+            // Exercise the real renderer without common wow, ratio wandering,
+            // glide or attack bend. Relative frequency separation must remain.
+            for(const auto* candidate:{&patch,&revised})
+            {
+                auto steady=*candidate;
+                for(const auto& lane:lfoParameters)steady.values[lane.enabled]=0;
+                steady.values[glideOn]=0;steady.values[autobendOn]=0;
+                RenderHarness h;h.session.apply(steady);h.renderer.prepare(48000);
+                h.event(juce::MidiMessage::noteOn(1,60,.8f));h.tick(24000);
+                const auto pitchState=h.renderer.pitchSnapshot(60);
+                const auto fmState=h.renderer.fmSnapshot(60);
+                const auto nominal=SoundStudies::noteFrequency(60);
+                require(std::abs(pitchState.carrierHz-nominal)<1e-6,"No-wobble carrier moved off the played note");
+                require(std::abs(fmState.primaryHz-nominal*candidate->values[fmRatio])<1e-5,"Actual primary did not retain the stored relative detune");
+                require(std::abs(fmState.primaryHz-pitchState.carrierHz)>.1&&fmState.mix>.1,"Detuned body was only common pitch modulation or an inaudible branch setting");
+            }
+        }
+    }
+    const auto& piano=builtInPresets()[74].patch;const auto& drum=builtInPresets()[75].patch;
+    require(piano.values[fmRatio]==1.003&&piano.values[attack]<.003&&piano.values[sustain]<.1,"Requested piano lost near-unison strike/decaying body");
+    require(drum.values[fmRatio]==1.011&&drum.values[ampLfoOn]==0&&drum.values[pitchLfoOn]==0&&drum.values[decay]>.5,"Requested drum lost actual detuned body without pitch-LFO decoration");
+}
 void transitionTransport()
 {
     constexpr int samples=12000;
@@ -358,4 +403,4 @@ void transitionTransport()
     }
 }
 }
-void runReviewRegressionTests(){midiChannelModes();interruptedRecall();accessibleUnits();compareReplacement();embeddedReviewPrograms();transitionTransport();std::cout<<"Code-review MIDI, recall, accessibility/text, Compare, embedded programs and transition transport regressions passed\n";}
+void runReviewRegressionTests(){midiChannelModes();interruptedRecall();accessibleUnits();compareReplacement();embeddedReviewPrograms();analogDetune();transitionTransport();std::cout<<"Code-review MIDI, recall, accessibility/text, Compare, embedded programs, actual analog detune and transition transport regressions passed\n";}

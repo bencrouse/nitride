@@ -1,5 +1,42 @@
 # Persistent evaluation
 
+## Finalized stronger-detune analog r2 eight / eval-035
+
+The user explicitly approved the r2 refinements: “ok yes very good. can you
+finalize/promote these and commit and push?” All eight r2 sounds enter the
+69-sound finalized catalog unchanged, with clean native/standalone names.
+Programs 82–89 and all prior 0–81 remain intact. R1 stays unselected/recallable;
+its original native comparison files and receipt are preserved. Only unchanged,
+receipt-owned r2 duplicates are archived after exact clean-replacement checks.
+
+Portable verbatim approval and its interpretation live in factory acceptance.json.
+This is a selection decision, not artist/hardware fidelity or extra host/M2/soak/
+project-reopen/performance qualification. Earlier audition sections below are history.
+
+## Slightly stronger detune / r2 · eval-034
+
+The user said all eight analog studies were “quite nice” and requested slightly more
+detunedness. Batch-19/r2 moves only each patch's static FM ratio farther from its
+intended harmonic; all other sound settings and original MIDI are unchanged. Programs
+82–89 append without moving 0–81. The finalized 61, original r1 files and existing
+native/user saves remain intact. Separate **Study - … r2** labels support direct A/B
+instead of overwriting r1. This feedback is refinement, not promotion or commit/push
+authorization. See [the comparison guide](ANALOG_STUDIES.md).
+
+## Detuned analog-style auditions / eval-033
+
+Batch 19 adds eight original Beak>/Portishead imagined-mood studies, including the
+explicitly requested detuned piano and drum: Low Battery Piano, Slack Drum, Brown
+Console, Silt Bass, Bent Aerial, Melted Ensemble, Oxide Rim and Reel Clav. These are
+not artist-authentic recipes or new analog/tape/acoustic models. See the
+[playing and architecture guide](ANALOG_STUDIES.md).
+
+The finalized 61 sounds are unchanged. New programs append at zero-based 74–81;
+all prior 0–73 identities/definitions, v6/v7 state and 89 host controls remain intact.
+They are explicit native Study files, not finalized additions. Relative primary/tap
+detune is distinguished from global pitch wow by controlled renders and production
+renderer checks. No promotion, commit/push or broader host/release approval is inferred.
+
 ## Finalized motion/envelope eight / eval-032
 
 On 2026-10-30 the user explicitly requested: “ok please promote them all and then

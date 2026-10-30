@@ -11,7 +11,7 @@ import evaluation as ev
 import factory_presets as fp
 
 
-def export(output, batch, trial_id, study_id, component=None, tool=fp.TOOL):
+def export(output, batch, trial_id, study_id, component=None, tool=fp.TOOL, revision_label=False):
     ev.identifier(study_id)
     batch = Path(batch).resolve(); output = Path(output).absolute()
     if component is None:
@@ -48,7 +48,7 @@ def export(output, batch, trial_id, study_id, component=None, tool=fp.TOOL):
         definition = json.loads(source.read_text())
         label = definition["name"].split(" / ")[-1]; suffix = " " + entry["revision"]
         if not label.endswith(suffix): raise ValueError("Source name/revision differs from registry")
-        name = "Study - " + fp.component_name(label.removesuffix(suffix))
+        name = "Study - " + fp.component_name(label if revision_label else label.removesuffix(suffix))
         relative = sketch["host_category"] + "/" + name + ".aupreset"; path = output / relative
         path.parent.mkdir(exist_ok=True)
         frozen = "sources/" + entry["family"] + ".nitridepreset"
@@ -113,7 +113,8 @@ def main():
     parser.add_argument("--trial"); parser.add_argument("--study", required=True); parser.add_argument("--install", action="store_true")
     parser.add_argument("--component", type=Path, help="Use this exact source-built AU without a private evaluation journal")
     parser.add_argument("--tool", type=Path, default=fp.TOOL)
-    args = parser.parse_args(); manifest = export(args.output, args.batch, args.trial, args.study, args.component, args.tool)
+    parser.add_argument("--revision-label", action="store_true", help="Keep rN in Study filenames for additive side-by-side revision auditions")
+    args = parser.parse_args(); manifest = export(args.output, args.batch, args.trial, args.study, args.component, args.tool, args.revision_label)
     if args.install: install(args.output)
     print("Prepared", len(manifest["entries"]), "explicit Study files; selected factory catalog unchanged.")
 

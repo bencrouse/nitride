@@ -1,17 +1,19 @@
 # Factory preset library
 
-**Current workflow:** [Host-native presets / eval-032](HOST_PRESETS.md).
+**Current workflow:** [Host-native presets / eval-035](HOST_PRESETS.md).
 Run `make reload-au` to install the AU and any missing categorized factory presets,
 including from a clean clone. Existing presets/user edits are never overwritten;
 no private evaluation workspace or separate preset package is required.
-The user finalized **61 sounds**: the prior 53 plus all eight
-[motion/envelope presets](../../docs/MOTION_STUDIES.md), unchanged from their r1 studies.
+The user finalized **69 sounds**: the prior 61 plus all eight stronger-detune
+[analog r2 presets](../../docs/ANALOG_STUDIES.md), unchanged from their auditions.
 The explicit promotion also authorizes commit and push; it is not separate host-reopen,
 soak/M2 or release/performance approval. Editing/saving and levels for the earlier
 library remain confirmed. Logic and the
 standalone browser use the same nine categories. Superseded iterations stay archived
-for recall, not duplicated in the release browser. Sound definitions and all 74 host
-program numbers are preserved. Temporary owned Study labels are retired safely.
+for recall, not duplicated in the release browser. All 90 host program numbers are
+preserved. Analog r1 remains unselected at 74–81; only r2 at 82–89 joins the normal
+catalog. Original r1 comparison files remain untouched. Owned duplicate Study labels are
+retired only during explicit guarded promotion, not ordinary source installation.
 
 `candidate-001.json` remains release-facing metadata, not a replacement program table.
 `acceptance.json` carries portable verbatim inclusion/host-flow feedback without the

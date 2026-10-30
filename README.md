@@ -19,7 +19,7 @@ make standalone
 ```
 
 For your DAW, run `make reload-au` to build, install and validate the AU in
-`~/Library/Audio/Plug-Ins/Components`. It also generates and installs the 61 categorized
+`~/Library/Audio/Plug-Ins/Components`. It also generates and installs the 69 categorized
 native presets in `~/Library/Audio/Presets/nitride/nitride/`, including on a fresh clone.
 Existing preset files and user edits are left untouched. Restart your DAW, then look
 for **nitride** as an AU instrument; in Logic, browse its host **Settings** menu above
@@ -35,10 +35,11 @@ the plugin interface. No private evaluation workspace or separate preset downloa
 - [Design notes](docs/DESIGN.md) — the original brief and evolving direction.
 - [Motion LFOs](docs/LFO.md) — waveforms, independent destinations and tempo sync.
 - [Motion/envelope presets](docs/MOTION_STUDIES.md) — eight finalized motion-led sounds, MIDI demos and playing notes.
+- [Detuned analog presets](docs/ANALOG_STUDIES.md) — eight finalized Beak>/Portishead mood interpretations, including piano-like keys and a loose drum.
 - [Filter modulation](docs/FILTER_MODULATION.md) — key tracking, velocity and audio-rate FM.
 - [FM expansion](docs/FM.md) — primary ratio, independent envelope, shapes and network-preserving operator mix.
 - [Preset exploration](docs/PRESET_REVIEW.md) — versioned review sounds, MIDI demos and iteration notes.
 - [Evaluation journal](docs/EVALUATION.md) — embedded Logic trial presets, persistent feedback and resumable history.
-- [Factory presets](presets/factory/HOST_PRESETS.md) — 61 finalized sounds, Logic-native categories and the standalone browser.
+- [Factory presets](presets/factory/HOST_PRESETS.md) — 69 finalized sounds, Logic-native categories and the standalone browser.
 - [Preset provenance](docs/PRESET_PROVENANCE.md) — original Nitride interpretations and the local-only research boundary.
 - [Release qualification](docs/RELEASE_QUALIFICATION.md) — measured timing/performance evidence and pending M2/Logic acceptance.

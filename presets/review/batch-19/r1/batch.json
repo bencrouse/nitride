@@ -1,0 +1,79 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "low-battery-piano-r1",
+      "category": "Physical materials",
+      "host_category": "Keys & Organs",
+      "seconds": 32,
+      "study_axis": "worn piano-like strike and near-unison ring",
+      "design_lens": "Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "Close, worn piano-like key: brief FM hammer edge, decaying body and audible near-unison primary tap at 1.003. The static relative offset supplies beating even with pitch wow disabled; shallow slow common pitch motion adds a tired transport impression. Sparse minor/ninth voicings, not a quoted song. An FM piano interpretation, not acoustic piano samples, independently detuned strings, stretch tuning, a tape processor or an artist-authentic instrument. Velocity opens the shared Tone filter, not a separate filter per key."
+    },
+    {
+      "file": "slack-drum-r1",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 27,
+      "study_axis": "loose pitched drum with beating body",
+      "design_lens": "Beak> / Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "A loose tom-like electronic drum, rather than a polished kick: short common downward pitch entrance, near-unison 1.011 carrier/tap relationship and a decaying body long enough for the offset to matter. Held notes expose the ring; short low hits serve a slower groove. Not a drum kit, sampled acoustic shell, independently tuned membrane modes or per-hit random pitch. The five-semitone attack drop is a separate transient gesture, not the persistent detuning. No pitch LFO is needed for the detuned body."
+    },
+    {
+      "file": "brown-console-r1",
+      "category": "Leads",
+      "host_category": "Keys & Organs",
+      "seconds": 32,
+      "study_axis": "dark beating combo-organ surrogate",
+      "design_lens": "Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "A blunt, dark combo-organ surrogate for motorik repetitions and held clusters. A 0.997 primary tap beats below the carrier; tiny independent ratio wandering changes relative tuning while shallow common pitch motion and amplitude tremolo move the whole sound. Fast keying, little room. Not tonewheel/crosstalk modeling, a Leslie, stereo chorus or separately drifting voices. The three motions are global; the note-dependent beat rates arise from the actual relative frequency offset."
+    },
+    {
+      "file": "silt-bass-r1",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 29,
+      "study_axis": "dry round bass with shallow relative detune",
+      "design_lens": "Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "A dry round bass that stays a foundation rather than a wobble effect. A small 0.998 near-unison tap adds a slow uneven body; slow common drift is only a few cents. Short filter/FM strikes and restrained all-pitch legato glide support deliberately spaced, low-register phrases. No added sub-oscillator, tape saturation, pitch sequencer or big modulated cutoff. The quiet tap is an existing FM branch, not a new analog oscillator. No Space to blur the low end."
+    },
+    {
+      "file": "bent-aerial-r1",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 29,
+      "study_axis": "narrow fuzzy lead with relative and common drift",
+      "design_lens": "Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "A narrow, slightly fuzzy lead with an off-center beating edge rather than bright pop gloss. A 1.0065 primary tap plus tiny slow ratio modulation changes the intervals inside the tone; a different slow common pitch lane supplies wow. Legato moves the phrase without restarting its envelopes. Not a named vintage monosynth, saw oscillator bank, tape echo or independently drifting analog VCOs. No fast vibrato or large pitch scoop; strain comes from partials, not a blanket high-stress distortion setting."
+    },
+    {
+      "file": "melted-ensemble-r1",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 40,
+      "study_axis": "dark detuned ensemble without a chorus engine",
+      "design_lens": "Portishead / Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "A dark, sagging ensemble at the edge of Nitride's analog illusion. Triangle-rich 1.0035 near-unison tap, slower relative-ratio wandering and a separate shallow common pitch drift produce moving beat rates. A gentle entrance, sustained chords and restrained Space leave the artificial ensemble exposed. Unlike Budget Heaven, this is dark, slowly moving and deliberately less glossy. No chorus, stereo VCO spread, independently phased drift per voice, giant ambient wash or new oscillator model is implied."
+    },
+    {
+      "file": "oxide-rim-r1",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 22,
+      "study_axis": "short inharmonic rim-like edge",
+      "design_lens": "Beak> (imagined mood brief, not artist-authentic)",
+      "intent": "A dry papery rim-like clack to contrast Slack Drum's loose low body. A slightly displaced 2.013 ratio and very short shaped-FM strike give the edge an uneasy upper partial; moderate network excitation roughens the surface without turning the whole batch into the same grit. Not a snare-wire/noise source, sampled rim, tape clipping or a kit mapping. The short sound emphasizes inharmonic attack color rather than claiming a slow audible unison beat in every hit."
+    },
+    {
+      "file": "reel-clav-r1",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 27,
+      "study_axis": "damped key with held-cycle pitch wander",
+      "design_lens": "Portishead (imagined mood brief, not artist-authentic)",
+      "intent": "A damped, woody electric-key/clav surrogate for repeating small figures. Slight 2.003 inharmonicity colors the strike; very shallow free sample-and-hold common pitch drift changes the played phrase over time. Keep it dry enough that rhythmic gaps remain gaps. Not sampled clavinet, random tuning per key or actual tape wow/flutter processing. The sample-and-hold lane is global and deterministic by cycle; short repeated notes can share a held pitch offset."
+    }
+  ]
+}
