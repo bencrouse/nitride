@@ -300,6 +300,20 @@ void embeddedReviewPrograms()
     require(j.values[pitch]==-12&&j.values[fmRatio]==1&&j.values[resonance]==.72&&j.values[filterKeyTracking]==0&&j.values[filterAmount]==1.4&&j.values[sustain]==0,"Jaw study lost low glottal root/single fixed-register resonance/decay");
     require(v.values[pitch]==0&&v.values[fmRatio]==2&&v.values[fmShape]==1&&v.values[decay]==1.25&&v.values[fmRoute1Source]==3&&v.values[fmRoute1Target]==0&&v.values[fmRoute1Amount]==.4,"Vowel study lost normal root/odd-harmonic surrogate/dual contour");
     for(const auto* patch:{&w,&j,&v})require(!patch->mono&&!patch->chord&&patch->values[spaceMix]==0&&patch->values[stress]==0&&patch->values[autobendOn]==0&&patch->values[glideOn]==0&&patch->values[legato]==0,"FS1R study acquired unsupported bend/noise/Space/mono decoration");
+    constexpr std::array motionIds{"review:late-glass:r1","review:rubber-relay:r1","review:gate-garden:r1","review:paper-motor:r1",
+        "review:closing-argument:r1","review:undertint:r1","review:loose-change:r1","review:carousel-wire:r1"};
+    for(size_t i=0;i<motionIds.size();++i)
+    {
+        require(builtInIndex(motionIds[i])==66+static_cast<int>(i),"Motion studies displaced an earlier program");
+        const auto& patch=builtInPresets()[66+i].patch;
+        require(!patch.chord&&patch.values[pitchLfoOn]==0&&patch.values[glideOn]==0&&patch.values[autobendOn]==0,"Motion study acquired an unrequested pitch gesture/chord helper");
+    }
+    const auto& late=builtInPresets()[66].patch;const auto& gate=builtInPresets()[68].patch;
+    const auto& tint=builtInPresets()[71].patch;const auto& carousel=builtInPresets()[73].patch;
+    require(late.values[fmAttack]>.3&&late.values[attack]<.01&&late.values[filterAmount]==0,"Late Glass lost its independent slow index bloom");
+    require(gate.values[ampLfoWave]==3&&gate.values[ampLfoDivision]==12&&gate.values[cutoffLfoDivision]==13,"Gate Garden lost straight/dotted lane contrast");
+    require(tint.values[release]>tint.values[fmRelease]*4&&tint.values[couplingLfoDepth]<0,"Undertint lost early FM release/opposed motion");
+    require(carousel.values[fmLfoOn]==1&&carousel.values[fmLfoDepth]==0&&carousel.values[fmRoute1Source]==1&&carousel.values[fmRoute1Target]==1&&carousel.values[fmRoute2Target]==3,"Carousel lost enabled zero-depth FM routing");
     struct ReentrantAutomation final:juce::AudioProcessorParameter::Listener
     {
         juce::RangedAudioParameter* parameter=nullptr;bool busy=false;

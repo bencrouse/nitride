@@ -54,10 +54,10 @@ class SelectionTests(unittest.TestCase):
 
     def test_retained_selection_is_separate_from_historical_programs(self):
         selection, entries = fp.validate_selection()
-        self.assertEqual(len(entries), 53)
+        self.assertEqual(len(entries), 61)
         self.assertEqual(len(selection["categories"]), 9)
-        self.assertEqual(len({e["family"] for e in entries}), 53)
-        self.assertEqual(len(ev.validate_builtins()["entries"]), 62)
+        self.assertEqual(len({e["family"] for e in entries}), 61)
+        self.assertEqual(len(ev.validate_builtins()["entries"]), 70)
         self.assertEqual([e["program"] for e in entries if e["family"] == "cutoff-alloy"], [39])
         self.assertFalse(any(e["name"] == "Cutoff Alloy" for e in entries))
         self.assertEqual({e["id"] for e in entries if e["id"] in selection["pilot"]}, set(selection["pilot"]))
@@ -105,8 +105,8 @@ class SelectionTests(unittest.TestCase):
 
     def test_generated_metadata_keeps_sparse_historical_programs(self):
         generated = catalog.header()
-        self.assertIn("std::array<FactoryProgram, 53>", generated)
-        self.assertIn("std::array<const char*, 66>", generated)
+        self.assertIn("std::array<FactoryProgram, 61>", generated)
+        self.assertIn("std::array<const char*, 74>", generated)
         self.assertIn('{39, "review:cutoff-alloy:r2", "Tine Keys", "Keys & Organs"}', generated)
         self.assertIn('{59, "review:classic-koto:r1"', generated)
         self.assertNotIn('{37, "review:cutoff-alloy:r1"', generated)
@@ -140,8 +140,8 @@ class SelectionTests(unittest.TestCase):
 
     def test_source_archive_metadata_build_does_not_require_personal_journal(self):
         with mock.patch.object(fp.ev, "read_events", return_value=[]):
-            self.assertIn("std::array<FactoryProgram, 53>", catalog.header())
-            self.assertEqual(len(fp.validate_selection()[1]), 53)
+            self.assertIn("std::array<FactoryProgram, 61>", catalog.header())
+            self.assertEqual(len(fp.validate_selection()[1]), 61)
         with mock.patch.object(fp, "acceptance", return_value={"retained": []}):
             with self.assertRaisesRegex(ValueError, "retained-direction feedback"): fp.validate_selection()
 
@@ -545,16 +545,16 @@ class SourceInstallTests(unittest.TestCase):
         return json.dumps({"full_document_exact": True, "parameters": 89, "audio_exact": True})
 
     def export(self):
-        # Quiet only the per-file progress; validation remains exercised for all53sounds.
+        # Quiet only the per-file progress; validation remains exercised for all61sounds.
         with mock.patch("builtins.print"):
             return fp.export_package(self.package, "candidate", self.tool, component=self.component)
 
     def test_explicit_bundle_export_and_deploy_need_no_private_journal(self):
         with mock.patch("builtins.print"):
             result = fp.deploy(self.component, self.tool, self.destination)
-        self.assertEqual(len(result["installed"]), 53)
+        self.assertEqual(len(result["installed"]), 61)
         self.assertEqual(result["preserved"], [])
-        self.assertEqual(len(list(self.destination.rglob("*.aupreset"))), 53)
+        self.assertEqual(len(list(self.destination.rglob("*.aupreset"))), 61)
         for entry in self.entries:
             path = self.destination / entry["category"] / (entry["name"] + ".aupreset")
             source = json.loads((fp.ROOT / entry["source"]).read_text())
@@ -571,7 +571,7 @@ class SourceInstallTests(unittest.TestCase):
         with mock.patch("builtins.print"):
             result = fp.deploy(self.component, self.tool, self.destination)
         self.assertEqual(result["installed"], [])
-        self.assertEqual(len(result["preserved"]), 53)
+        self.assertEqual(len(result["preserved"]), 61)
         self.assertEqual(edited.read_bytes(), b"my edited factory sound")
         self.assertEqual(user.read_bytes(), b"my save")
         self.assertEqual(receipt.read_bytes(), b"old ownership receipt")
@@ -582,7 +582,7 @@ class SourceInstallTests(unittest.TestCase):
         absent = self.destination / result["installed"][0]; absent.unlink()
         result = fp.install_missing(self.package, self.destination)
         self.assertEqual(result["installed"], [str(absent.relative_to(self.destination))])
-        self.assertEqual(len(result["preserved"]), 52)
+        self.assertEqual(len(result["preserved"]), 60)
         self.assertFalse((self.destination / fp.FACTORY_RECEIPT).exists())
 
     def test_partial_or_relabelled_catalog_is_refused(self):
@@ -613,7 +613,7 @@ class SourceInstallTests(unittest.TestCase):
             real_link(source, target)
         with mock.patch.object(fp.os, "link", side_effect=concurrent_save):
             result = fp.install_missing(self.package, self.destination)
-        self.assertEqual(len(result["installed"]), 52)
+        self.assertEqual(len(result["installed"]), 60)
         self.assertEqual(result["preserved"], [str(saved[0].relative_to(self.destination))])
         self.assertEqual(saved[0].read_bytes(), b"concurrent user save")
 

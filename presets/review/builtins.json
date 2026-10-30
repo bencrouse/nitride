@@ -674,6 +674,94 @@
       "contrast_with": "review:classic-tines:r1",
       "preset": "batch-17/r1/sugar-teeth-r1.nitridepreset",
       "sha256": "40322ea19c1eab1f7bffd950f55bfa35e9ffe88b5534b80b502783256a503426"
+    },
+    {
+      "program": 66,
+      "id": "review:late-glass:r1",
+      "family": "late-glass",
+      "revision": "r1",
+      "category": "Leads",
+      "study_axis": "loudness before harmonic bloom",
+      "contrast_with": "review:afterimage-keys:r1",
+      "preset": "batch-18/r1/late-glass-r1.nitridepreset",
+      "sha256": "2e53b4079a380297a9d7031ff494cf460abb2f56bb02ce05929a5305a38de197"
+    },
+    {
+      "program": 67,
+      "id": "review:rubber-relay:r1",
+      "family": "rubber-relay",
+      "revision": "r1",
+      "category": "Basses",
+      "study_axis": "filter bite into clocked FM chewing",
+      "contrast_with": "review:crooked-velvet:r2",
+      "preset": "batch-18/r1/rubber-relay-r1.nitridepreset",
+      "sha256": "7e8a460b1644dc2b569a5401fd26f7c3e39b44ed6cc83eab8ba630894c8406e5"
+    },
+    {
+      "program": 68,
+      "id": "review:gate-garden:r1",
+      "family": "gate-garden",
+      "revision": "r1",
+      "category": "Sequence elements",
+      "study_axis": "straight gate against dotted timbre",
+      "contrast_with": "review:socket-dance:r2",
+      "preset": "batch-18/r1/gate-garden-r1.nitridepreset",
+      "sha256": "5ec351ee8d97662c64e42a9901c1b610982248e5b71d3cb0f82740d0049405cc"
+    },
+    {
+      "program": 69,
+      "id": "review:paper-motor:r1",
+      "family": "paper-motor",
+      "revision": "r1",
+      "category": "Experimental",
+      "study_axis": "stepped stress and fluttering material",
+      "contrast_with": "review:tendon-drift:r1",
+      "preset": "batch-18/r1/paper-motor-r1.nitridepreset",
+      "sha256": "c64893b2c89155a46a4fe6ffec4200b3cd6ceac14fe8b658f229319b38d2de1c"
+    },
+    {
+      "program": 70,
+      "id": "review:closing-argument:r1",
+      "family": "closing-argument",
+      "revision": "r1",
+      "category": "Leads",
+      "study_axis": "negative Tone envelope with sustained body",
+      "contrast_with": "review:reed-snap:r2",
+      "preset": "batch-18/r1/closing-argument-r1.nitridepreset",
+      "sha256": "6611133834484f2f84eb82952d04d639e7d698e9541ce7fc636b5d4750d736f8"
+    },
+    {
+      "program": 71,
+      "id": "review:undertint:r1",
+      "family": "undertint",
+      "revision": "r1",
+      "category": "Pads",
+      "study_axis": "slow index light with early spectral release",
+      "contrast_with": "review:stillwater:r1",
+      "preset": "batch-18/r1/undertint-r1.nitridepreset",
+      "sha256": "a8725c103657377b445ab70b62a3cb9f4f1daa9f7db5b802a3e4be021d377817"
+    },
+    {
+      "program": 72,
+      "id": "review:loose-change:r1",
+      "family": "loose-change",
+      "revision": "r1",
+      "category": "Physical materials",
+      "study_axis": "short metallic envelope under phrase-level variation",
+      "contrast_with": "review:skin-knock:r1",
+      "preset": "batch-18/r1/loose-change-r1.nitridepreset",
+      "sha256": "fd9a92224b5f59f3beb18d7bd75ec2967562726a30d7db9b71a3f8aa9842454c"
+    },
+    {
+      "program": 73,
+      "id": "review:carousel-wire:r1",
+      "family": "carousel-wire",
+      "revision": "r1",
+      "category": "Physical materials",
+      "study_axis": "zero-depth LFO routing around a fixed pluck",
+      "contrast_with": "review:rosewood-tap:r1",
+      "preset": "batch-18/r1/carousel-wire-r1.nitridepreset",
+      "sha256": "75db6b37aa58b6da4ae9338ddccf3a9d184177de0d732e2d161b3cbb11abfd76"
     }
   ]
 }

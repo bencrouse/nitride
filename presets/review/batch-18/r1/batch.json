@@ -1,0 +1,71 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "late-glass-r1",
+      "category": "Leads",
+      "host_category": "Keys & Organs",
+      "seconds": 28,
+      "study_axis": "loudness before harmonic bloom",
+      "intent": "A warm immediate key becomes glassy after the strike: slow independent FM attack, not a second oscillator layer or a delayed note. Sparse holds expose the bloom; shallow free cutoff motion animates the ring. Unlike Afterimage Keys, no fast FM strike or shared-filter-envelope-to-index route. No pitch modulation, noise or tempo-retriggered LFO."
+    },
+    {
+      "file": "rubber-relay-r1",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 26,
+      "study_axis": "filter bite into clocked FM chewing",
+      "intent": "A rounded bass with a brief opening filter bite and continuing eighth-note triangle FM motion. Short detached notes articulate; longer roots reveal the chewing timbre while carrier pitch stays put. No pitch wobble, glide, sub-oscillator claim, high stress or amplitude gating. Integer-ratio primary FM, not a guarantee of an unchanging bass spectrum."
+    },
+    {
+      "file": "gate-garden-r1",
+      "category": "Sequence elements",
+      "host_category": "Sequences",
+      "seconds": 30,
+      "study_axis": "straight gate against dotted timbre",
+      "intent": "A held chord becomes a pattern: straight-eighth square amplitude attenuation against dotted-eighth triangle cutoff, revealed by a slow shared filter attack. Played note changes are explicit; the patch is not an arpeggiator. No MIDI generation, independent per-note filters, note-reset LFO or hard-gated reverb. Chopping precedes Space, whose small tail can bridge gaps."
+    },
+    {
+      "file": "paper-motor-r1",
+      "category": "Experimental",
+      "host_category": "Textures",
+      "seconds": 28,
+      "study_axis": "stepped stress and fluttering material",
+      "intent": "A small papery motor: synced sixteenth-note sample-and-hold Stress, slower smooth Coupling movement and shallow free tremolo. A short FM-envelope tick marks the entrance; both taps and holds are demonstrated. Not noise synthesis, sampled paper or a retriggered percussion sequencer. Stepped stress changes the existing network; its level stays modest rather than becoming a distortion blast."
+    },
+    {
+      "file": "closing-argument-r1",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 27,
+      "study_axis": "negative Tone envelope with sustained body",
+      "intent": "A speaking lead: the initial bright vowel folds inward while amplitude holds. A negative shared filter envelope supplies the closing gesture, independent FM decay adds articulation and restrained free tremolo gives a living held center. No formant-filter model, pitch entrance or delayed vibrato. Detached notes retrigger the gesture; overlapping notes still obey the existing global/filter ownership rules."
+    },
+    {
+      "file": "undertint-r1",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 38,
+      "study_axis": "slow index light with early spectral release",
+      "intent": "A dark chord grows a luminous edge without obvious wobble. Slow FM attack and opposite-polarity slow cutoff/Coupling motion create the breathing body. On release the FM contour closes before amplitude, leaving a darker audible tail. No independently phased voices or stereo chorus. Both LFOs are global; equal free rates with opposite depth signs supply the opposing motion. FM release cannot prolong voice lifetime."
+    },
+    {
+      "file": "loose-change-r1",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 24,
+      "study_axis": "short metallic envelope under phrase-level variation",
+      "intent": "A pitched metallic knock with a short amplitude/FM contour and slow free sample-and-hold FM variation. Identical repeated MIDI strikes encounter different global phases across a phrase; a held key dies away rather than sustaining the motor. Not round-robin sampling, per-note random modulation, coin recordings or automatic hits. Random-like cycle values are deterministic on reprepare; the LFO does not reset with each note."
+    },
+    {
+      "file": "carousel-wire-r1",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 26,
+      "study_axis": "zero-depth LFO routing around a fixed pluck",
+      "intent": "A fixed repeated pluck alternates between hollow, wiry and rounded. The enabled FM LFO has zero direct index depth but routes gently to primary ratio and operator mix; a brief independent FM envelope keeps the attack recognizable. No note generation, pitch LFO, envelope retrigger from the LFO or changing MIDI velocities in the repeated section. Ratio motion changes FM partials, not the carrier note; it is not a tuning-stable acoustic model."
+    }
+  ]
+}

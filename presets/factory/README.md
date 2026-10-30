@@ -1,14 +1,16 @@
 # Factory preset library
 
-**Current workflow:** [Host-native presets / eval-029](HOST_PRESETS.md).
+**Current workflow:** [Host-native presets / eval-032](HOST_PRESETS.md).
 Run `make reload-au` to install the AU and any missing categorized factory presets,
 including from a clean clone. Existing presets/user edits are never overwritten;
 no private evaluation workspace or separate preset package is required.
-The user finalized **53 sounds**: the prior50 plus Plastic Hero, Budget Heaven and
-Sugar Teeth, unchanged from the approved pop-lens audition. Editing/saving and levels
-for the prior library are confirmed. Logic and the
+The user finalized **61 sounds**: the prior 53 plus all eight
+[motion/envelope presets](../../docs/MOTION_STUDIES.md), unchanged from their r1 studies.
+The explicit promotion also authorizes commit and push; it is not separate host-reopen,
+soak/M2 or release/performance approval. Editing/saving and levels for the earlier
+library remain confirmed. Logic and the
 standalone browser use the same nine categories. Superseded iterations stay archived
-for recall, not duplicated in the release browser. Sound definitions and all66host
+for recall, not duplicated in the release browser. Sound definitions and all 74 host
 program numbers are preserved. Temporary owned Study labels are retired safely.
 
 `candidate-001.json` remains release-facing metadata, not a replacement program table.

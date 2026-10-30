@@ -100,7 +100,10 @@ int main(int argc,char** argv)
             "Review / Physical materials / Classic Tines r1","Review / Basses / Classic Bass r1","Review / Physical materials / Classic Tubes r1",
             "Review / Pads / Classic Voice r1","Review / Physical materials / Orch Chime r1","Review / Physical materials / Classic Koto r1",
             "Review / Leads / Whistle Stem r1","Review / Physical materials / Jaw Twang r1","Review / Physical materials / Vowel Pick r1",
-            "Review / Leads / Plastic Hero r1","Review / Pads / Budget Heaven r1","Review / Physical materials / Sugar Teeth r1"};
+            "Review / Leads / Plastic Hero r1","Review / Pads / Budget Heaven r1","Review / Physical materials / Sugar Teeth r1",
+            "Review / Leads / Late Glass r1","Review / Basses / Rubber Relay r1","Review / Sequence elements / Gate Garden r1",
+            "Review / Experimental / Paper Motor r1","Review / Leads / Closing Argument r1","Review / Pads / Undertint r1",
+            "Review / Physical materials / Loose Change r1","Review / Physical materials / Carousel Wire r1"};
         if(Nitride::legacyProgramNames.size()!=4+reviewNames.size())throw std::runtime_error("Legacy fixture coverage changed");
         for(CFIndex i=0;i<static_cast<CFIndex>(Nitride::legacyProgramNames.size());++i)
         {

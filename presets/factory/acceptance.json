@@ -10,6 +10,13 @@
       "user_feedback": "they're all great, can you promote them to finalized, do any needed review/cleanup, and commit?",
       "revisions": ["review:plastic-hero:r1", "review:budget-heaven:r1", "review:sugar-teeth:r1"],
       "interpretation": "Explicit finalization of the three auditioned original pop-lens sounds, unchanged. Add clean labels to both curated browsers, safely retire owned Study duplicates, review/validate/commit. No push or broader DSP/performance/hardware qualification is requested. Artist lens is imagined, not artist-authentic."
+    },
+    {
+      "date": "2026-10-30",
+      "trial": "logic-031",
+      "user_feedback": "ok please promote them all and then commit and push",
+      "revisions": ["review:late-glass:r1", "review:rubber-relay:r1", "review:gate-garden:r1", "review:paper-motor:r1", "review:closing-argument:r1", "review:undertint:r1", "review:loose-change:r1", "review:carousel-wire:r1"],
+      "interpretation": "Explicit finalization of all eight motion/envelope studies unchanged. Add clean labels to both curated browsers; safely archive only unchanged owned exact Study duplicates. Preserve the prior53sounds and all74program numbers. Commit and push authorized. No separate per-sound commentary, project-close/reopen, soak/M2 or broader release/performance qualification is inferred."
     }
   ],
   "host_category_confirmation": "confirmed-by-user",
@@ -30,6 +37,8 @@
     "review:brake-bloom:r1", "review:flash-room:r1", "review:pressure-lift:r1", "review:reverse-veil:r1", "review:shred-relay:r1", "review:sinkhole:r1", "review:spectral-cut:r1",
     "review:classic-tines:r1", "review:classic-bass:r1", "review:classic-tubes:r1",
     "review:whistle-stem:r1", "review:jaw-twang:r1", "review:vowel-pick:r1",
-    "review:plastic-hero:r1", "review:budget-heaven:r1", "review:sugar-teeth:r1"
+    "review:plastic-hero:r1", "review:budget-heaven:r1", "review:sugar-teeth:r1",
+    "review:late-glass:r1", "review:rubber-relay:r1", "review:gate-garden:r1", "review:paper-motor:r1",
+    "review:closing-argument:r1", "review:undertint:r1", "review:loose-change:r1", "review:carousel-wire:r1"
   ]
 }

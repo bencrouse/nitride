@@ -1,6 +1,11 @@
-# Host-native presets / 0.7.29 · eval-029
+# Host-native presets / 0.7.32 · eval-032
 
-The finalized library has **53 sounds in nine musical-role categories**. In Logic,
+All eight [motion/envelope presets](../../docs/MOTION_STUDIES.md) from eval-031 are now
+explicitly promoted, unchanged, with clean names in both normal browsers. Only exact
+owned Study duplicates are archived during the guarded local promotion; unrelated
+files and user saves are never scanned for deletion.
+
+The finalized library has **61 sounds in nine musical-role categories**. In Logic,
 use the host's Settings/preset menu above the instrument
 interface. The temporary `Nitride Preview` parent is not part of the library:
 
@@ -29,22 +34,22 @@ project-close/reopen is not separately inferred from the editing/saving confirma
 - **AU:** no internal factory dropdown or KEEP button. Load/save through the host.
   Undo, Compare, Hold, synthesis controls, automation and keyboard remain intact.
 - **Standalone:** a small category-organized dropdown and KEEP remain. Normal
-  browsing contains the same53finalizedsounds, plus user-kept sounds.
+  browsing contains the same 61 finalized sounds, plus user-kept sounds.
 - Superseded revisions remain in standalone's **… → Evaluation archive**.
 - All original starting patches, Classic Tines/Bass/Tubes and the FS1R-inspired trio
   are now in normal browsing. Existing startup/default conditions are unchanged.
 
 The AU does **not advertise a Factory Presets list**. Logic otherwise adds a redundant
 **AU Presets** submenu alongside the real category folders. Categorized `.aupreset`
-files are the sole host-facing browser; the prior50files remain byte-identical.
+files are the sole host-facing browser; the prior 53 files remain byte-identical.
 Historical numeric selection still works for compatibility, without advertising a list.
 Names/categories are release metadata: original preset JSON, stored inner names and
 sound definitions are not edited. An old project can still contain an archived name.
 
 ## Legacy sounds and session compatibility
 
-No historical program was deleted or renumbered. All **66 program numbers**
-(four starting patches plus62reviewrevisions), v7 documents, undo/redo histories,
+No historical program was deleted or renumbered. All **74 program numbers**
+(four starting patches plus 70 review revisions), v7 documents, undo/redo histories,
 Compare references and portable kept sounds retain their existing storage/recall paths.
 The AU adapter disables public enumeration and retains outer display labels. It operates
 on a checksum-verified generated copy of the pinned JUCE wrapper, not the vendor
@@ -68,9 +73,12 @@ predecessor. Archived presets/MIDI/audio/feedback remain intact.
 
 The user's explicit all-current-sounds inclusion decision closes the earlier classic
 trio/original-four selection questions. The subsequently auditioned Plastic Hero,
-Budget Heaven and Sugar Teeth are explicitly finalized, bringing the catalog to53.
+Budget Heaven and Sugar Teeth were explicitly finalized, bringing the catalog to53.
 They use clean labels in Leads & Brass, Pads and Keys & Organs respectively, with
 their auditioned sounds unchanged. Owned temporary Study duplicates are archived.
+The user subsequently requested promotion of Late Glass, Rubber Relay, Gate Garden,
+Paper Motor, Closing Argument, Undertint, Loose Change and Carousel Wire, then commit
+and push. That brings the catalog to 61 without modifying any r1 recipe, MIDI or program.
 No mass normalization
 or sound edits are part of consolidation. Inclusion/levels/save-edit acceptance is
 not certification of every register, hardware reference or maximum-polyphony case.
@@ -83,7 +91,7 @@ not certification of every register, hardware reference or maximum-polyphony cas
 make reload-au
 ```
 
-This builds/installs the AU, then exports and verifies all 53 categorized `.aupreset`
+This builds/installs the AU, then exports and verifies all 61 categorized `.aupreset`
 files directly from that exact component and installs any missing files. Restart Logic
 and create a new instance, then use the host's **Settings** menu above the interface.
 The AU intentionally does not advertise the separate **AU Presets** submenu.
@@ -128,7 +136,10 @@ python3 scripts/factory_presets.py extend-factory /new/output/path \
 ```
 
 For the finalized pop trio, use `--retire-study ag-cook-001` instead of the legacy
-FS1R-only `--retire-studies`. Explicit named-study retirement verifies the receipt's
+FS1R-only `--retire-studies`. For the motion/envelope batch, the named receipt is
+`--retire-study motion-envelopes-001`. This explicit managed-catalog migration is
+separate from the missing-only source installer, which never removes old Study files.
+Explicit named-study retirement verifies the receipt's
 identity/status, every owned checksum and full sound-document equality with a clean
 replacement. It never scans for or removes unrelated files merely named Study.
 
@@ -169,8 +180,9 @@ Prior checkpoints remain immutable. The native tests
 distinguish valid AU custom/user preset number −1 from invalid positive factory numbers;
 the initially mistaken negative-number assertion and its correction are preserved.
 
-Audio fingerprints match eval-023; no sound conditions, DSP, voice policy, parameter
-IDs or host-control count changed by catalog consolidation. F1 combined maximum-polyphony 96 kHz, Socket's
-newer 120 BPM block-size limit and previous independent non-pitch/reference/perceived-
-pitch checks remain open. The user authorized cleanup/review/commit on2026-10-19,
-not a push. Private evidence remains local; ZIPs are not off-device backup.
+Promotion preserves every sound condition, DSP, voice policy, parameter ID and the
+89-control contract. See [release qualification](../../docs/RELEASE_QUALIFICATION.md)
+for the separately fixed Socket timing case and measured maximum-polyphony limits;
+finalizing the sounds does not close the pending M2/host-soak/project-reopen gates.
+The user explicitly authorized all eight promotions, commit and push on2026-10-30.
+Private evidence remains local; ZIPs are not off-device backup.

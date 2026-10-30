@@ -11,18 +11,24 @@ import evaluation as ev
 import factory_presets as fp
 
 
-def export(output, batch, trial_id, study_id):
+def export(output, batch, trial_id, study_id, component=None, tool=fp.TOOL):
     ev.identifier(study_id)
     batch = Path(batch).resolve(); output = Path(output).absolute()
-    state = ev.project_state(ev.read_events(fp.ROOT / "evaluation/events.jsonl"))
-    trial = state["trials"][trial_id]; build = state["builds"][trial["build"]]
+    if component is None:
+        if trial_id is None: raise ValueError("Specify a recorded --trial or an explicit --component")
+        state = ev.project_state(ev.read_events(fp.ROOT / "evaluation/events.jsonl"))
+        trial = state["trials"][trial_id]; build = state["builds"][trial["build"]]
+    else:
+        if trial_id is not None: raise ValueError("Choose either a recorded trial or an explicit component, not both")
+        build = fp.component_build(component)
+        trial_id = "source-" + study_id
     for relative, expected in build["bundle_hashes"].items():
         if ev.digest(Path(build["installed_path"]) / relative) != expected: raise ValueError("Installed AU differs from trial build")
     metadata = json.loads((batch / "batch.json").read_text())
     if metadata.get("format") != "nitride-review-batch" or metadata.get("version") != 1 or not 1 <= len(metadata["sketches"]) <= 12:
         raise ValueError("Invalid study batch")
-    registry = {e["id"]: e for e in ev.validate_builtins()["entries"]}
-    selection, selected = fp.validate_selection(); selected = {e["id"] for e in selected}
+    registry = {e["id"]: e for e in ev.validate_builtins(check_history=component is None)["entries"]}
+    selection, selected = fp.validate_selection(check_history=component is None); selected = {e["id"] for e in selected}
     categories = set(selection["categories"])
     requests = []
     for sketch in metadata["sketches"]:
@@ -30,7 +36,7 @@ def export(output, batch, trial_id, study_id):
         matches = [e for e in registry.values() if (fp.ROOT / "presets/review" / e["preset"]).resolve() == source]
         if len(matches) != 1: raise ValueError("Study source is not registered")
         entry = matches[0]
-        if entry["id"] not in trial["revisions"] or entry["id"] not in state["revisions"] or entry["id"] in selected:
+        if entry["id"] in selected or (component is None and (entry["id"] not in trial["revisions"] or entry["id"] not in state["revisions"])):
             raise ValueError("Study must be in the explicit trial and outside the selected factory catalog")
         if sketch["host_category"] not in categories: raise ValueError("Unknown host category")
         requests.append((sketch, entry, source))
@@ -47,13 +53,17 @@ def export(output, batch, trial_id, study_id):
         path.parent.mkdir(exist_ok=True)
         frozen = "sources/" + entry["family"] + ".nitridepreset"
         (output / "sources").mkdir(exist_ok=True); shutil.copy2(source, output / frozen)
-        fp.native(["export", str(entry["program"]), definition["name"], name, str(path)], fp.TOOL)
+        fp.native(["export", str(entry["program"]), definition["name"], name, str(path)], tool, component)
         native_entry = {"id": entry["id"], "program": entry["program"], "name": name, "category": sketch["host_category"], "file": relative,
                         "source": str(source.relative_to(fp.ROOT)), "source_sha256": ev.digest(source), "frozen_source": frozen}
         fp.validate_native(path, native_entry, definition)
-        metrics = json.loads(fp.native(["verify", str(path), str(entry["program"]), definition["name"]], fp.TOOL))
+        metrics = json.loads(fp.native(["verify", str(path), str(entry["program"]), definition["name"]], tool, component))
         manifest["entries"].append({**native_entry, "native_verification": metrics})
         manifest["files"][relative] = ev.digest(path); manifest["files"][frozen] = ev.digest(output / frozen)
+    for relative, expected in build["bundle_hashes"].items():
+        if ev.digest(Path(build["installed_path"]) / relative) != expected: raise ValueError("Component changed during study export")
+    manifest["component_binary_sha256"] = build["binary_sha256"]
+    manifest["plugin_version"] = build["version"]
     with (output / "manifest.json").open("x") as stream: stream.write(json.dumps(manifest, indent=2) + "\n")
     fp.verify_package(output)
     return manifest
@@ -100,8 +110,10 @@ def install(package, destination=fp.FACTORY_DESTINATION):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path); parser.add_argument("--batch", type=Path, required=True)
-    parser.add_argument("--trial", required=True); parser.add_argument("--study", required=True); parser.add_argument("--install", action="store_true")
-    args = parser.parse_args(); manifest = export(args.output, args.batch, args.trial, args.study)
+    parser.add_argument("--trial"); parser.add_argument("--study", required=True); parser.add_argument("--install", action="store_true")
+    parser.add_argument("--component", type=Path, help="Use this exact source-built AU without a private evaluation journal")
+    parser.add_argument("--tool", type=Path, default=fp.TOOL)
+    args = parser.parse_args(); manifest = export(args.output, args.batch, args.trial, args.study, args.component, args.tool)
     if args.install: install(args.output)
     print("Prepared", len(manifest["entries"]), "explicit Study files; selected factory catalog unchanged.")
 

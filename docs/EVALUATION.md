@@ -1,5 +1,31 @@
 # Persistent evaluation
 
+## Finalized motion/envelope eight / eval-032
+
+On 2026-10-30 the user explicitly requested: “ok please promote them all and then
+commit and push”. All eight batch-18/r1 sounds are promoted unchanged into the
+61-sound catalog and normal standalone/Logic browsing. All 74 historical program
+numbers remain intact. The prior 53 native files stay byte-identical; only exact owned
+Study duplicates/receipts are archived after full-document replacement checks.
+
+Verbatim promotion feedback and its bounded interpretation are portable in
+`presets/factory/acceptance.json`. Promotion is not additional per-sound commentary,
+project-close/reopen, M2/soak or release/performance qualification. Frozen audition
+evidence remains local and unchanged. The following eval-031 section is historical.
+
+## Motion and envelope auditions / eval-031
+
+Batch 18 adds eight requested original studies: Late Glass, Rubber Relay, Gate Garden,
+Paper Motor, Closing Argument, Undertint, Loose Change and Carousel Wire. They append
+at zero-based programs 66–73; the old 0–65 table and finalized 53-sound selection stay
+unchanged. Implementation is not an inferred listening/finalization verdict.
+
+See [the audition guide](MOTION_STUDIES.md) for MIDI, rendering, performance gestures
+and explicit **Study - …** native installation. The explicit-component study exporter
+works without a private journal; the recorded-trial path remains available for local
+evidence. No new DSP, parameter IDs or state schema are introduced. Host project-reopen,
+M2/soak and earlier performance limitations remain separate from these sound studies.
+
 ## Finalized pop trio / eval-029
 
 The user explicitly finalized all three original imagined A.G. Cook taste studies
