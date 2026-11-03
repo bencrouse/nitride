@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Selection, clean-state and non-destructive installer regressions (no AU/Logic launch)."""
 import json
+import math
 import hashlib
 from pathlib import Path
 import plistlib
@@ -54,10 +55,10 @@ class SelectionTests(unittest.TestCase):
 
     def test_retained_selection_is_separate_from_historical_programs(self):
         selection, entries = fp.validate_selection()
-        self.assertEqual(len(entries), 69)
+        self.assertEqual(len(entries), 77)
         self.assertEqual(len(selection["categories"]), 9)
-        self.assertEqual(len({e["family"] for e in entries}), 69)
-        self.assertEqual(len(ev.validate_builtins()["entries"]), 86)
+        self.assertEqual(len({e["family"] for e in entries}), 77)
+        self.assertEqual(len(ev.validate_builtins()["entries"]), 102)
         self.assertEqual([e["program"] for e in entries if e["family"] == "cutoff-alloy"], [39])
         self.assertFalse(any(e["name"] == "Cutoff Alloy" for e in entries))
         self.assertEqual({e["id"] for e in entries if e["id"] in selection["pilot"]}, set(selection["pilot"]))
@@ -105,8 +106,8 @@ class SelectionTests(unittest.TestCase):
 
     def test_generated_metadata_keeps_sparse_historical_programs(self):
         generated = catalog.header()
-        self.assertIn("std::array<FactoryProgram, 69>", generated)
-        self.assertIn("std::array<const char*, 90>", generated)
+        self.assertIn("std::array<FactoryProgram, 77>", generated)
+        self.assertIn("std::array<const char*, 106>", generated)
         self.assertIn('{39, "review:cutoff-alloy:r2", "Tine Keys", "Keys & Organs"}', generated)
         self.assertIn('{59, "review:classic-koto:r1"', generated)
         self.assertNotIn('{37, "review:cutoff-alloy:r1"', generated)
@@ -140,8 +141,8 @@ class SelectionTests(unittest.TestCase):
 
     def test_source_archive_metadata_build_does_not_require_personal_journal(self):
         with mock.patch.object(fp.ev, "read_events", return_value=[]):
-            self.assertIn("std::array<FactoryProgram, 69>", catalog.header())
-            self.assertEqual(len(fp.validate_selection()[1]), 69)
+            self.assertIn("std::array<FactoryProgram, 77>", catalog.header())
+            self.assertEqual(len(fp.validate_selection()[1]), 77)
         with mock.patch.object(fp, "acceptance", return_value={"retained": []}):
             with self.assertRaisesRegex(ValueError, "retained-direction feedback"): fp.validate_selection()
 
@@ -237,6 +238,22 @@ class PackageTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "exact source conditions"):
                         fp.verify_package(self.package)
         self.save_native(synthetic_native(source, self.entry()))
+
+    def test_native_source_roundoff_is_limited_to_one_adjacent_double(self):
+        source = json.loads((self.package / self.entry()["frozen_source"]).read_text())
+        source["values"]["filter_attack"] = .36 * .95
+        native = synthetic_native(source, self.entry())
+        document = fp.document_from_native(native)
+        for field in ("patch", "reference"): document["current"][field]["values"]["filter_attack"] = .342
+        path = self.root / "roundoff.aupreset"
+        path.write_bytes(plistlib.dumps(synthetic_native(source, self.entry(), document)))
+        fp.validate_native(path, self.entry(), source)
+        for field in ("patch", "reference"):
+            changed = json.loads(json.dumps(document))
+            changed["current"][field]["values"]["filter_attack"] = math.nextafter(.342, math.inf)
+            path.write_bytes(plistlib.dumps(synthetic_native(source, self.entry(), changed)))
+            with self.assertRaisesRegex(ValueError, "exact source conditions"):
+                fp.validate_native(path, self.entry(), source)
 
     def test_wrong_component_and_truncated_xml_rejected(self):
         native = self.native(); native["subtype"] = 0
@@ -545,16 +562,16 @@ class SourceInstallTests(unittest.TestCase):
         return json.dumps({"full_document_exact": True, "parameters": 89, "audio_exact": True})
 
     def export(self):
-        # Quiet only the per-file progress; validation remains exercised for all69sounds.
+        # Quiet only the per-file progress; validation remains exercised for all77sounds.
         with mock.patch("builtins.print"):
             return fp.export_package(self.package, "candidate", self.tool, component=self.component)
 
     def test_explicit_bundle_export_and_deploy_need_no_private_journal(self):
         with mock.patch("builtins.print"):
             result = fp.deploy(self.component, self.tool, self.destination)
-        self.assertEqual(len(result["installed"]), 69)
+        self.assertEqual(len(result["installed"]), 77)
         self.assertEqual(result["preserved"], [])
-        self.assertEqual(len(list(self.destination.rglob("*.aupreset"))), 69)
+        self.assertEqual(len(list(self.destination.rglob("*.aupreset"))), 77)
         for entry in self.entries:
             path = self.destination / entry["category"] / (entry["name"] + ".aupreset")
             source = json.loads((fp.ROOT / entry["source"]).read_text())
@@ -571,7 +588,7 @@ class SourceInstallTests(unittest.TestCase):
         with mock.patch("builtins.print"):
             result = fp.deploy(self.component, self.tool, self.destination)
         self.assertEqual(result["installed"], [])
-        self.assertEqual(len(result["preserved"]), 69)
+        self.assertEqual(len(result["preserved"]), 77)
         self.assertEqual(edited.read_bytes(), b"my edited factory sound")
         self.assertEqual(user.read_bytes(), b"my save")
         self.assertEqual(receipt.read_bytes(), b"old ownership receipt")
@@ -582,7 +599,7 @@ class SourceInstallTests(unittest.TestCase):
         absent = self.destination / result["installed"][0]; absent.unlink()
         result = fp.install_missing(self.package, self.destination)
         self.assertEqual(result["installed"], [str(absent.relative_to(self.destination))])
-        self.assertEqual(len(result["preserved"]), 68)
+        self.assertEqual(len(result["preserved"]), 76)
         self.assertFalse((self.destination / fp.FACTORY_RECEIPT).exists())
 
     def test_partial_or_relabelled_catalog_is_refused(self):
@@ -613,7 +630,7 @@ class SourceInstallTests(unittest.TestCase):
             real_link(source, target)
         with mock.patch.object(fp.os, "link", side_effect=concurrent_save):
             result = fp.install_missing(self.package, self.destination)
-        self.assertEqual(len(result["installed"]), 68)
+        self.assertEqual(len(result["installed"]), 76)
         self.assertEqual(result["preserved"], [str(saved[0].relative_to(self.destination))])
         self.assertEqual(saved[0].read_bytes(), b"concurrent user save")
 

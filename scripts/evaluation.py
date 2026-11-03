@@ -6,6 +6,7 @@ import datetime as dt
 import fcntl
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -24,6 +25,26 @@ STATUSES = ["awaiting-trial", "in-trial", "needs-revision", "direction-kept", "p
 
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+
+def same_serialized_preset(actual, expected):
+    """Exact fields/keys, allowing only one adjacent double in numeric conditions.
+
+    JUCE decimal export can round 0.34199999999999997 to 0.342. Keep frozen source
+    bytes/hashes intact rather than rewriting a revision to suit its serializer.
+    This is not a general parameter tolerance; native document/audio checks remain
+    separate and exact.
+    """
+    if not isinstance(actual, dict) or not isinstance(expected, dict): return False
+    if {k: v for k, v in actual.items() if k != "values"} != {k: v for k, v in expected.items() if k != "values"}: return False
+    a, b = actual.get("values"), expected.get("values")
+    if not isinstance(a, dict) or not isinstance(b, dict) or a.keys() != b.keys(): return False
+    for key, before in b.items():
+        after = a[key]
+        if type(before) not in (int, float) or type(after) not in (int, float): return False
+        if not math.isfinite(before) or not math.isfinite(after): return False
+        if before != after and math.nextafter(before, after) != after: return False
+    return True
 
 
 def digest(path):
@@ -314,7 +335,7 @@ class Ledger:
         if digest(filename) != item["preset_sha256"]:
             raise ValueError("Registered preset source changed")
         # Export formatting/line endings may differ; sound data and identity may not.
-        if metrics is None or json.loads((source / (stem + ".nitridepreset")).read_text()) != json.loads(filename.read_text()):
+        if metrics is None or not same_serialized_preset(json.loads((source / (stem + ".nitridepreset")).read_text()), json.loads(filename.read_text())):
             raise ValueError("Render does not match the registered preset")
         if metrics.get("evaluationBuild") != build or metrics.get("synthVersion") != state["builds"][build]["version"]:
             raise ValueError("Render build/version differs from the recorded AU")

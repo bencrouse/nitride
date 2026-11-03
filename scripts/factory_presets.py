@@ -124,7 +124,7 @@ def validate_native(path, entry, source):
         raise ValueError("Factory state must be a clean whole-patch reference")
     for field in ("patch", "reference"):
         expected = {**source, "id": "snapshot" if field == "patch" else "reference"}
-        if current[field] != expected:
+        if not ev.same_serialized_preset(current[field], expected):
             raise ValueError("Native preset differs from its exact source conditions/Compare reference")
     return document
 

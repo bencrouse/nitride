@@ -37,7 +37,7 @@ class MotionStudyTests(unittest.TestCase):
         self.assertEqual([e["program"] for e in entries], list(range(66, 74)))
         selection, selected = fp.validate_selection()
         motion_ids = {e["id"] for e in entries}
-        self.assertEqual(len(selected), 69)
+        self.assertEqual(len(selected), 77)
         self.assertTrue(motion_ids <= {e["id"] for e in selected})
         selected_programs = {e["id"]: e["program"] for e in selected}
         prior = [e for e in selection["entries"] if selected_programs[e["id"]] < 66]

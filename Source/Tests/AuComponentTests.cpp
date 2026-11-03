@@ -109,7 +109,15 @@ int main(int argc,char** argv)
             "Review / Pads / Melted Ensemble r1","Review / Physical materials / Oxide Rim r1","Review / Physical materials / Reel Clav r1",
             "Review / Physical materials / Low Battery Piano r2","Review / Physical materials / Slack Drum r2",
             "Review / Leads / Brown Console r2","Review / Basses / Silt Bass r2","Review / Leads / Bent Aerial r2",
-            "Review / Pads / Melted Ensemble r2","Review / Physical materials / Oxide Rim r2","Review / Physical materials / Reel Clav r2"};
+            "Review / Pads / Melted Ensemble r2","Review / Physical materials / Oxide Rim r2","Review / Physical materials / Reel Clav r2",
+            "Review / Physical materials / Backspun Tines r1","Review / Physical materials / Unstruck Bell r1",
+            "Review / Physical materials / Spool Guitar r1","Review / Physical materials / Inward Tom r1",
+            "Review / Basses / Suction Bass r1","Review / Leads / Rewind Reed r1",
+            "Review / Pads / Folded Strings r1","Review / Physical materials / Vanishing Clav r1",
+            "Review / Physical materials / Backspun Tines r2","Review / Physical materials / Unstruck Bell r2",
+            "Review / Physical materials / Spool Guitar r2","Review / Physical materials / Inward Tom r2",
+            "Review / Basses / Suction Bass r2","Review / Leads / Rewind Reed r2",
+            "Review / Pads / Folded Strings r2","Review / Physical materials / Vanishing Clav r2"};
         if(Nitride::legacyProgramNames.size()!=4+reviewNames.size())throw std::runtime_error("Legacy fixture coverage changed");
         for(CFIndex i=0;i<static_cast<CFIndex>(Nitride::legacyProgramNames.size());++i)
         {

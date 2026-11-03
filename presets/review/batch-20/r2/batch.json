@@ -1,0 +1,71 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "backspun-tines-r2",
+      "category": "Physical materials",
+      "host_category": "Keys & Organs",
+      "seconds": 27,
+      "study_axis": "clean harmonic key with a dry late tine edge, no filter sweep",
+      "intent": "The clean reference: hollow, almost sine-like electric-key body and a restrained late fourth-harmonic tine edge. No resonant whoosh, grit, vibrato or room. Sparse chords expose its stillness against the other revisions. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    },
+    {
+      "file": "unstruck-bell-r2",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 27,
+      "study_axis": "thin high inharmonic glass ring with a small spatial trail",
+      "intent": "A much higher, thinner, glass-like bell: the exposed 7.13-ratio primary contributes an inharmonic upper ring, not another midrange rounded key. Its index thins toward the endpoint while amplitude swells; a small ordinary room trail contrasts the dry instruments. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    },
+    {
+      "file": "spool-guitar-r2",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 27,
+      "study_axis": "low odd-partial woody twang with a closing nasal throat",
+      "intent": "A low, woody/nasal string surrogate rather than another glassy pluck. Half-ratio shaped FM, a resonant closing Tone contour and a longer endpoint decay make a choked twang. The filter moves opposite to the old shared brightening recipe; not an acoustic guitar model. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    },
+    {
+      "file": "inward-tom-r2",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 27,
+      "study_axis": "short rising-pitch suction drum with a rough skin endpoint",
+      "intent": "A compact suction drum, not a miniature pad: pitch rises from below the played note while a low body gathers a rougher skin-like endpoint. The negative Autobend is a note-triggered upward entrance; no pitch-LFO sweep, sampled shell or noise layer. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    },
+    {
+      "file": "suction-bass-r2",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 27,
+      "study_axis": "smooth near-sine sub swell without FM bite or a bright endpoint",
+      "intent": "The smooth low-frequency counterweight: no FM index, operator tap, network coupling, pitch motion or Space. A modest closing low-pass contour and short endpoint form a round sub gulp, deliberately unlike the brighter, biting r1 bass. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    },
+    {
+      "file": "rewind-reed-r2",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 27,
+      "study_axis": "frayed unstable reed with network rasp and a contracting vowel",
+      "intent": "The deliberately rough voice: stronger network interaction, noninteger FM, a contracting resonant vowel and a little free vibrato. Index falls as the amplitude rises instead of copying the brightening key envelope. Not a breath model or per-note random source. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    },
+    {
+      "file": "folded-strings-r2",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 27,
+      "study_axis": "soft detuned ensemble pull with a broad ordinary Space tail",
+      "intent": "The soft, beating chordal voice: near-unison triangle-rich primary tap, gentle common drift, small relative-ratio wandering and a broader ordinary Space tail. No rising FM-index strike. The amplitude still turns over rather than sustaining; the room itself is not reversed or chorused. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    },
+    {
+      "file": "vanishing-clav-r2",
+      "category": "Physical materials",
+      "host_category": "Keys & Organs",
+      "seconds": 27,
+      "study_axis": "very short papery clav-rim flick from audio-rate Tone FM",
+      "intent": "The brittle rhythmic opposite to the soft strings: a 110 ms papery clav/rim flick, a high-ratio late edge and audio-rate Tone FM rather than network grit. No slow resonant filter sweep or room. Repeat the same short note to compare its dry texture with the pitched suction drum. Original r1 MIDI retained for direct comparison. Synthesized backwards gesture, not literal audio reversal; shared Tone and global free LFOs, not independent per-voice filters or drift."
+    }
+  ]
+}

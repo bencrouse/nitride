@@ -24,6 +24,13 @@
       "user_feedback": "ok yes very good. can you finalize/promote these and commit and push?",
       "revisions": ["review:low-battery-piano:r2", "review:slack-drum:r2", "review:brown-console:r2", "review:silt-bass:r2", "review:bent-aerial:r2", "review:melted-ensemble:r2", "review:oxide-rim:r2", "review:reel-clav:r2"],
       "interpretation": "Explicit approval/finalization of all eight stronger-detune analog r2 studies unchanged. Promote r2, not r1, into clean native/standalone factory browsing; catalog61to69. Preserve all90programs, original r1/r2 files/MIDI, prior61nativefiles, r1comparison presets and user saves. Archive only unchanged owned exact r2Studyduplicates/receipt. Commit and push authorized. Beak>/Portishead are imagined mood briefs, not artist-authentic instruments. No extra hardware-fidelity, project-reopen, soak/M2 or release/performance qualification inferred."
+    },
+    {
+      "date": "2026-11-03",
+      "trial": "logic-037",
+      "user_feedback": "ok the r2 versions are excellent, can you promote those to first class citizens? and then commit and push please",
+      "revisions": ["review:backspun-tines:r2", "review:unstruck-bell:r2", "review:spool-guitar:r2", "review:inward-tom:r2", "review:suction-bass:r2", "review:rewind-reed:r2", "review:folded-strings:r2", "review:vanishing-clav:r2"],
+      "interpretation": "Explicit approval/finalization of all eight more-distinct reverse r2 versions unchanged. Add clean native/standalone factory labels; catalog69to77. Preserve all106programs, original r1/r2 definitions/MIDI, old69native files, r1comparison presets/receipt and user saves. Retire only unchanged owned exact r2Studyduplicates/receipt after clean-replacement document checks. Commit and push implementation/promotion authorized. No separate per-sound commentary, acoustic/literal reversal fidelity, Logic reopen/soak/M2 or broader release/performance qualification inferred."
     }
   ],
   "host_category_confirmation": "confirmed-by-user",
@@ -48,6 +55,8 @@
     "review:late-glass:r1", "review:rubber-relay:r1", "review:gate-garden:r1", "review:paper-motor:r1",
     "review:closing-argument:r1", "review:undertint:r1", "review:loose-change:r1", "review:carousel-wire:r1",
     "review:low-battery-piano:r2", "review:slack-drum:r2", "review:brown-console:r2", "review:silt-bass:r2",
-    "review:bent-aerial:r2", "review:melted-ensemble:r2", "review:oxide-rim:r2", "review:reel-clav:r2"
+    "review:bent-aerial:r2", "review:melted-ensemble:r2", "review:oxide-rim:r2", "review:reel-clav:r2",
+    "review:backspun-tines:r2", "review:unstruck-bell:r2", "review:spool-guitar:r2", "review:inward-tom:r2",
+    "review:suction-bass:r2", "review:rewind-reed:r2", "review:folded-strings:r2", "review:vanishing-clav:r2"
   ]
 }

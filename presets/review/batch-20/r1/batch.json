@@ -1,0 +1,71 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "backspun-tines-r1",
+      "category": "Physical materials",
+      "host_category": "Keys & Organs",
+      "seconds": 27,
+      "study_axis": "electric-key body swelling into its hammer edge",
+      "intent": "A rounded electric-key ring gathers its hard tine edge late, then closes instead of ringing out. Sparse minor voicings and isolated keys; not a piano sample or a generic slow pad. Synthesized envelope illusion, not literal audio reversal. Hold for at least 0.9 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    },
+    {
+      "file": "unstruck-bell-r1",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 27,
+      "study_axis": "inharmonic ring pulled into a late metallic strike",
+      "intent": "An exposed bell ring sucks inward toward an increasingly metallic endpoint. The inharmonic primary distinguishes it from the harmonic tines; hold long enough to hear the terminal strike. Synthesized envelope illusion, not literal audio reversal. Hold for at least 1.6 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    },
+    {
+      "file": "spool-guitar-r1",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 27,
+      "study_axis": "woody string body arriving before its pick",
+      "intent": "A dry, woody plucked-string surrogate with the order inverted: rounded body first, wiry pick edge last. Detached dyads and small figures, not a guitar recording or reversed delay. Synthesized envelope illusion, not literal audio reversal. Hold for at least 0.48 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    },
+    {
+      "file": "inward-tom-r1",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 27,
+      "study_axis": "low drum resonance swelling into a skin-like edge",
+      "intent": "A low pitched drum body rises into a compact skin-like FM edge and drops away. Hold the key beyond the swell: the short decay ends the hit without a sequencer. No noise source, drum sample or pitch-LFO riser. Synthesized envelope illusion, not literal audio reversal. Hold for at least 0.36 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    },
+    {
+      "file": "suction-bass-r1",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 27,
+      "study_axis": "reverse finger-bass gulp with a grounded root",
+      "intent": "A rounded low root gathers a resonant finger-like edge, then cuts short. A compact backwards bass gesture rather than a long sweep, wobble or gliding pitch effect. Play detached roots. Synthesized envelope illusion, not literal audio reversal. Hold for at least 0.42 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    },
+    {
+      "file": "rewind-reed-r1",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 27,
+      "study_axis": "hollow wind tone opening into a late reed bite",
+      "intent": "A hollow sustained-wind impression turns inside out: the reed bite appears at the end of the swell, with no sustained plateau. Detached mid-register phrases; not a breath/noise model or ordinary brass attack. Synthesized envelope illusion, not literal audio reversal. Hold for at least 0.68 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    },
+    {
+      "file": "folded-strings-r1",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 27,
+      "study_axis": "ensemble chord swelling toward a dry bow-like endpoint",
+      "intent": "A string-ensemble surrogate rises as a chord, acquires bow-like upper partials and ends decisively instead of sustaining as a pad. Longer inverse gesture, no chorus, independent string layers or reverse reverb. Synthesized envelope illusion, not literal audio reversal. Hold for at least 1.85 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    },
+    {
+      "file": "vanishing-clav-r1",
+      "category": "Physical materials",
+      "host_category": "Keys & Organs",
+      "seconds": 27,
+      "study_axis": "short backwards electric-key flick",
+      "intent": "A very short dry electric-key flick: woody body into a late, bright clav-like edge, then disappearance. The quickest backwards gesture in the set, suitable for repeated rhythmic notes without a free-running gate. Synthesized envelope illusion, not literal audio reversal. Hold for at least 0.2 seconds; early release aborts the swell. Amplitude decay is exponential, not a hard gate. Shared Tone envelope; no note-reset LFO or automatic future note prediction."
+    }
+  ]
+}

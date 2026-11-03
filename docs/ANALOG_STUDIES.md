@@ -4,7 +4,8 @@
 
 The user explicitly approved all eight r2 refinements and requested finalization,
 commit and push. They now join normal factory browsing unchanged, bringing the
-catalog to **69 sounds**. All 90 programs and both r1/r2 source definitions/MIDI are
+catalog to **69 sounds** at that promotion; the later [reverse r2 promotion](REVERSE_STUDIES.md)
+brings the current total to 77. All 90 programs and both r1/r2 source definitions/MIDI are
 preserved. R1 remains unselected and recallable; only r2 is factory-selected.
 
 ```sh
@@ -13,7 +14,7 @@ make reload-au CONFIG=Release
 
 This installs missing clean-name native presets from a fresh clone without a private
 journal. Restart Logic/create a fresh instance, then browse the host Settings menu.
-Standalone includes all 69 in its normal browser. Existing user files/edits are never
+Standalone now includes all 77 in its normal browser. Existing user files/edits are never
 overwritten. The guarded local promotion archives only unchanged, receipt-owned r2
 duplicates with exact clean replacements; original r1 comparison files are untouched.
 The ordinary source installer does not automatically remove old Study files on other
@@ -145,7 +146,7 @@ or stereo VCO spread. These are creative parameter patches, not new emulations.
 On the development Mac the batch is installed with explicit **Study - …** names.
 Restart Logic after the AU update and create a fresh instance. Use the host's
 **Settings** menu above the interface, in the categories listed above. Normal
-factory browsing now contains 69 sounds, including the clean finalized r2 versions.
+factory browsing now contains 77 sounds, including the clean finalized analog r2 versions.
 
 For another source checkout:
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import math
 import sys
 import tempfile
 import threading
@@ -11,6 +12,18 @@ import evaluation as ev
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_preset_serialization_allows_only_adjacent_double_roundoff(self):
+        source = {"id": "frozen", "mono": False, "values": {"filter_attack": .36 * .95, "output": -3.0}}
+        exported = {**source, "values": {**source["values"], "filter_attack": .342}}
+        self.assertTrue(ev.same_serialized_preset(exported, source))
+        self.assertTrue(ev.same_serialized_preset(source, exported))
+        self.assertFalse(ev.same_serialized_preset({**exported, "mono": True}, source))
+        self.assertFalse(ev.same_serialized_preset({**exported, "id": "changed"}, source))
+        self.assertFalse(ev.same_serialized_preset({**exported, "extra": 1}, source))
+        for value in (math.nextafter(.342, math.inf), .343, float("nan"), float("inf"), True, "0.342"):
+            self.assertFalse(ev.same_serialized_preset({**exported, "values": {**exported["values"], "filter_attack": value}}, source))
+        self.assertFalse(ev.same_serialized_preset({**exported, "values": {"filter_attack": .342}}, source))
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory(prefix="nitride-evaluation-")
         self.root = Path(self.directory.name) / "evaluation"

@@ -369,6 +369,39 @@ void analogDetune()
     require(piano.values[fmRatio]==1.003&&piano.values[attack]<.003&&piano.values[sustain]<.1,"Requested piano lost near-unison strike/decaying body");
     require(drum.values[fmRatio]==1.011&&drum.values[ampLfoOn]==0&&drum.values[pitchLfoOn]==0&&drum.values[decay]>.5,"Requested drum lost actual detuned body without pitch-LFO decoration");
 }
+void reverseContours()
+{
+    constexpr std::array ids{"review:backspun-tines:r1","review:unstruck-bell:r1","review:spool-guitar:r1","review:inward-tom:r1",
+        "review:suction-bass:r1","review:rewind-reed:r1","review:folded-strings:r1","review:vanishing-clav:r1"};
+    for(size_t i=0;i<ids.size();++i)
+    {
+        const auto program=90+static_cast<int>(i);
+        require(builtInIndex(ids[i])==program&&factoryProgramName(program)==nullptr,"Reverse audition displaced a program or entered finalized browsing");
+        auto patch=builtInPresets()[static_cast<size_t>(program)].patch;
+        // Isolate the instrument contour from the small optional Space return.
+        patch.values[spaceMix]=0;
+        const auto a=patch.values[attack];
+        const auto render=[&](bool earlyRelease)
+        {
+            RenderHarness h;h.session.apply(patch);h.renderer.prepare(48000);
+            const auto total=static_cast<int>((a+.7)*48000),off=static_cast<int>((earlyRelease?a*.25:a+.4)*48000);
+            juce::AudioBuffer<float> audio(2,total);juce::MidiBuffer midi;
+            midi.addEvent(juce::MidiMessage::noteOn(1,patch.mono?36:60,.8f),0);
+            midi.addEvent(juce::MidiMessage::noteOff(1,patch.mono?36:60),off);
+            h.renderer.process(audio,midi);
+            require(h.session.live.faults.load()==0&&h.session.live.voices.load()==0,"Reverse contour failed finite rendering or completed note release");
+            return audio;
+        };
+        const auto audio=render(false);
+        const auto rms=[&](const juce::AudioBuffer<float>& buffer,double start,double end)
+        {return buffer.getRMSLevel(0,static_cast<int>(start*48000),static_cast<int>((end-start)*48000));};
+        const auto early=rms(audio,a*.03,a*.18),late=rms(audio,a*.72,a*.94);
+        require(late>.001f&&late>early*2,"Reverse instrument did not grow toward its terminal attack");
+        require(rms(audio,a+.30,a+.39)<late*.02,"Held reverse gesture sustained like a pad instead of ending");
+        const auto aborted=render(true);
+        require(rms(aborted,a*.25+.15,a*.25+.25)<1e-5f,"Early key-up failed to abort the backwards swell");
+    }
+}
 void transitionTransport()
 {
     constexpr int samples=12000;
@@ -402,5 +435,42 @@ void transitionTransport()
         require(render(patch,90,true,false).first==render(patch,150,true,true).first,"Seconds-based transition unexpectedly followed transport");
     }
 }
+void distinctReverseRevisions()
+{
+    constexpr std::array families{"backspun-tines","unstruck-bell","spool-guitar","inward-tom","suction-bass","rewind-reed","folded-strings","vanishing-clav"};
+    constexpr std::array notes{60,60,55,43,36,60,60,60};
+    for(size_t i=0;i<families.size();++i)
+    {
+        const auto program=98+static_cast<int>(i);const auto id="review:"+juce::String(families[i])+":r2";
+        require(builtInIndex(id)==program&&factoryProgramName(program)!=nullptr,"Finalized reverse r2 lost its stable program or clean factory label");
+        const auto& parent=builtInPresets()[90+i].patch;auto patch=builtInPresets()[static_cast<size_t>(program)].patch;
+        int changed=0;for(size_t p=0;p<parameterCount;++p)if(patch.values[p]!=parent.values[p])++changed;
+        require(changed>10&&patch.mono==parent.mono&&patch.chord==parent.chord,"Reverse r2 is only a minor level/filter variant or changed note mode");
+        // Space is deliberately different across r2. Isolate the dry gesture here;
+        // complete production renders/native recall retain each original return.
+        patch.values[spaceMix]=0;const auto a=patch.values[attack];
+        const auto render=[&](bool abort)
+        {
+            RenderHarness h;h.session.apply(patch);h.renderer.prepare(48000);
+            const auto total=static_cast<int>((a+1.2)*48000),off=static_cast<int>((abort?a*.25:a+.9)*48000);
+            juce::AudioBuffer<float> audio(2,total);juce::MidiBuffer midi;
+            midi.addEvent(juce::MidiMessage::noteOn(1,notes[i],.8f),0);midi.addEvent(juce::MidiMessage::noteOff(1,notes[i]),off);
+            h.renderer.process(audio,midi);
+            require(h.session.live.faults.load()==0&&h.session.live.voices.load()==0,"Reverse r2 failed finite rendering or completed release");
+            return audio;
+        };
+        const auto rms=[](const juce::AudioBuffer<float>& audio,double start,double end)
+        {return audio.getRMSLevel(0,static_cast<int>(start*48000),static_cast<int>((end-start)*48000));};
+        const auto audio=render(false);const auto late=rms(audio,a*.65,a*.92);
+        require(late>.001f&&late>rms(audio,a*.03,a*.18)*1.5,"Distinct reverse r2 lost its growing body");
+        require(rms(audio,a+.70,a+.80)<late*.03,"Dry reverse r2 became a sustained pad");
+        const auto aborted=render(true);
+        require(rms(aborted,a*.25+.40,a*.25+.50)<1e-5f,"Early key-up failed to abort reverse r2");
+    }
+    RenderHarness tom;tom.session.apply(builtInPresets()[101].patch);tom.renderer.prepare(48000);
+    tom.event(juce::MidiMessage::noteOn(1,43,.8f));const auto start=tom.renderer.pitchSnapshot(43).carrierHz;
+    tom.tick(7000);const auto later=tom.renderer.pitchSnapshot(43).carrierHz;
+    require(later>start*1.5,"Reverse suction drum lost its actual rising-pitch entrance");
 }
-void runReviewRegressionTests(){midiChannelModes();interruptedRecall();accessibleUnits();compareReplacement();embeddedReviewPrograms();analogDetune();transitionTransport();std::cout<<"Code-review MIDI, recall, accessibility/text, Compare, embedded programs, actual analog detune and transition transport regressions passed\n";}
+}
+void runReviewRegressionTests(){midiChannelModes();interruptedRecall();accessibleUnits();compareReplacement();embeddedReviewPrograms();analogDetune();reverseContours();distinctReverseRevisions();transitionTransport();std::cout<<"Code-review MIDI, recall, accessibility/text, Compare, embedded programs, analog detune, reverse r1/r2 gestures and transition transport regressions passed\n";}

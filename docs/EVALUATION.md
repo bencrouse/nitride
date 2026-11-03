@@ -1,5 +1,47 @@
 # Persistent evaluation
 
+## Finalized backwards-instrument r2 eight / eval-038
+
+The user explicitly said: “ok the r2 versions are excellent, can you promote those
+to first class citizens? and then commit and push please”. All eight distinct-source
+reverse r2 sounds enter normal native/standalone factory browsing unchanged, with
+clean names, bringing the finalized catalog to 77. Programs 0–105, all r1/r2
+definitions/MIDI and user saves remain intact. R1 stays unselected and recallable;
+its native comparisons/receipt are preserved. Only exact unchanged owned r2 Study
+duplicates are archived after clean-replacement document checks.
+
+Portable verbatim approval is in factory acceptance.json. This is finalization, not
+additional per-sound commentary, literal/acoustic reversal fidelity, host reopen,
+M2/soak or broader release/performance qualification. Earlier sections are history.
+
+## More distinct backwards-instrument revisions / eval-037
+
+The user said the first backwards round was good but lacked variety. Batch-20/r2
+revoices all eight with distinct source/gesture mechanisms: clean harmonic tines,
+high inharmonic glass, low nasal twang, rising suction drum, smooth sub, frayed reed,
+soft beating strings and a brittle Tone-FM clav/rim flick. Not just different swell
+speeds or filter offsets. See the [r2 comparison guide](REVERSE_STUDIES.md).
+
+R2 appends programs 98–105, preserving 0–97, all r1 source/native files and the
+69-sound factory selection. Every r2 retains byte-identical r1 MIDI for comparison;
+separate common-note/fixed-amplitude probes test source differences without treating
+measurements as perceptual variety scores. Native **Study - Name r2** labels live
+beside the originals. Feedback is refinement, not promotion or commit/push consent.
+
+## Backwards-instrument auditions / eval-036
+
+Batch 20 adds eight original reverse-envelope studies: Backspun Tines, Unstruck Bell,
+Spool Guitar, Inward Tom, Suction Bass, Rewind Reed, Folded Strings and Vanishing Clav.
+Recognizable instrument bodies swell toward late attack edges and short endings;
+these are synthesis approximations, not reversed audio or a new buffer effect.
+See the [audition and timing guide](REVERSE_STUDIES.md).
+
+The 69 finalized sounds and all prior 90 programs remain unchanged. New programs
+append at 90–97; explicit native Study labels and the standalone Evaluation archive
+keep them outside the normal factory selection. Existing v6/v7 state, 89 host
+controls, DSP and voice policy are untouched. User feedback is pending; no promotion,
+commit/push or broader release/host acceptance is inferred from the preparation.
+
 ## Finalized stronger-detune analog r2 eight / eval-035
 
 The user explicitly approved the r2 refinements: “ok yes very good. can you

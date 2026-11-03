@@ -1,4 +1,4 @@
-# Host-native presets / 0.7.35 · eval-035
+# Host-native presets / 0.7.38 · eval-038
 
 All eight [motion/envelope presets](../../docs/MOTION_STUDIES.md) from eval-031 are now
 explicitly promoted, unchanged, with clean names in both normal browsers. Only exact
@@ -9,7 +9,11 @@ All eight stronger-detune [analog r2 presets](../../docs/ANALOG_STUDIES.md) are 
 explicitly finalized too, unchanged from eval-034. Original r1 stays unselected and
 recallable; its comparison files are not retired with the exact r2 duplicates.
 
-The finalized library has **69 sounds in nine musical-role categories**. In Logic,
+All eight more-distinct [backwards-instrument r2 presets](../../docs/REVERSE_STUDIES.md)
+are now finalized too, unchanged from eval-037. Their original r1 comparison files
+and receipt remain intact; only exact owned r2 Study duplicates are retired locally.
+
+The finalized library has **77 sounds in nine musical-role categories**. In Logic,
 use the host's Settings/preset menu above the instrument
 interface. The temporary `Nitride Preview` parent is not part of the library:
 
@@ -38,23 +42,24 @@ project-close/reopen is not separately inferred from the editing/saving confirma
 - **AU:** no internal factory dropdown or KEEP button. Load/save through the host.
   Undo, Compare, Hold, synthesis controls, automation and keyboard remain intact.
 - **Standalone:** a small category-organized dropdown and KEEP remain. Normal
-  browsing contains the same 69 finalized sounds, plus user-kept sounds.
+  browsing contains the same 77 finalized sounds, plus user-kept sounds.
 - Superseded revisions remain in standalone's **… → Evaluation archive**.
 - All original starting patches, Classic Tines/Bass/Tubes and the FS1R-inspired trio
   are now in normal browsing. Existing startup/default conditions are unchanged.
 
 The AU does **not advertise a Factory Presets list**. Logic otherwise adds a redundant
 **AU Presets** submenu alongside the real category folders. Categorized `.aupreset`
-files are the sole host-facing browser; the prior 61 files remain byte-identical.
+files are the sole host-facing browser; the prior 69 files remain byte-identical.
 Historical numeric selection still works for compatibility, without advertising a list.
 Names/categories are release metadata: original preset JSON, stored inner names and
 sound definitions are not edited. An old project can still contain an archived name.
 
 ## Legacy sounds and session compatibility
 
-No historical program was deleted or renumbered. All **90 program numbers**
-(four starting patches plus 86 review revisions, including eight archived analog r1
-studies and eight finalized r2 sounds), v7 documents, undo/redo histories,
+No historical program was deleted or renumbered. All **106 program numbers**
+(four starting patches plus 102 review revisions, including eight archived analog r1
+studies, eight finalized analog r2 sounds, eight unselected reverse r1 studies and
+eight finalized reverse r2 sounds), v7 documents, undo/redo histories,
 Compare references and portable kept sounds retain their existing storage/recall paths.
 The AU adapter disables public enumeration and retains outer display labels. It operates
 on a checksum-verified generated copy of the pinned JUCE wrapper, not the vendor
@@ -87,6 +92,8 @@ and push. That brings the catalog to 61 without modifying any r1 recipe, MIDI or
 The subsequent explicit approval of all eight stronger-detune analog r2 versions
 brings it to 69. R2 is promoted without retuning; all original r1/r2 definitions,
 MIDI and numeric programs remain unchanged.
+The user then called all eight reverse r2 versions excellent and requested first-
+class promotion, commit and push, bringing the catalog to 77 without retuning.
 No mass normalization
 or sound edits are part of consolidation. Inclusion/levels/save-edit acceptance is
 not certification of every register, hardware reference or maximum-polyphony case.
@@ -99,7 +106,7 @@ not certification of every register, hardware reference or maximum-polyphony cas
 make reload-au
 ```
 
-This builds/installs the AU, then exports and verifies all 69 categorized `.aupreset`
+This builds/installs the AU, then exports and verifies all 77 categorized `.aupreset`
 files directly from that exact component and installs any missing files. Restart Logic
 and create a new instance, then use the host's **Settings** menu above the interface.
 The AU intentionally does not advertise the separate **AU Presets** submenu.
@@ -149,6 +156,8 @@ FS1R-only `--retire-studies`. For the motion/envelope batch, the named receipt i
 separate from the missing-only source installer, which never removes old Study files.
 The finalized analog r2 receipt is `--retire-study analog-mood-002`; do not request
 retirement of `analog-mood-001`, whose different r1 sounds remain for comparison.
+The reverse r2 receipt is `--retire-study reverse-instruments-002`; preserve
+`reverse-instruments-001` and its different r1 comparison sounds.
 Explicit named-study retirement verifies the receipt's
 identity/status, every owned checksum and full sound-document equality with a clean
 replacement. It never scans for or removes unrelated files merely named Study.
@@ -181,6 +190,12 @@ protected user save, not an extra factory category.
 
 ## Evidence and open limits
 
+`evaluation/preset-finalization/pass-008/` records the reverse r2 promotion: 77
+exact native document/89-parameter/audio checks, actual registered 0.7.38 AU
+validation, all 106 numeric-program checks, 14/14 Release and Debug suites, and
+unchanged approved r2 render hashes. Prior 69 native files and original r1 comparison
+files/receipt are unchanged; only exact owned reverse r2 Study duplicates are archived.
+
 `evaluation/preset-finalization/pass-007/` records the analog r2 promotion: 69 exact
 native document/89-parameter/audio checks, actual registered 0.7.35 AU validation,
 all 90 numeric-program checks, 13/13 Release and Debug suites, and unchanged r2
@@ -202,4 +217,6 @@ for the separately fixed Socket timing case and measured maximum-polyphony limit
 finalizing the sounds does not close the pending M2/host-soak/project-reopen gates.
 The user explicitly authorized the motion promotions and subsequently the analog r2
 promotions, including commit and push, on2026-10-30.
+The reverse r2 approval explicitly authorizes first-class promotion, commit and push
+on 2026-11-03; it does not extend the separate release/host qualifications above.
 Private evidence remains local; ZIPs are not off-device backup.

@@ -38,7 +38,7 @@ class AnalogStudyTests(unittest.TestCase):
         self.assertEqual([e["program"] for e in entries], list(range(74, 82)))
         self.assertTrue(all("not artist-authentic" in e["design_lens"] for e in entries))
         selected = fp.validate_selection()[1]
-        self.assertEqual(len(selected), 69)
+        self.assertEqual(len(selected), 77)
         self.assertFalse({e["id"] for e in entries} & {e["id"] for e in selected})
 
     def test_generator_is_frozen_deterministic_and_non_overwriting(self):
@@ -127,11 +127,12 @@ class AnalogStudyTests(unittest.TestCase):
     def test_only_r2_is_finalized_with_explicit_user_feedback(self):
         ids = {"review:" + family + ":r1" for family in FAMILIES}
         self.assertFalse(ids & set(fp.acceptance()["retained"]))
-        self.assertEqual(len(fp.acceptance()["retained"]), 69)
+        self.assertEqual(len(fp.acceptance()["retained"]), 77)
         r2_ids = {"review:" + family + ":r2" for family in FAMILIES}
         self.assertTrue(r2_ids <= set(fp.acceptance()["retained"]))
         selection, selected = fp.validate_selection()
-        prior = [e for e in selection["entries"] if e["id"] not in r2_ids]
+        programs = {e["id"]: e["program"] for e in selected}
+        prior = [e for e in selection["entries"] if programs[e["id"]] < 82]
         self.assertEqual(hashlib.sha256(ev.canonical(prior)).hexdigest(),
                          "a6fea3726967df023b4c8ccf38ef24417a5dda5841f8bd054d76cf1c4a951692")
         feedback = next(f for f in fp.acceptance()["additional_feedback"] if set(f["revisions"]) == r2_ids)
@@ -218,6 +219,7 @@ class AnalogStudyTests(unittest.TestCase):
 
     def test_r2_promotion_retires_only_exact_owned_r2_and_preserves_r1(self):
         selection, selected = fp.validate_selection()
+        selected = [e for e in selected if e["program"] < 90]  # Historical 61→69 fixture.
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve(); package = root / "package"; package.mkdir()
             destination = root / "installed"; archive = root / "archive"
