@@ -1,0 +1,47 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "diode-current-r2",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 28,
+      "study_axis": "asymmetric feedback acid bass; full-range residual feedback",
+      "intent": "A dry, resonant acid-like bass. Harder notes open a voice-local filter; asymmetric diode-like feedback colors the resonant bite, rather than adding post-filter distortion. Full Rage with a more exposed filter range. Original r1 MIDI/source retained; r1 on a new AU also uses the new DSP. Use archived eval-039 audio for an exact old-engine comparison, not the r1 label alone."
+    },
+    {
+      "file": "pressure-brass-r2",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 28,
+      "study_axis": "balanced feedback overdrive in a brass-like lead; full-range residual feedback",
+      "intent": "A forceful brass-like lead with a short opening vowel and balanced feedback overdrive. Detached phrases expose each filter articulation; not an acoustic brass or transistor circuit model. Full Rage with a more exposed filter range. Original r1 MIDI/source retained; r1 on a new AU also uses the new DSP. Use archived eval-039 audio for an exact old-engine comparison, not the r1 label alone."
+    },
+    {
+      "file": "soft-circuit-r2",
+      "category": "Leads",
+      "host_category": "Keys & Organs",
+      "seconds": 28,
+      "study_axis": "soft feedback electric keys with independent chord articulation; full-range residual feedback",
+      "intent": "Rounded electric keys with a brief independent FM strike and soft feedback saturation. Staggered chord entrances demonstrate that a new note does not retrigger the other voices' filter envelopes. Full Rage with a more exposed filter range. Original r1 MIDI/source retained; r1 on a new AU also uses the new DSP. Use archived eval-039 audio for an exact old-engine comparison, not the r1 label alone."
+    },
+    {
+      "file": "spool-horizon-r2",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 28,
+      "study_axis": "slow beating pad with memory-shaped feedback rounding; full-range residual feedback",
+      "intent": "A warm, slowly opening chord with near-unison beating and tape-inspired feedback compression/rounding. No tape recording, physical hysteresis or reversed room is claimed; ordinary Space remains downstream. Full Rage with a more exposed filter range. Original r1 MIDI/source retained; r1 on a new AU also uses the new DSP. Use archived eval-039 audio for an exact old-engine comparison, not the r1 label alone."
+    },
+    {
+      "file": "switch-grain-r2",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 28,
+      "study_axis": "short bright asymmetric feedback percussion; full-range residual feedback",
+      "intent": "A short papery metallic hit. Biased hard feedback clipping and voice-local audio-rate cutoff FM make the bright edge; no noise samples, random hit variation or separate post-distortion stage. Full Rage with a more exposed filter range. Original r1 MIDI/source retained; r1 on a new AU also uses the new DSP. Use archived eval-039 audio for an exact old-engine comparison, not the r1 label alone."
+    }
+  ]
+}

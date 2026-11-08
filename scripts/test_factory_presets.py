@@ -21,16 +21,31 @@ import prepare_factory_catalog as catalog
 def synthetic_native(source, entry, document=None):
     """Unit-test envelope ONLY; production export always uses native AU ClassInfo."""
     if document is None:
-        document = {"format": "nitride-session", "version": 7,
+        document = {"format": "nitride-session", "version": 8 if source["version"] == 7 else 7,
                     "current": {"patch": {**source, "id": "snapshot"}, "reference": {**source, "id": "reference"},
                                 "selected": entry["id"], "program": entry["program"], "wholePatch": True, "parameters": []},
                     "undo": [], "redo": [], "kept": []}
-    xml = ET.Element("NITRIDE_INSTRUMENT", version="7")
+    xml = ET.Element("NITRIDE_INSTRUMENT", version=str(document["version"]))
     ET.SubElement(xml, "DOCUMENT").text = json.dumps(document)
     data = ET.tostring(xml, encoding="utf-8")
     return {"type": int.from_bytes(b"aumu", "big"), "subtype": int.from_bytes(b"NT01", "big"),
             "manufacturer": int.from_bytes(b"NTRD", "big"), "version": 0, "name": entry["name"],
             "jucePluginState": struct.pack("<II", 0x21324356, len(data)) + data + b"\0"}
+
+
+def historical_selection(before_program=116):
+    """Reconstruct pre-filter selected parents for historical promotion fixtures."""
+    selection, current = fp.validate_selection(check_history=False)
+    registry = fp.source_registry(check_history=False)
+    selected = []
+    for entry in current:
+        old = registry[entry["id"]]
+        while old["program"] >= before_program and old.get("parent"):
+            old = registry[old["parent"]]
+        if old["program"] < before_program:
+            selected.append({**entry, **{k: old[k] for k in ("id", "program", "family", "source", "source_sha256")}})
+    selection = {**selection, "entries": [{k: e[k] for k in ("id", "name", "category")} for e in selected]}
+    return selection, selected
 
 
 class SelectionTests(unittest.TestCase):
@@ -58,7 +73,7 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(len(entries), 77)
         self.assertEqual(len(selection["categories"]), 9)
         self.assertEqual(len({e["family"] for e in entries}), 77)
-        self.assertEqual(len(ev.validate_builtins()["entries"]), 102)
+        self.assertEqual(len(ev.validate_builtins()["entries"]), 128)
         self.assertEqual([e["program"] for e in entries if e["family"] == "cutoff-alloy"], [39])
         self.assertFalse(any(e["name"] == "Cutoff Alloy" for e in entries))
         self.assertEqual({e["id"] for e in entries if e["id"] in selection["pilot"]}, set(selection["pilot"]))
@@ -107,7 +122,7 @@ class SelectionTests(unittest.TestCase):
     def test_generated_metadata_keeps_sparse_historical_programs(self):
         generated = catalog.header()
         self.assertIn("std::array<FactoryProgram, 77>", generated)
-        self.assertIn("std::array<const char*, 106>", generated)
+        self.assertIn("std::array<const char*, 132>", generated)
         self.assertIn('{39, "review:cutoff-alloy:r2", "Tine Keys", "Keys & Organs"}', generated)
         self.assertIn('{59, "review:classic-koto:r1"', generated)
         self.assertNotIn('{37, "review:cutoff-alloy:r1"', generated)
@@ -129,6 +144,7 @@ class SelectionTests(unittest.TestCase):
         juceFilter->setCurrentProgram (chosenPresetNumber);
     }
     const String currentProgramName = juceFilter->getProgramName (currentProgramNumber);
+                CFDictionarySetValue (dict, key.get(), ourState.get());
 '''
         with mock.patch.object(catalog, "WRAPPER_SHA256", hashlib.sha256(source).hexdigest()):
             adapted = catalog.adapt_wrapper(source)
@@ -138,6 +154,8 @@ class SelectionTests(unittest.TestCase):
         self.assertNotIn("CFArrayCreate", getter)
         self.assertIn("juceFilter->setCurrentProgram (chosenPresetNumber);", adapted)
         self.assertIn("chosenPresetNumber < 0 || chosenPresetNumber >= numPrograms", adapted)
+        self.assertIn('xml->getIntAttribute ("version") == 7', adapted)
+        self.assertIn("Nitride::legacyAuParameterData", adapted)
 
     def test_source_archive_metadata_build_does_not_require_personal_journal(self):
         with mock.patch.object(fp.ev, "read_events", return_value=[]):

@@ -40,6 +40,6 @@ private:
     std::array<juce::RangedAudioParameter*,Nitride::hostParameterCount> hostBindings {};
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged(const juce::String&,float) override;
-    juce::ValueTree parameterStateFor(const Nitride::Patch&);
+    juce::ValueTree parameterStateFor(const Nitride::Patch&,bool legacyWire=false);
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NitrideAudioProcessor)
 };

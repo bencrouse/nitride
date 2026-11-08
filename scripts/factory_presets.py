@@ -92,6 +92,15 @@ def validate_selection(path=SELECTION, project=ROOT, require_feedback=True, chec
     return selection, entries
 
 
+def native_parameter_count(plugin_version=None):
+    """Historical packages retain their original contract; 0.7.39 adds three IDs."""
+    try:
+        version = tuple(int(part) for part in plugin_version.split("."))
+    except (AttributeError, ValueError):
+        return 89  # Historical/unit-fixture manifests without a product version.
+    return 92 if version >= (0, 7, 39) else 89
+
+
 def document_from_native(preset):
     identity = {"type": int.from_bytes(b"aumu", "big"), "subtype": int.from_bytes(b"NT01", "big"),
                 "manufacturer": int.from_bytes(b"NTRD", "big"), "version": 0}
@@ -104,10 +113,10 @@ def document_from_native(preset):
     if magic != 0x21324356 or length != len(data) - 9 or data[-1] != 0:
         raise ValueError("Invalid JUCE XML state envelope")
     root = ET.fromstring(data[8:8 + length])
-    if root.tag != "NITRIDE_INSTRUMENT" or root.get("version") != "7":
+    if root.tag != "NITRIDE_INSTRUMENT" or root.get("version") not in ("7", "8"):
         raise ValueError("Unsupported Nitride session XML")
     document = json.loads(root.findtext("DOCUMENT", ""))
-    if document.get("format") != "nitride-session" or document.get("version") != 7:
+    if document.get("format") != "nitride-session" or document.get("version") != int(root.get("version")):
         raise ValueError("Unsupported Nitride session document")
     if any(document.get(field) != [] for field in ("undo", "redo", "kept")):
         raise ValueError("Factory presets must not contain personal sounds or edit history")
@@ -177,7 +186,7 @@ def export_package(output, scope="pilot", tool=TOOL, selection_path=SELECTION, c
                 "status": "awaiting-logic-category-confirmation", "selection": selection["id"],
                 "selection_sha256": ev.digest(selection_path), "installed_build": build["id"], "plugin_version": build["version"],
                 "component_binary_sha256": build["binary_sha256"], "native_tool_sha256": ev.digest(tool),
-                "qualification": "Native AU ClassInfo/full-document/89-parameter/48kHz64frame audio recall, not Logic UI discovery or release approval. Only outer host labels cleaned; archived plugin names/IDs/conditions unchanged. No renewed performance/hardware/maximum-polyphony qualification.",
+                "qualification": "Native AU ClassInfo/full-document/versioned-host-parameter/48kHz64frame audio recall, not Logic UI discovery or release approval. Only outer host labels cleaned; archived plugin names/IDs/conditions unchanged. No renewed performance/hardware/maximum-polyphony qualification.",
                 "entries": [], "files": {}}
     shutil.copy2(selection_path, output / "selection.json")
     for entry in entries:
@@ -191,11 +200,11 @@ def export_package(output, scope="pilot", tool=TOOL, selection_path=SELECTION, c
         validate_native(path, entry, source)
         verification = native(["verify", str(path), str(entry["program"]), source["name"]], tool, explicit_component)
         metrics = json.loads(verification)
-        if not metrics["full_document_exact"] or not metrics["audio_exact"] or metrics["parameters"] != 89:
+        if not metrics["full_document_exact"] or not metrics["audio_exact"] or metrics["parameters"] != native_parameter_count(build["version"]):
             raise ValueError("Incomplete native recall verification")
         manifest["entries"].append({**entry, "file": relative, "frozen_source": source_relative,
                                      "export_stdout": first, "native_verification": metrics})
-        print("Verified", relative, "(full document, 89 parameters, exact audio)", flush=True)
+        print("Verified", relative, "(full document,", metrics["parameters"], "parameters, exact audio)", flush=True)
     for relative, expected in build["bundle_hashes"].items():
         if ev.digest(package_file(component, relative)) != expected:
             raise ValueError("Component changed during preset export; no presets installed")
@@ -243,7 +252,7 @@ def verify_package(folder):
             raise ValueError("Source definition checksum mismatch")
         validate_native(package_file(folder, entry["file"]), entry, json.loads(source.read_text()))
         metrics = entry["native_verification"]
-        if metrics.get("full_document_exact") is not True or metrics.get("audio_exact") is not True or metrics.get("parameters") != 89:
+        if metrics.get("full_document_exact") is not True or metrics.get("audio_exact") is not True or metrics.get("parameters") != native_parameter_count(manifest.get("plugin_version")):
             raise ValueError("Missing recorded native verification")
         ids.add(entry["id"]); paths.add(entry["file"])
     return manifest
@@ -530,6 +539,103 @@ def extend_factory(folder, archive, destination=FACTORY_DESTINATION, retire_stud
     return receipt
 
 
+def replace_factory(folder, archive, replacements, destination=FACTORY_DESTINATION, study_ids=()):
+    """Explicit owned revision replacement, with durable originals and guarded rollback."""
+    confirmation = host_confirmation()
+    folder, destination, archive = Path(folder).absolute(), Path(destination).absolute(), Path(archive).absolute()
+    manifest = verify_package(folder)
+    selection, selected = validate_selection(check_history=False)
+    if (manifest["scope"] != "candidate" or manifest["selection"] != selection["id"]
+            or len(manifest["entries"]) != len(selected)
+            or any(any(item.get(k) != v for k, v in entry.items()) for entry, item in zip(selected, manifest["entries"]))):
+        raise ValueError("Replacement requires the complete current approved factory package")
+    if any(p.is_symlink() for root in (destination, archive) for p in (root, *root.parents)):
+        raise ValueError("Replacement paths must not traverse symbolic links")
+    if archive.is_relative_to(destination) or destination.is_relative_to(archive):
+        raise ValueError("Archive must be outside the host preset tree")
+    receipt_path = package_file(destination, FACTORY_RECEIPT)
+    previous_bytes = receipt_path.read_bytes(); previous = json.loads(previous_bytes)
+    if (previous.get("format"), previous.get("version")) != ("nitride-factory-preset-install", 1) or not previous.get("files"):
+        raise ValueError("No valid factory ownership receipt")
+    files = {e["file"]: manifest["files"][e["file"]] for e in manifest["entries"]}
+    if files.keys() != previous["files"].keys():
+        raise ValueError("Revision replacement cannot add/remove factory paths")
+    requested = tuple(replacements)
+    changed = {p for p in files if files[p] != previous["files"][p]}
+    if not changed or len(requested) != len(set(requested)) or set(requested) != changed:
+        raise ValueError("Explicit replacement paths must exactly match changed factory files")
+    for relative, expected in previous["files"].items():
+        if ev.digest(package_file(destination, relative)) != expected:
+            raise ValueError("Factory file edited; preserve user changes: " + relative)
+    if len(study_ids) != len(set(study_ids)): raise ValueError("Duplicate study retirement request")
+    documents = [document_from_native(plistlib.loads(package_file(folder, p).read_bytes())) for p in changed]
+    retired = {}
+    for identity in study_ids:
+        ev.identifier(identity); relative = ".nitride-study-" + identity + ".json"
+        path = package_file(destination, relative); data = json.loads(path.read_text())
+        if ((data.get("format"), data.get("version"), data.get("study"), data.get("status")) !=
+                ("nitride-study-preset-install", 1, identity, "awaiting-feedback-not-factory-selected")
+                or not 1 <= len(data.get("files", {})) <= 12):
+            raise ValueError("Invalid study ownership receipt")
+        for name, expected in data["files"].items():
+            source = package_file(destination, name)
+            if name in files or name in retired or source.suffix != ".aupreset" or not source.name.startswith("Study - "):
+                raise ValueError("Conflicting or invalid Study ownership")
+            if ev.digest(source) != expected: raise ValueError("Study file edited; preserve user changes: " + name)
+            if document_from_native(plistlib.loads(source.read_bytes())) not in documents:
+                raise ValueError("Study sound has no exact changed factory replacement")
+            retired[name] = expected
+        retired[relative] = ev.digest(path)
+    receipt = {**previous, "installed_build": manifest["installed_build"], "selection": manifest["selection"],
+               "package_sha256": ev.digest(folder/"manifest.json"), "host_confirmation_feedback": confirmation, "files": files,
+               "revision_update": {"replaced": sorted(changed), "previous_receipt_sha256": ev.digest(receipt_path),
+                                   "acceptance_sha256": ev.digest(ROOT/"presets/factory/acceptance.json")}}
+    archive.mkdir(parents=True, exist_ok=False)
+    backup = archive/"previous-factory"; backup.mkdir()
+    (backup/FACTORY_RECEIPT).write_bytes(previous_bytes); ev.durable(backup/FACTORY_RECEIPT)
+    for names, category in (({p: previous["files"][p] for p in changed}, "previous-factory"), (retired, "retired-studies")):
+        for relative, expected in names.items():
+            target = archive/category/relative; target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(package_file(destination, relative), target); ev.durable(target)
+            if ev.digest(target) != expected: raise ValueError("Durable promotion archive checksum mismatch")
+    published = False
+    try:
+        with tempfile.TemporaryDirectory(prefix=".nitride-replace-", dir=destination) as temporary:
+            stage = Path(temporary); moved, created = [], []
+            for i, relative in enumerate(sorted(changed)):
+                shutil.copy2(package_file(folder, relative), stage/str(i)); ev.durable(stage/str(i))
+                if ev.digest(stage/str(i)) != files[relative]: raise ValueError("Staged replacement checksum mismatch")
+            new_receipt = stage/"receipt.json"; new_receipt.write_text(json.dumps(receipt, indent=2)+"\n"); ev.durable(new_receipt)
+            try:
+                for i, relative in enumerate(sorted(changed)):
+                    path = package_file(destination, relative)
+                    if ev.digest(path) != previous["files"][relative]: raise ValueError("Factory changed during replacement")
+                    saved = stage/("old-"+str(i)); os.rename(path, saved); moved.append((path, saved))
+                    if ev.digest(saved) != previous["files"][relative]: raise ValueError("Factory changed while moving")
+                    os.link(stage/str(i), path); created.append((path, files[relative]))
+                for i, (relative, expected) in enumerate(retired.items()):
+                    path = package_file(destination, relative)
+                    if ev.digest(path) != expected: raise ValueError("Study changed during retirement")
+                    saved = stage/("retired-"+str(i)); os.rename(path, saved); moved.append((path, saved))
+                    if ev.digest(saved) != expected: raise ValueError("Study changed while moving")
+                if receipt_path.read_bytes() != previous_bytes: raise ValueError("Factory receipt changed during replacement")
+                os.replace(new_receipt, receipt_path); published = True
+            except BaseException:
+                for path, expected in reversed(created):
+                    if path.is_file() and not path.is_symlink() and ev.digest(path) == expected: path.unlink()
+                for path, saved in reversed(moved):
+                    try: os.link(saved, path)
+                    except FileExistsError:
+                        # A concurrent user save wins; retain the moved original too.
+                        conflict = archive/"rollback-conflicts"/path.relative_to(destination)
+                        conflict.parent.mkdir(parents=True, exist_ok=True); shutil.copy2(saved, conflict); ev.durable(conflict)
+                raise
+    except BaseException:
+        if published: raise RuntimeError("Factory replacement published; temporary cleanup failed. Do not roll back managed files.")
+        raise
+    return receipt
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -555,6 +661,11 @@ def main():
     extend.add_argument("--destination", type=Path, default=FACTORY_DESTINATION)
     extend.add_argument("--retire-studies", action="store_true")
     extend.add_argument("--retire-study", action="append", default=[], help="Explicit study identity; archive only exact owned duplicates")
+    replace = commands.add_parser("replace-factory", help="Explicit owned revision update; never overwrite edited files")
+    replace.add_argument("package", type=Path); replace.add_argument("--archive", type=Path, required=True)
+    replace.add_argument("--destination", type=Path, default=FACTORY_DESTINATION)
+    replace.add_argument("--replace-file", action="append", required=True)
+    replace.add_argument("--retire-study", action="append", default=[])
     args = parser.parse_args()
     if args.command == "selection":
         _, entries = validate_selection(); print("Proposed:", len(entries), "retained families; pending voices and archived iterations excluded")
@@ -575,6 +686,9 @@ def main():
     elif args.command == "extend-factory":
         extend_factory(args.package, args.archive, args.destination, args.retire_studies, args.retire_study)
         print("Extended catalog without changing existing managed sounds; prior receipts/studies archived at:", args.archive)
+    elif args.command == "replace-factory":
+        replace_factory(args.package, args.archive, args.replace_file, args.destination, args.retire_study)
+        print("Replaced only explicitly requested unchanged owned factory revisions; originals and duplicate Studies archived at:", args.archive)
 
 
 if __name__ == "__main__":

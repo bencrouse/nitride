@@ -15,7 +15,7 @@ from unittest import mock
 import evaluation as ev
 import factory_presets as fp
 import study_presets as study
-from test_factory_presets import synthetic_native
+from test_factory_presets import synthetic_native, historical_selection
 
 BATCH = fp.ROOT / "presets/review/batch-19/r1"
 spec = importlib.util.spec_from_file_location("analog_recipes", BATCH / "make_analog_studies.py")
@@ -129,8 +129,9 @@ class AnalogStudyTests(unittest.TestCase):
         self.assertFalse(ids & set(fp.acceptance()["retained"]))
         self.assertEqual(len(fp.acceptance()["retained"]), 77)
         r2_ids = {"review:" + family + ":r2" for family in FAMILIES}
-        self.assertTrue(r2_ids <= set(fp.acceptance()["retained"]))
-        selection, selected = fp.validate_selection()
+        # Subsequent filter revisions supersede six r2 selections, not their approval/history.
+        selection, selected = historical_selection()
+        self.assertTrue(r2_ids <= {e["id"] for e in selected})
         programs = {e["id"]: e["program"] for e in selected}
         prior = [e for e in selection["entries"] if programs[e["id"]] < 82]
         self.assertEqual(hashlib.sha256(ev.canonical(prior)).hexdigest(),
@@ -175,7 +176,7 @@ class AnalogStudyTests(unittest.TestCase):
     def test_revision_label_installs_r2_beside_r1_without_overwriting(self):
         # Keep coverage of the original audition stage without republishing a now-
         # finalized batch as unapproved. Current policy is checked separately below.
-        selection, selected = fp.validate_selection(check_history=False)
+        selection, selected = historical_selection()
         prior = [e for e in selected if e["program"] < 82]
         definitions = {82 + i: json.loads((R2_BATCH / (family + "-r2.nitridepreset")).read_text()) for i, family in enumerate(FAMILIES)}
         with tempfile.TemporaryDirectory(prefix="nitride-analog-r2-test-") as folder:
@@ -218,7 +219,7 @@ class AnalogStudyTests(unittest.TestCase):
             self.assertFalse(path.exists())
 
     def test_r2_promotion_retires_only_exact_owned_r2_and_preserves_r1(self):
-        selection, selected = fp.validate_selection()
+        selection, selected = historical_selection()
         selected = [e for e in selected if e["program"] < 90]  # Historical 61→69 fixture.
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve(); package = root / "package"; package.mkdir()

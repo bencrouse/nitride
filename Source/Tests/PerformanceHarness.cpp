@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "BuildInfo.h"
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -12,7 +13,7 @@ namespace
 {
 using Clock = std::chrono::steady_clock;
 constexpr int workloadVersion = 1;
-struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0,filterModulation=0,fmExtension=0; };
+struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0,filterModulation=0,fmExtension=0,rage=0; };
 constexpr std::array workloads {
     Workload{"idle",0,0}, Workload{"lead",2,1}, Workload{"pad4",0,4}, Workload{"pad12",0,12},
     Workload{"stress12",0,12,true}, Workload{"automation12",0,12,true,true},
@@ -62,13 +63,31 @@ constexpr std::array fmWorkloads {
     Workload{"fm-combined4-off",0,4,false,false,false,false,0,1,1,7,-31},Workload{"fm-combined4-on",0,4,false,false,false,false,0,1,1,7,31},
     Workload{"fm-combined12-off",0,12,true,false,false,false,4,1,1,7,-31},Workload{"fm-combined12-on",0,12,true,false,false,false,4,1,1,7,31}
 };
+constexpr std::array rageWorkloads {
+    Workload{"rage-diode1",2,1,false,false,false,false,0,1,0,7,0,1},
+    Workload{"rage-diode4",0,4,false,false,false,false,0,1,0,7,0,1},
+    Workload{"rage-diode12",0,12,false,false,false,false,0,1,0,7,0,1},
+    Workload{"rage-distortion1",2,1,false,false,false,false,0,1,0,7,0,2},
+    Workload{"rage-distortion4",0,4,false,false,false,false,0,1,0,7,0,2},
+    Workload{"rage-distortion12",0,12,false,false,false,false,0,1,0,7,0,2},
+    Workload{"rage-softclip1",2,1,false,false,false,false,0,1,0,7,0,3},
+    Workload{"rage-softclip4",0,4,false,false,false,false,0,1,0,7,0,3},
+    Workload{"rage-softclip12",0,12,false,false,false,false,0,1,0,7,0,3},
+    Workload{"rage-tape1",2,1,false,false,false,false,0,1,0,7,0,4},
+    Workload{"rage-tape4",0,4,false,false,false,false,0,1,0,7,0,4},
+    Workload{"rage-tape12",0,12,false,false,false,false,0,1,0,7,0,4},
+    Workload{"rage-transistor1",2,1,false,false,false,false,0,1,0,7,0,5},
+    Workload{"rage-transistor4",0,4,false,false,false,false,0,1,0,7,0,5},
+    Workload{"rage-transistor12",0,12,false,false,false,false,0,1,0,7,0,5},
+    Workload{"rage-advanced12",0,12,true,true,true,false,4,1,1,7,31,5}
+};
 struct Options
 {
     int passes = 3;
     double seconds = 2, warmup = .5;
     std::vector<int> rates {48000,96000}, blocks {64,256};
     juce::String only, label, output, compare;
-    bool pitchMotion=false,filterEnvelope=false,lfo=false,filterModulation=false,fmExpansion=false,allowSoundChange=false;
+    bool pitchMotion=false,filterEnvelope=false,lfo=false,filterModulation=false,fmExpansion=false,rage=false,allowSoundChange=false,soak=false;
 };
 struct Result
 {
@@ -79,6 +98,7 @@ struct Result
     double totalMicros = 0, energy = 0, peak = 0;
     std::uint64_t hash = 14695981039346656037ull, samples = 0, overdue = 0;
     int minimumVoices = 12, maximumVoices = 0;
+    std::uint64_t stateRoundTrips=0,numericalFaults=0;
 };
 void require(bool good, const juce::String& message) { if(!good)throw std::runtime_error(message.toStdString()); }
 int integer(const juce::String& text)
@@ -103,6 +123,8 @@ Options parse(int argc, char** argv)
         if(argument=="--lfo"){options.lfo=true;continue;}
         if(argument=="--filter-modulation"){options.filterModulation=true;continue;}
         if(argument=="--fm-expansion"){options.fmExpansion=true;continue;}
+        if(argument=="--rage"){options.rage=true;continue;}
+        if(argument=="--soak"){options.soak=true;continue;}
         if(argument=="--allow-sound-change"){options.allowSoundChange=true;continue;}
         require(i+1<argc,"Missing value for "+argument);const juce::String value(argv[++i]);
         if(argument=="--passes")options.passes=integer(value);
@@ -117,11 +139,14 @@ Options parse(int argc, char** argv)
         else throw std::runtime_error("Unknown option: "+argument.toStdString());
     }
     require(options.passes>=1 && options.passes<=20,"Passes must be 1-20");
-    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)+static_cast<int>(options.fmExpansion)<=1,"Select only one feature matrix");
-    require(options.seconds<=120 && options.warmup<=10,"Duration out of range");
+    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)+static_cast<int>(options.fmExpansion)+static_cast<int>(options.rage)<=1,"Select only one feature matrix");
+    require(options.seconds<=(options.soak?3600:120) && options.warmup<=10,"Duration out of range");
     for(const auto rate:options.rates)require(rate>=11025 && rate<=192000,"Sample rate out of range");
     for(const auto block:options.blocks)require(block>=16 && block<=4096,"Block size out of range");
     require(options.compare.isEmpty() || options.output.isEmpty() || juce::File(options.compare)!=juce::File(options.output),"Do not overwrite the baseline with the comparison output");
+    if(options.soak)require(options.rage&&options.only=="rage-diode4"&&options.passes==1&&options.rates==std::vector<int>{48000}
+        &&options.blocks==std::vector<int>{256}&&options.compare.isEmpty()&&!options.allowSoundChange,
+        "Continuity soak requires --rage --case rage-diode4 --passes 1 --rate 48000 --block 256; no benchmark comparison");
     return options;
 }
 double percentile(std::vector<double> values, double fraction)
@@ -145,6 +170,20 @@ void observe(Result& result, const juce::AudioBuffer<float>& audio, int voices)
             result.energy+=static_cast<double>(sample)*sample;++result.samples;
             result.hash^=std::bit_cast<std::uint32_t>(sample);result.hash*=1099511628211ull;
         }
+}
+
+void stateRoundTrip(NitrideAudioProcessor& processor,int rate,int block)
+{
+    // Only this generated offline processor's conditions are inspected. Nothing
+    // is written and no Logic project, host settings or live device is accessed.
+    juce::MemoryBlock saved;processor.getStateInformation(saved);
+    const auto library=juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-continuity-"+juce::Uuid().toString());
+    NitrideAudioProcessor recalled(library);recalled.prepareToPlay(rate,block);
+    recalled.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));
+    const auto& a=processor.getParameters();const auto& b=recalled.getParameters();
+    require(a.size()==b.size(),"Continuity restore changed the host control count");
+    for(int i=0;i<a.size();++i)require(a[i]->getValue()==b[i]->getValue(),"Continuity restore changed a host parameter");
+    recalled.releaseResources();
 }
 
 void runPass(Result& result, const Options& options)
@@ -209,6 +248,16 @@ void runPass(Result& result, const Options& options)
             patch.values[Nitride::fmRoute3Source]=4;patch.values[Nitride::fmRoute3Target]=0;patch.values[Nitride::fmRoute3Amount]=1;
         }
     }
+    if(result.workload.rage>0)
+    {
+        patch.values[Nitride::filterFamily]=1;patch.values[Nitride::rageCharacter]=result.workload.rage-1;
+        patch.values[Nitride::rageAmount]=1;patch.values[Nitride::resonance]=.85;
+    }
+    if(options.soak)
+    {
+        patch.values[Nitride::attack]=.004;patch.values[Nitride::decay]=.2;
+        patch.values[Nitride::sustain]=.7;patch.values[Nitride::release]=.05;patch.values[Nitride::spaceMix]=0;
+    }
     session.apply(patch);processor.prepareToPlay(result.rate,result.block);
     juce::AudioBuffer<float> audio(2,result.block);juce::MidiBuffer midi;midi.ensureSize(4096);
     constexpr std::array pitches {48,55,59,62,64,67,71,74,76,79,83,86};
@@ -228,7 +277,7 @@ void runPass(Result& result, const Options& options)
         // Input preparation and output auditing are excluded; real processor MIDI
         // dispatch, host parameter callbacks, rendering and live publication are timed.
         if(result.workload.release && block==0)midi.addEvent(juce::MidiMessage::allNotesOff(1),0);
-        if(result.workload.retrigger && block%interval==0)
+        if((result.workload.retrigger||options.soak) && block%interval==0)
         {
             const auto voice=(block/interval)%result.workload.voices;
             const auto note=pitches[static_cast<size_t>(voice)];
@@ -246,6 +295,25 @@ void runPass(Result& result, const Options& options)
             for(int voice=0;voice<result.workload.voices;++voice)midi.addEvent(juce::MidiMessage::noteOn(1,pitches[static_cast<size_t>(voice)]+transpose,velocity),result.block/2);
             previousTranspose=transpose;
         }
+        if(options.soak)
+        {
+            const auto cycle=std::max(1,result.rate*2/result.block);
+            if(block%cycle==0)
+            {
+                const auto selected=block/cycle;
+                constexpr std::array cutoff{180.0,600.0,1400.0,5000.0,12000.0};
+                constexpr std::array resonance{.1,.4,.7,.85,.6};
+                session.set(Nitride::filterFamily,selected%6==5?0:1);
+                session.set(Nitride::rageCharacter,selected%5);session.set(Nitride::rageAmount,selected%3==0?.5:1);
+                session.set(Nitride::cutoff,cutoff[static_cast<size_t>(selected%5)]);
+                session.set(Nitride::resonance,resonance[static_cast<size_t>(selected%5)]);
+                session.set(Nitride::filterFmDepth,selected%2==0?0:3);
+                session.set(Nitride::fmRatio,selected%5==3?1.414:2);
+                session.set(Nitride::fmShape,selected%3);session.set(Nitride::fmShapeAmount,.8);
+            }
+            if(block%std::max(1,result.rate*30/result.block)==0||block==blocks-1)
+            {stateRoundTrip(processor,result.rate,result.block);++result.stateRoundTrips;}
+        }
         const auto phase=juce::MathConstants<double>::twoPi*static_cast<double>(block*result.block)/result.rate;
         const auto position=static_cast<float>(.5+.45*std::sin(phase));
         const auto responseValue=response->convertTo0to1(.01f+.59f*position);
@@ -260,20 +328,28 @@ void runPass(Result& result, const Options& options)
         result.times.push_back(micros);result.totalMicros+=micros;passMicros+=micros;
         if(micros>1.0e6*result.block/result.rate)++result.overdue;
         observe(result,audio,session.live.voices.load());
+        if(options.soak)require(session.live.faults.load()==0,"Numerical fault during continuity soak");
     }
     require(session.live.faults.load()==0,"Numerical faults in "+key(result));
+    result.numericalFaults=session.live.faults.load();
     result.passLoads.push_back(passMicros/(static_cast<double>(blocks)*1.0e6*result.block/result.rate)*100);
     processor.releaseResources();
 }
 
 juce::var report(const std::vector<Result>& results,const Options& options)
 {
-    auto root=object();property(root,"format","nitride-performance");property(root,"version",1);property(root,"workloadVersion",workloadVersion);
+    auto root=object();property(root,"format",options.soak?"nitride-offline-continuity-soak":"nitride-performance");property(root,"version",1);property(root,"workloadVersion",workloadVersion);
+    property(root,"synthVersion",Nitride::buildVersion);property(root,"evaluationBuild",Nitride::evaluationBuild);
     property(root,"label",options.label);property(root,"timestamp",juce::Time::getCurrentTime().toISO8601(true));
     auto machine=object();property(machine,"cpu",juce::SystemStats::getCpuModel());property(machine,"os",juce::SystemStats::getOperatingSystemName());
     property(machine,"physicalCpus",juce::SystemStats::getNumPhysicalCpus());property(machine,"logicalCpus",juce::SystemStats::getNumCpus());
     property(machine,"configuration",NITRIDE_BENCH_CONFIG);property(machine,"compiler",__clang_version__);property(root,"machine",machine);
     auto settings=object();property(settings,"passes",options.passes);property(settings,"seconds",options.seconds);property(settings,"warmup",options.warmup);
+    if(options.soak)
+    {
+        property(settings,"soak",true);
+        property(root,"boundary","Continuous offline audio with cycling controls and in-memory parameter restore; NOT Logic project/device/wall-clock soak qualification.");
+    }
     property(root,"settings",settings);juce::Array<juce::var> cases;
     for(const auto& result:results)
     {
@@ -289,6 +365,7 @@ juce::var report(const std::vector<Result>& results,const Options& options)
         property(data,"maxMicros",*std::max_element(result.times.begin(),result.times.end()));
         property(data,"overBudgetBlocks",static_cast<juce::int64>(result.overdue));
         property(data,"minimumVoices",result.minimumVoices);property(data,"maximumVoices",result.maximumVoices);
+        property(data,"stateRoundTrips",static_cast<juce::int64>(result.stateRoundTrips));property(data,"numericalFaults",static_cast<juce::int64>(result.numericalFaults));
         property(data,"peak",result.peak);property(data,"rms",std::sqrt(result.energy/static_cast<double>(result.samples)));
         property(data,"audioHash",juce::String::toHexString(static_cast<juce::int64>(result.hash)));cases.add(data);
     }
@@ -323,6 +400,12 @@ void compare(juce::var& current,const Options& options)
 
 int main(int argc,char** argv)
 {
+    if(argc==2&&juce::String(argv[1])=="--identity")
+    {
+        auto data=object();property(data,"format","nitride-benchmark-identity");property(data,"version",1);
+        property(data,"synthVersion",Nitride::buildVersion);property(data,"evaluationBuild",Nitride::evaluationBuild);
+        property(data,"configuration",NITRIDE_BENCH_CONFIG);std::cout<<juce::JSON::toString(data)<<'\n';return 0;
+    }
     if(argc==2 && juce::String(argv[1])=="--help")
     {
         std::cout<<"Nitride offline processor benchmark\n"
@@ -334,6 +417,8 @@ int main(int argc,char** argv)
             "--lfo selects paired six-lane Motion on/off performances.\n"
             "--filter-modulation selects tracking, velocity, audio-rate FM and combined on/off performances.\n"
             "--fm-expansion selects paired ratio, envelope, shape, mix and integrated FM performances.\n"
+             "--rage selects five characters at 1/4/12 voices and an advanced 12-voice workload.\n"
+             "--soak runs one offline rage-diode4 pass at 48k/256 with cycling characters/families and state round trips; max 3600 audio seconds.\n"
             "--allow-sound-change records intentional greenfield sound changes during comparison.\n";return 0;
     }
     juce::ScopedJuceInitialiser_GUI initialiser;
@@ -344,18 +429,21 @@ int main(int argc,char** argv)
             for(const auto rate:options.rates)for(const auto block:options.blocks)for(const auto& workload:matrix)
                 if(options.only.isEmpty()||options.only==workload.name)results.push_back({workload,rate,block});
         };
-        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else if(options.filterModulation)add(filterModulationWorkloads);else if(options.fmExpansion)add(fmWorkloads);else add(workloads);
+        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else if(options.filterModulation)add(filterModulationWorkloads);else if(options.fmExpansion)add(fmWorkloads);else if(options.rage)add(rageWorkloads);else add(workloads);
         require(!results.empty(),"Unknown workload: "+options.only);
         for(auto& result:results)result.times.reserve(static_cast<size_t>(std::ceil(options.seconds*result.rate/result.block))*static_cast<size_t>(options.passes));
         std::cout<<"Nitride "<<NITRIDE_BENCH_CONFIG<<" benchmark: "<<juce::SystemStats::getCpuModel()<<", "<<options.passes<<" passes, "<<options.seconds<<" audio seconds per case/pass\n";
         std::vector<size_t> order(results.size());std::iota(order.begin(),order.end(),0);std::mt19937 random(0x4e545244);
+        const auto wallStart=Clock::now();
         for(int pass=0;pass<options.passes;++pass)
         {
             std::shuffle(order.begin(),order.end(),random);
             for(const auto index:order)runPass(results[index],options);
             std::cout<<"Pass "<<pass+1<<" complete\n"<<std::flush;
         }
-        auto document=report(results,options);std::cout<<std::fixed<<std::setprecision(2);
+        auto document=report(results,options);
+        if(options.soak)property(document,"elapsedWallSeconds",std::chrono::duration<double>(Clock::now()-wallStart).count());
+        std::cout<<std::fixed<<std::setprecision(2);
         std::cout<<"\n                        Case  load %   p50 us   p95 us   p99 us   max us  overdue\n";
         for(const auto& data:*document["cases"].getArray())
             std::cout<<std::setw(28)<<data["key"].toString()<<"  "<<std::setw(6)<<static_cast<double>(data["medianPassLoadPercent"])

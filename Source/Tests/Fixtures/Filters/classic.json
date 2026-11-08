@@ -1,0 +1,1279 @@
+{
+  "format": "nitride-classic-filter-baselines",
+  "version": 1,
+  "sourceBuild": "0.7.38 / eval-038, before filter framework implementation",
+  "entries": [
+    {
+      "program": 0,
+      "rate": 48000,
+      "id": "factory:0",
+      "hash": "2551cf77f078e907"
+    },
+    {
+      "program": 1,
+      "rate": 48000,
+      "id": "factory:1",
+      "hash": "793a4c89a7adec33"
+    },
+    {
+      "program": 2,
+      "rate": 48000,
+      "id": "factory:2",
+      "hash": "3f1d45e7175e87e6"
+    },
+    {
+      "program": 3,
+      "rate": 48000,
+      "id": "factory:3",
+      "hash": "c46e4968167239e6"
+    },
+    {
+      "program": 4,
+      "rate": 48000,
+      "id": "review:soft-alloy:r1",
+      "hash": "e5f13944a51aa863"
+    },
+    {
+      "program": 5,
+      "rate": 48000,
+      "id": "review:tension-core:r1",
+      "hash": "5e3e4a96adda0230"
+    },
+    {
+      "program": 6,
+      "rate": 48000,
+      "id": "review:soft-alloy:r2",
+      "hash": "5d7ed6ea321a7281"
+    },
+    {
+      "program": 7,
+      "rate": 48000,
+      "id": "review:tension-core:r2",
+      "hash": "173e4015e10c99fa"
+    },
+    {
+      "program": 8,
+      "rate": 48000,
+      "id": "review:glass-current:r1",
+      "hash": "4ebb18f040b17cbb"
+    },
+    {
+      "program": 9,
+      "rate": 48000,
+      "id": "review:pulse-lattice:r1",
+      "hash": "b397f158fd162aa4"
+    },
+    {
+      "program": 10,
+      "rate": 48000,
+      "id": "review:glass-current:r2",
+      "hash": "80dee1c0688abe22"
+    },
+    {
+      "program": 11,
+      "rate": 48000,
+      "id": "review:pulse-lattice:r2",
+      "hash": "522cef337aba4e7d"
+    },
+    {
+      "program": 12,
+      "rate": 48000,
+      "id": "review:hollow-bronze:r1",
+      "hash": "f1d4e6b99590b5c"
+    },
+    {
+      "program": 13,
+      "rate": 48000,
+      "id": "review:fault-bloom:r1",
+      "hash": "5d2a8fc16b7abcc9"
+    },
+    {
+      "program": 14,
+      "rate": 48000,
+      "id": "review:hollow-bronze:r2",
+      "hash": "379809653ce9eed4"
+    },
+    {
+      "program": 15,
+      "rate": 48000,
+      "id": "review:prism-pulse:r1",
+      "hash": "c4f8319e3a3044ea"
+    },
+    {
+      "program": 16,
+      "rate": 48000,
+      "id": "review:felt-weight:r1",
+      "hash": "4841f859067d82d5"
+    },
+    {
+      "program": 17,
+      "rate": 48000,
+      "id": "review:prism-pulse:r2",
+      "hash": "e27a253fc6190fa3"
+    },
+    {
+      "program": 18,
+      "rate": 48000,
+      "id": "review:prism-pulse:r3",
+      "hash": "e27a253fc6190fa3"
+    },
+    {
+      "program": 19,
+      "rate": 48000,
+      "id": "review:reed-snap:r1",
+      "hash": "64b752ab92d8f502"
+    },
+    {
+      "program": 20,
+      "rate": 48000,
+      "id": "review:undertow-grid:r1",
+      "hash": "e242d3420f406e5"
+    },
+    {
+      "program": 21,
+      "rate": 48000,
+      "id": "review:reed-snap:r2",
+      "hash": "5d6da43ed197e575"
+    },
+    {
+      "program": 22,
+      "rate": 48000,
+      "id": "review:skin-knock:r1",
+      "hash": "c8aeef9972d8b442"
+    },
+    {
+      "program": 23,
+      "rate": 48000,
+      "id": "review:orbit-shards:r1",
+      "hash": "c5e04fafb35ea5f1"
+    },
+    {
+      "program": 24,
+      "rate": 48000,
+      "id": "review:taffy-coil:r1",
+      "hash": "fcdad9fd5d1b8d06"
+    },
+    {
+      "program": 25,
+      "rate": 48000,
+      "id": "review:stillwater:r1",
+      "hash": "b1bc49cbff1ce0b3"
+    },
+    {
+      "program": 26,
+      "rate": 48000,
+      "id": "review:crooked-velvet:r1",
+      "hash": "3e73b54c114a87d3"
+    },
+    {
+      "program": 27,
+      "rate": 48000,
+      "id": "review:crooked-velvet:r2",
+      "hash": "c64800bcefa7eed0"
+    },
+    {
+      "program": 28,
+      "rate": 48000,
+      "id": "review:replica-voice:r1",
+      "hash": "b547d7fb01b9b321"
+    },
+    {
+      "program": 29,
+      "rate": 48000,
+      "id": "review:tendon-drift:r1",
+      "hash": "edbb18bfd9730173"
+    },
+    {
+      "program": 30,
+      "rate": 48000,
+      "id": "review:socket-dance:r1",
+      "hash": "75618ab5487811ed"
+    },
+    {
+      "program": 31,
+      "rate": 48000,
+      "id": "review:replica-voice:r2",
+      "hash": "bd6fe893ba79dc58"
+    },
+    {
+      "program": 32,
+      "rate": 48000,
+      "id": "review:socket-dance:r2",
+      "hash": "c959cbb3e1d867"
+    },
+    {
+      "program": 33,
+      "rate": 48000,
+      "id": "review:sub-canvas:r1",
+      "hash": "1de13197036b4ab1"
+    },
+    {
+      "program": 34,
+      "rate": 48000,
+      "id": "review:afterimage-keys:r1",
+      "hash": "5a22732bcbbab493"
+    },
+    {
+      "program": 35,
+      "rate": 48000,
+      "id": "review:overtone-lantern:r1",
+      "hash": "918225feee2c1119"
+    },
+    {
+      "program": 36,
+      "rate": 48000,
+      "id": "review:buzz-loom:r1",
+      "hash": "734f0b2ba491ce85"
+    },
+    {
+      "program": 37,
+      "rate": 48000,
+      "id": "review:cutoff-alloy:r1",
+      "hash": "db9ee83cd9b797d2"
+    },
+    {
+      "program": 38,
+      "rate": 48000,
+      "id": "review:brake-bloom:r1",
+      "hash": "2d41b786a124c5fc"
+    },
+    {
+      "program": 39,
+      "rate": 48000,
+      "id": "review:cutoff-alloy:r2",
+      "hash": "db9ee83cd9b797d2"
+    },
+    {
+      "program": 40,
+      "rate": 48000,
+      "id": "review:rosewood-tap:r1",
+      "hash": "bafa52ed9a3fba03"
+    },
+    {
+      "program": 41,
+      "rate": 48000,
+      "id": "review:clear-stops:r1",
+      "hash": "18ec670caab48c35"
+    },
+    {
+      "program": 42,
+      "rate": 48000,
+      "id": "review:copper-lift:r1",
+      "hash": "5c4843f1675b97f3"
+    },
+    {
+      "program": 43,
+      "rate": 48000,
+      "id": "review:pocket-slap:r1",
+      "hash": "21620005a3200a1"
+    },
+    {
+      "program": 44,
+      "rate": 48000,
+      "id": "review:floor-pulse:r1",
+      "hash": "159958ef5943d9b1"
+    },
+    {
+      "program": 45,
+      "rate": 48000,
+      "id": "review:rivet-kick:r1",
+      "hash": "6293bdd511ce70bb"
+    },
+    {
+      "program": 46,
+      "rate": 48000,
+      "id": "review:bowl-toms:r1",
+      "hash": "e8ea96550767257b"
+    },
+    {
+      "program": 47,
+      "rate": 48000,
+      "id": "review:bowl-toms:r2",
+      "hash": "d90f4876f5afb229"
+    },
+    {
+      "program": 48,
+      "rate": 48000,
+      "id": "review:pressure-lift:r1",
+      "hash": "a00ccf78ef298d0e"
+    },
+    {
+      "program": 49,
+      "rate": 48000,
+      "id": "review:sinkhole:r1",
+      "hash": "8626e955f9c355bb"
+    },
+    {
+      "program": 50,
+      "rate": 48000,
+      "id": "review:shred-relay:r1",
+      "hash": "f6d7723ec7e54105"
+    },
+    {
+      "program": 51,
+      "rate": 48000,
+      "id": "review:reverse-veil:r1",
+      "hash": "58704602be09a4cf"
+    },
+    {
+      "program": 52,
+      "rate": 48000,
+      "id": "review:spectral-cut:r1",
+      "hash": "e75beb7f999a2689"
+    },
+    {
+      "program": 53,
+      "rate": 48000,
+      "id": "review:flash-room:r1",
+      "hash": "4349ce1d870c6499"
+    },
+    {
+      "program": 54,
+      "rate": 48000,
+      "id": "review:classic-tines:r1",
+      "hash": "c89cd0fb5a53466d"
+    },
+    {
+      "program": 55,
+      "rate": 48000,
+      "id": "review:classic-bass:r1",
+      "hash": "1067f4752f355cd3"
+    },
+    {
+      "program": 56,
+      "rate": 48000,
+      "id": "review:classic-tubes:r1",
+      "hash": "c1287e4d0acda6e1"
+    },
+    {
+      "program": 57,
+      "rate": 48000,
+      "id": "review:classic-voice:r1",
+      "hash": "bb57d97d5b364fbd"
+    },
+    {
+      "program": 58,
+      "rate": 48000,
+      "id": "review:orch-chime:r1",
+      "hash": "20f17cc30999395"
+    },
+    {
+      "program": 59,
+      "rate": 48000,
+      "id": "review:classic-koto:r1",
+      "hash": "23e02198884f73f9"
+    },
+    {
+      "program": 60,
+      "rate": 48000,
+      "id": "review:whistle-stem:r1",
+      "hash": "8b9257e8b3b99559"
+    },
+    {
+      "program": 61,
+      "rate": 48000,
+      "id": "review:jaw-twang:r1",
+      "hash": "8a43a1ac17a810bf"
+    },
+    {
+      "program": 62,
+      "rate": 48000,
+      "id": "review:vowel-pick:r1",
+      "hash": "d1a9742e1d83cbc9"
+    },
+    {
+      "program": 63,
+      "rate": 48000,
+      "id": "review:plastic-hero:r1",
+      "hash": "e5f33834f46b36ca"
+    },
+    {
+      "program": 64,
+      "rate": 48000,
+      "id": "review:budget-heaven:r1",
+      "hash": "1bd6acbd4ce4e013"
+    },
+    {
+      "program": 65,
+      "rate": 48000,
+      "id": "review:sugar-teeth:r1",
+      "hash": "f4a01245eca14edd"
+    },
+    {
+      "program": 66,
+      "rate": 48000,
+      "id": "review:late-glass:r1",
+      "hash": "23223f87023e7e3"
+    },
+    {
+      "program": 67,
+      "rate": 48000,
+      "id": "review:rubber-relay:r1",
+      "hash": "25173ea872d12c69"
+    },
+    {
+      "program": 68,
+      "rate": 48000,
+      "id": "review:gate-garden:r1",
+      "hash": "9345977f13e0641"
+    },
+    {
+      "program": 69,
+      "rate": 48000,
+      "id": "review:paper-motor:r1",
+      "hash": "6a3bb2ee893cb80b"
+    },
+    {
+      "program": 70,
+      "rate": 48000,
+      "id": "review:closing-argument:r1",
+      "hash": "812c0a697f8f1707"
+    },
+    {
+      "program": 71,
+      "rate": 48000,
+      "id": "review:undertint:r1",
+      "hash": "3459c7d57f73a9c6"
+    },
+    {
+      "program": 72,
+      "rate": 48000,
+      "id": "review:loose-change:r1",
+      "hash": "bf3ab571dd58d7f9"
+    },
+    {
+      "program": 73,
+      "rate": 48000,
+      "id": "review:carousel-wire:r1",
+      "hash": "4ab159f6535ada4a"
+    },
+    {
+      "program": 74,
+      "rate": 48000,
+      "id": "review:low-battery-piano:r1",
+      "hash": "cb55846674b8468f"
+    },
+    {
+      "program": 75,
+      "rate": 48000,
+      "id": "review:slack-drum:r1",
+      "hash": "508f026b35b1cd05"
+    },
+    {
+      "program": 76,
+      "rate": 48000,
+      "id": "review:brown-console:r1",
+      "hash": "515eea4049a23a91"
+    },
+    {
+      "program": 77,
+      "rate": 48000,
+      "id": "review:silt-bass:r1",
+      "hash": "8c626d1208af11a5"
+    },
+    {
+      "program": 78,
+      "rate": 48000,
+      "id": "review:bent-aerial:r1",
+      "hash": "b4cacbc178c4578c"
+    },
+    {
+      "program": 79,
+      "rate": 48000,
+      "id": "review:melted-ensemble:r1",
+      "hash": "312e2b4b708fc96d"
+    },
+    {
+      "program": 80,
+      "rate": 48000,
+      "id": "review:oxide-rim:r1",
+      "hash": "126846478002c04f"
+    },
+    {
+      "program": 81,
+      "rate": 48000,
+      "id": "review:reel-clav:r1",
+      "hash": "8d71634dfc6ed3a5"
+    },
+    {
+      "program": 82,
+      "rate": 48000,
+      "id": "review:low-battery-piano:r2",
+      "hash": "7bc14276dc979de7"
+    },
+    {
+      "program": 83,
+      "rate": 48000,
+      "id": "review:slack-drum:r2",
+      "hash": "df940ad898fd9ebe"
+    },
+    {
+      "program": 84,
+      "rate": 48000,
+      "id": "review:brown-console:r2",
+      "hash": "9e2584c33906f512"
+    },
+    {
+      "program": 85,
+      "rate": 48000,
+      "id": "review:silt-bass:r2",
+      "hash": "e85fb3aeb062303b"
+    },
+    {
+      "program": 86,
+      "rate": 48000,
+      "id": "review:bent-aerial:r2",
+      "hash": "c6cc3343c485fa28"
+    },
+    {
+      "program": 87,
+      "rate": 48000,
+      "id": "review:melted-ensemble:r2",
+      "hash": "fdc80b1952bd64f1"
+    },
+    {
+      "program": 88,
+      "rate": 48000,
+      "id": "review:oxide-rim:r2",
+      "hash": "50eeb788cd7726d8"
+    },
+    {
+      "program": 89,
+      "rate": 48000,
+      "id": "review:reel-clav:r2",
+      "hash": "f5e8154e7d3c8e42"
+    },
+    {
+      "program": 90,
+      "rate": 48000,
+      "id": "review:backspun-tines:r1",
+      "hash": "913ae257a5eb1f57"
+    },
+    {
+      "program": 91,
+      "rate": 48000,
+      "id": "review:unstruck-bell:r1",
+      "hash": "7b9e6f6955feca21"
+    },
+    {
+      "program": 92,
+      "rate": 48000,
+      "id": "review:spool-guitar:r1",
+      "hash": "bebf000d5678c6cd"
+    },
+    {
+      "program": 93,
+      "rate": 48000,
+      "id": "review:inward-tom:r1",
+      "hash": "b64abf0871e4ce57"
+    },
+    {
+      "program": 94,
+      "rate": 48000,
+      "id": "review:suction-bass:r1",
+      "hash": "f9eba6368c062447"
+    },
+    {
+      "program": 95,
+      "rate": 48000,
+      "id": "review:rewind-reed:r1",
+      "hash": "b25e5710dffc6fdf"
+    },
+    {
+      "program": 96,
+      "rate": 48000,
+      "id": "review:folded-strings:r1",
+      "hash": "d3e36da424131525"
+    },
+    {
+      "program": 97,
+      "rate": 48000,
+      "id": "review:vanishing-clav:r1",
+      "hash": "b1fe21799d9eea27"
+    },
+    {
+      "program": 98,
+      "rate": 48000,
+      "id": "review:backspun-tines:r2",
+      "hash": "e13f34ecb0202def"
+    },
+    {
+      "program": 99,
+      "rate": 48000,
+      "id": "review:unstruck-bell:r2",
+      "hash": "49149101ea9b4105"
+    },
+    {
+      "program": 100,
+      "rate": 48000,
+      "id": "review:spool-guitar:r2",
+      "hash": "2ea83f9d7da91e99"
+    },
+    {
+      "program": 101,
+      "rate": 48000,
+      "id": "review:inward-tom:r2",
+      "hash": "9b7b949a279c588d"
+    },
+    {
+      "program": 102,
+      "rate": 48000,
+      "id": "review:suction-bass:r2",
+      "hash": "19a6cf8ae547c2f7"
+    },
+    {
+      "program": 103,
+      "rate": 48000,
+      "id": "review:rewind-reed:r2",
+      "hash": "737c52e58f329e1b"
+    },
+    {
+      "program": 104,
+      "rate": 48000,
+      "id": "review:folded-strings:r2",
+      "hash": "f2d1b3bd46007d49"
+    },
+    {
+      "program": 105,
+      "rate": 48000,
+      "id": "review:vanishing-clav:r2",
+      "hash": "c5f573b04bb2d0d9"
+    },
+    {
+      "program": 0,
+      "rate": 96000,
+      "id": "factory:0",
+      "hash": "9919ddee9760b9d7"
+    },
+    {
+      "program": 1,
+      "rate": 96000,
+      "id": "factory:1",
+      "hash": "c94bb7f52a3f2687"
+    },
+    {
+      "program": 2,
+      "rate": 96000,
+      "id": "factory:2",
+      "hash": "550de4691cc13e30"
+    },
+    {
+      "program": 3,
+      "rate": 96000,
+      "id": "factory:3",
+      "hash": "59846ced7f4da260"
+    },
+    {
+      "program": 4,
+      "rate": 96000,
+      "id": "review:soft-alloy:r1",
+      "hash": "c63885a4ce3611c0"
+    },
+    {
+      "program": 5,
+      "rate": 96000,
+      "id": "review:tension-core:r1",
+      "hash": "39c6f4727a955069"
+    },
+    {
+      "program": 6,
+      "rate": 96000,
+      "id": "review:soft-alloy:r2",
+      "hash": "cb036a616da12a78"
+    },
+    {
+      "program": 7,
+      "rate": 96000,
+      "id": "review:tension-core:r2",
+      "hash": "b449d2c730d35ba5"
+    },
+    {
+      "program": 8,
+      "rate": 96000,
+      "id": "review:glass-current:r1",
+      "hash": "e6d473174470e5a"
+    },
+    {
+      "program": 9,
+      "rate": 96000,
+      "id": "review:pulse-lattice:r1",
+      "hash": "4992bb44500d180"
+    },
+    {
+      "program": 10,
+      "rate": 96000,
+      "id": "review:glass-current:r2",
+      "hash": "3083cf5da6996201"
+    },
+    {
+      "program": 11,
+      "rate": 96000,
+      "id": "review:pulse-lattice:r2",
+      "hash": "31c3e2e6c745832f"
+    },
+    {
+      "program": 12,
+      "rate": 96000,
+      "id": "review:hollow-bronze:r1",
+      "hash": "a95edad68b9e9242"
+    },
+    {
+      "program": 13,
+      "rate": 96000,
+      "id": "review:fault-bloom:r1",
+      "hash": "618791689e4160c5"
+    },
+    {
+      "program": 14,
+      "rate": 96000,
+      "id": "review:hollow-bronze:r2",
+      "hash": "7eaa4cbedb17c15b"
+    },
+    {
+      "program": 15,
+      "rate": 96000,
+      "id": "review:prism-pulse:r1",
+      "hash": "ec8358e5544aee6b"
+    },
+    {
+      "program": 16,
+      "rate": 96000,
+      "id": "review:felt-weight:r1",
+      "hash": "22f887624cdb11f1"
+    },
+    {
+      "program": 17,
+      "rate": 96000,
+      "id": "review:prism-pulse:r2",
+      "hash": "16e232da32ea213c"
+    },
+    {
+      "program": 18,
+      "rate": 96000,
+      "id": "review:prism-pulse:r3",
+      "hash": "16e232da32ea213c"
+    },
+    {
+      "program": 19,
+      "rate": 96000,
+      "id": "review:reed-snap:r1",
+      "hash": "685a37659369a3fc"
+    },
+    {
+      "program": 20,
+      "rate": 96000,
+      "id": "review:undertow-grid:r1",
+      "hash": "84068abce96e8107"
+    },
+    {
+      "program": 21,
+      "rate": 96000,
+      "id": "review:reed-snap:r2",
+      "hash": "77168199ae4e163b"
+    },
+    {
+      "program": 22,
+      "rate": 96000,
+      "id": "review:skin-knock:r1",
+      "hash": "aed3300fed022b57"
+    },
+    {
+      "program": 23,
+      "rate": 96000,
+      "id": "review:orbit-shards:r1",
+      "hash": "c07d566ac0ef3659"
+    },
+    {
+      "program": 24,
+      "rate": 96000,
+      "id": "review:taffy-coil:r1",
+      "hash": "6b7f2305747f41aa"
+    },
+    {
+      "program": 25,
+      "rate": 96000,
+      "id": "review:stillwater:r1",
+      "hash": "ea022c976e33ce5d"
+    },
+    {
+      "program": 26,
+      "rate": 96000,
+      "id": "review:crooked-velvet:r1",
+      "hash": "d732d931dbd10f77"
+    },
+    {
+      "program": 27,
+      "rate": 96000,
+      "id": "review:crooked-velvet:r2",
+      "hash": "5bee6c6f535f1758"
+    },
+    {
+      "program": 28,
+      "rate": 96000,
+      "id": "review:replica-voice:r1",
+      "hash": "6f3a0779a3b96508"
+    },
+    {
+      "program": 29,
+      "rate": 96000,
+      "id": "review:tendon-drift:r1",
+      "hash": "47c81a63d6c88c32"
+    },
+    {
+      "program": 30,
+      "rate": 96000,
+      "id": "review:socket-dance:r1",
+      "hash": "e069e64dd3673e71"
+    },
+    {
+      "program": 31,
+      "rate": 96000,
+      "id": "review:replica-voice:r2",
+      "hash": "501c4842a0b8cab2"
+    },
+    {
+      "program": 32,
+      "rate": 96000,
+      "id": "review:socket-dance:r2",
+      "hash": "a69ee69957ce10a9"
+    },
+    {
+      "program": 33,
+      "rate": 96000,
+      "id": "review:sub-canvas:r1",
+      "hash": "52b454c9c739fb59"
+    },
+    {
+      "program": 34,
+      "rate": 96000,
+      "id": "review:afterimage-keys:r1",
+      "hash": "4c1b6407f3b35abd"
+    },
+    {
+      "program": 35,
+      "rate": 96000,
+      "id": "review:overtone-lantern:r1",
+      "hash": "6569460a529ed05a"
+    },
+    {
+      "program": 36,
+      "rate": 96000,
+      "id": "review:buzz-loom:r1",
+      "hash": "2e101ad3836a7fc6"
+    },
+    {
+      "program": 37,
+      "rate": 96000,
+      "id": "review:cutoff-alloy:r1",
+      "hash": "1136bc14c70c91b2"
+    },
+    {
+      "program": 38,
+      "rate": 96000,
+      "id": "review:brake-bloom:r1",
+      "hash": "53561e78d6c80e3d"
+    },
+    {
+      "program": 39,
+      "rate": 96000,
+      "id": "review:cutoff-alloy:r2",
+      "hash": "1136bc14c70c91b2"
+    },
+    {
+      "program": 40,
+      "rate": 96000,
+      "id": "review:rosewood-tap:r1",
+      "hash": "8d2391c769babfde"
+    },
+    {
+      "program": 41,
+      "rate": 96000,
+      "id": "review:clear-stops:r1",
+      "hash": "cf3bb453ca563e5f"
+    },
+    {
+      "program": 42,
+      "rate": 96000,
+      "id": "review:copper-lift:r1",
+      "hash": "17a7622fb1c421a1"
+    },
+    {
+      "program": 43,
+      "rate": 96000,
+      "id": "review:pocket-slap:r1",
+      "hash": "571be8ae5da3c407"
+    },
+    {
+      "program": 44,
+      "rate": 96000,
+      "id": "review:floor-pulse:r1",
+      "hash": "35f9f45ba72130e5"
+    },
+    {
+      "program": 45,
+      "rate": 96000,
+      "id": "review:rivet-kick:r1",
+      "hash": "fce09418c9779327"
+    },
+    {
+      "program": 46,
+      "rate": 96000,
+      "id": "review:bowl-toms:r1",
+      "hash": "da83d25d557ddc97"
+    },
+    {
+      "program": 47,
+      "rate": 96000,
+      "id": "review:bowl-toms:r2",
+      "hash": "88b44563f4ed4759"
+    },
+    {
+      "program": 48,
+      "rate": 96000,
+      "id": "review:pressure-lift:r1",
+      "hash": "850379816ade3be0"
+    },
+    {
+      "program": 49,
+      "rate": 96000,
+      "id": "review:sinkhole:r1",
+      "hash": "9849c5fb8d750f36"
+    },
+    {
+      "program": 50,
+      "rate": 96000,
+      "id": "review:shred-relay:r1",
+      "hash": "4117eab92fc40109"
+    },
+    {
+      "program": 51,
+      "rate": 96000,
+      "id": "review:reverse-veil:r1",
+      "hash": "4b8ba4dbc6f2f63"
+    },
+    {
+      "program": 52,
+      "rate": 96000,
+      "id": "review:spectral-cut:r1",
+      "hash": "28e8def0fa72517f"
+    },
+    {
+      "program": 53,
+      "rate": 96000,
+      "id": "review:flash-room:r1",
+      "hash": "77d4d43de99f4bf"
+    },
+    {
+      "program": 54,
+      "rate": 96000,
+      "id": "review:classic-tines:r1",
+      "hash": "43143f9ed2549e91"
+    },
+    {
+      "program": 55,
+      "rate": 96000,
+      "id": "review:classic-bass:r1",
+      "hash": "a5c8bc941e5e91ad"
+    },
+    {
+      "program": 56,
+      "rate": 96000,
+      "id": "review:classic-tubes:r1",
+      "hash": "e4feda10665784c5"
+    },
+    {
+      "program": 57,
+      "rate": 96000,
+      "id": "review:classic-voice:r1",
+      "hash": "15bcc3148af58137"
+    },
+    {
+      "program": 58,
+      "rate": 96000,
+      "id": "review:orch-chime:r1",
+      "hash": "d17f8a970630803b"
+    },
+    {
+      "program": 59,
+      "rate": 96000,
+      "id": "review:classic-koto:r1",
+      "hash": "b6a010e4df658179"
+    },
+    {
+      "program": 60,
+      "rate": 96000,
+      "id": "review:whistle-stem:r1",
+      "hash": "f243797efaf0fcf5"
+    },
+    {
+      "program": 61,
+      "rate": 96000,
+      "id": "review:jaw-twang:r1",
+      "hash": "3dc7c506467b88cf"
+    },
+    {
+      "program": 62,
+      "rate": 96000,
+      "id": "review:vowel-pick:r1",
+      "hash": "5bc9cbc129350a41"
+    },
+    {
+      "program": 63,
+      "rate": 96000,
+      "id": "review:plastic-hero:r1",
+      "hash": "a9ce0eed00c1a84a"
+    },
+    {
+      "program": 64,
+      "rate": 96000,
+      "id": "review:budget-heaven:r1",
+      "hash": "561668b11d91fbfb"
+    },
+    {
+      "program": 65,
+      "rate": 96000,
+      "id": "review:sugar-teeth:r1",
+      "hash": "479b06ba442fb985"
+    },
+    {
+      "program": 66,
+      "rate": 96000,
+      "id": "review:late-glass:r1",
+      "hash": "14694cdcc248bfe5"
+    },
+    {
+      "program": 67,
+      "rate": 96000,
+      "id": "review:rubber-relay:r1",
+      "hash": "fbea3ce2ceea9dc9"
+    },
+    {
+      "program": 68,
+      "rate": 96000,
+      "id": "review:gate-garden:r1",
+      "hash": "e7b8fb2e17a5dd41"
+    },
+    {
+      "program": 69,
+      "rate": 96000,
+      "id": "review:paper-motor:r1",
+      "hash": "ff5f0378c8cdd4fe"
+    },
+    {
+      "program": 70,
+      "rate": 96000,
+      "id": "review:closing-argument:r1",
+      "hash": "59339aa151c0b717"
+    },
+    {
+      "program": 71,
+      "rate": 96000,
+      "id": "review:undertint:r1",
+      "hash": "2a4d227c1a678573"
+    },
+    {
+      "program": 72,
+      "rate": 96000,
+      "id": "review:loose-change:r1",
+      "hash": "f4597efe2a695561"
+    },
+    {
+      "program": 73,
+      "rate": 96000,
+      "id": "review:carousel-wire:r1",
+      "hash": "71e96ee514655268"
+    },
+    {
+      "program": 74,
+      "rate": 96000,
+      "id": "review:low-battery-piano:r1",
+      "hash": "f2b1a1be9e8e754e"
+    },
+    {
+      "program": 75,
+      "rate": 96000,
+      "id": "review:slack-drum:r1",
+      "hash": "65c0608ab2e311bf"
+    },
+    {
+      "program": 76,
+      "rate": 96000,
+      "id": "review:brown-console:r1",
+      "hash": "bb1d4c7256f82109"
+    },
+    {
+      "program": 77,
+      "rate": 96000,
+      "id": "review:silt-bass:r1",
+      "hash": "3d04f6d3eda14389"
+    },
+    {
+      "program": 78,
+      "rate": 96000,
+      "id": "review:bent-aerial:r1",
+      "hash": "71b1d321b0045ed9"
+    },
+    {
+      "program": 79,
+      "rate": 96000,
+      "id": "review:melted-ensemble:r1",
+      "hash": "f6a6f9f24effc6d9"
+    },
+    {
+      "program": 80,
+      "rate": 96000,
+      "id": "review:oxide-rim:r1",
+      "hash": "1923d1346d5f3e09"
+    },
+    {
+      "program": 81,
+      "rate": 96000,
+      "id": "review:reel-clav:r1",
+      "hash": "e4ca81a13282fd29"
+    },
+    {
+      "program": 82,
+      "rate": 96000,
+      "id": "review:low-battery-piano:r2",
+      "hash": "f2318ab6a6d4e6cf"
+    },
+    {
+      "program": 83,
+      "rate": 96000,
+      "id": "review:slack-drum:r2",
+      "hash": "e6f5c66f93007639"
+    },
+    {
+      "program": 84,
+      "rate": 96000,
+      "id": "review:brown-console:r2",
+      "hash": "725326a7e8e41293"
+    },
+    {
+      "program": 85,
+      "rate": 96000,
+      "id": "review:silt-bass:r2",
+      "hash": "bca8c3a844d0fb9d"
+    },
+    {
+      "program": 86,
+      "rate": 96000,
+      "id": "review:bent-aerial:r2",
+      "hash": "818debe7d936e74f"
+    },
+    {
+      "program": 87,
+      "rate": 96000,
+      "id": "review:melted-ensemble:r2",
+      "hash": "a8dc3dd30ce5c497"
+    },
+    {
+      "program": 88,
+      "rate": 96000,
+      "id": "review:oxide-rim:r2",
+      "hash": "bd77419514c8a89a"
+    },
+    {
+      "program": 89,
+      "rate": 96000,
+      "id": "review:reel-clav:r2",
+      "hash": "e612febbeec24c47"
+    },
+    {
+      "program": 90,
+      "rate": 96000,
+      "id": "review:backspun-tines:r1",
+      "hash": "1a6781594bafd827"
+    },
+    {
+      "program": 91,
+      "rate": 96000,
+      "id": "review:unstruck-bell:r1",
+      "hash": "9a2c3cc2541e6f2e"
+    },
+    {
+      "program": 92,
+      "rate": 96000,
+      "id": "review:spool-guitar:r1",
+      "hash": "d9ba8bab55057f59"
+    },
+    {
+      "program": 93,
+      "rate": 96000,
+      "id": "review:inward-tom:r1",
+      "hash": "599dee22bc5ef9cb"
+    },
+    {
+      "program": 94,
+      "rate": 96000,
+      "id": "review:suction-bass:r1",
+      "hash": "ef0298d5fe85c43"
+    },
+    {
+      "program": 95,
+      "rate": 96000,
+      "id": "review:rewind-reed:r1",
+      "hash": "7f4c8d12e8bd023f"
+    },
+    {
+      "program": 96,
+      "rate": 96000,
+      "id": "review:folded-strings:r1",
+      "hash": "fffbceb2f9af1a8d"
+    },
+    {
+      "program": 97,
+      "rate": 96000,
+      "id": "review:vanishing-clav:r1",
+      "hash": "2c5b175ebe7a6973"
+    },
+    {
+      "program": 98,
+      "rate": 96000,
+      "id": "review:backspun-tines:r2",
+      "hash": "8d153976644f24d5"
+    },
+    {
+      "program": 99,
+      "rate": 96000,
+      "id": "review:unstruck-bell:r2",
+      "hash": "6785211feafe492e"
+    },
+    {
+      "program": 100,
+      "rate": 96000,
+      "id": "review:spool-guitar:r2",
+      "hash": "89f76d99b015a83b"
+    },
+    {
+      "program": 101,
+      "rate": 96000,
+      "id": "review:inward-tom:r2",
+      "hash": "e729edaccef72cd"
+    },
+    {
+      "program": 102,
+      "rate": 96000,
+      "id": "review:suction-bass:r2",
+      "hash": "93e257789eb35bc5"
+    },
+    {
+      "program": 103,
+      "rate": 96000,
+      "id": "review:rewind-reed:r2",
+      "hash": "5d81271e7413a1f7"
+    },
+    {
+      "program": 104,
+      "rate": 96000,
+      "id": "review:folded-strings:r2",
+      "hash": "5a2fed76cd4502e5"
+    },
+    {
+      "program": 105,
+      "rate": 96000,
+      "id": "review:vanishing-clav:r2",
+      "hash": "1ad7b5370b1e1493"
+    }
+  ]
+}

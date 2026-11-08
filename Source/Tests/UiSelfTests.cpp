@@ -125,11 +125,19 @@ int main(int argc,char** argv)
         require(std::abs(restored.getInstrumentSession().values[Nitride::fm].load()-3.2)<.001,"Basic condition recall lost the edited source");
         require(restored.getCurrentProgram()==1,"Basic condition recall lost the current program");
 
-        if(argc==3&&(juce::String(argv[1])=="--snapshot"||juce::String(argv[1])=="--snapshot-standalone"))
+        if(argc==3&&(juce::String(argv[1])=="--snapshot"||juce::String(argv[1])=="--snapshot-standalone"||juce::String(argv[1])=="--snapshot-filter"))
         {
             std::unique_ptr<juce::Component> preview;
+            if(juce::String(argv[1])=="--snapshot-filter")processor.getInstrumentSession().set(Nitride::filterFamily,1);
             if(juce::String(argv[1])=="--snapshot-standalone")preview=std::make_unique<Nitride::InstrumentView>(processor.getInstrumentSession());
             else preview.reset(processor.createEditor());
+            if(juce::String(argv[1])=="--snapshot-filter")
+            {
+                auto* disclosure=button(*preview,"FILTER...");require(disclosure,"Missing filter disclosure");
+                disclosure->setToggleState(true,juce::dontSendNotification);disclosure->onClick();
+                auto* family=namedChild<juce::ComboBox>(*preview,"Filter family");require(family,"Missing family control");
+                require(family->getSelectedId()==2,"Filter snapshot did not synchronize Rage routing");
+            }
             const auto image=preview->createComponentSnapshot(preview->getLocalBounds(),true,2);
             auto stream=juce::File(juce::String::fromUTF8(argv[2])).createOutputStream();
             require(stream!=nullptr&&stream->setPosition(0)&&stream->truncate().wasOk(),"Could not write AU editor snapshot");

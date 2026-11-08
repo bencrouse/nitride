@@ -86,6 +86,10 @@ void Engine::prepare(double sampleRate)
     responseDimension = targetResponse;
     updateDimensionRates();
     voices = {};
+    filterBlend=filterTarget.family==Nitride::DSP::FilterFamily::rage?1.0:0.0;
+    filterBlendStep=1/std::max(1.0,std::ceil(rate*.005));filterDecimator.prepare(rate,internalRate);
+    filterControls={filterTarget.cutoff,filterTarget.resonance,filterTarget.amount,filterTarget.envelopeAmount,
+        filterTarget.keyTracking,filterTarget.velocityAmount,filterTarget.fmDepth};
     for(size_t i=0;i<coldDelays.size();++i)resetColdDelays(i);
     downsampleFilter = {};
     modeWeights = {};
@@ -260,7 +264,8 @@ void Engine::updateVoiceFm(Voice& voice,double index,const Nitride::DSP::Modulat
     const auto envelope=voice.fmEnvelope.next();
     if(!fmActive&&!voice.fmExtended){voice.fmValues.index=std::clamp(index,0.0,4.0);voice.primaryHz=2*(pitchOverride?voice.modulatorHz:voice.frequency*pitchMultiplier);return;}
     if(!voice.fmExtended){voice.primaryPhase=2*(voice.splitPhase?voice.modulatorPhase:voice.phase);voice.fmExtended=true;}
-    const std::array<double,5> sources{0,frame?frame->fmWave:0,std::clamp(voice.envelope,0.0,1.0),frame?frame->filterEnvelope:0,std::clamp(std::abs(voice.expressiveNetwork.signal),0.0,1.0)};
+    const auto filterLevel=filterTarget.family==Nitride::DSP::FilterFamily::rage&&voice.filter.prepared()?voice.filter.envelopeLevel():(frame?frame->filterEnvelope:0);
+    const std::array<double,5> sources{0,frame?frame->fmWave:0,std::clamp(voice.envelope,0.0,1.0),filterLevel,std::clamp(std::abs(voice.expressiveNetwork.signal),0.0,1.0)};
     std::array<double,4> offsets{};
     for(const auto& route:fmTarget.routes)offsets[static_cast<size_t>(route.target)]+=route.amount*sources[static_cast<size_t>(route.source)];
     for(size_t i=0;i<4;++i)voice.fmRouteOffsets[i]+=smoothing*(offsets[i]-voice.fmRouteOffsets[i]);
@@ -462,6 +467,12 @@ void Engine::noteOn(int note, float velocity, Articulation articulation,bool ove
     voice->fmEnvelope.configure(fmTarget.envelope[0],fmTarget.envelope[1],fmTarget.envelope[2],fmTarget.envelope[3]);
     if(!preserveEnvelope)voice->fmEnvelope.noteOn();
     if(!preserveEnvelope){voice->attackStart=voice->envelope;voice->age=voice->releaseAge=0;}
+    if(filterProcessingActive())
+    {
+        if(!voice->filter.prepared())voice->filter.prepare(internalRate,filterTarget,voice->age,false,0);
+        else{voice->filter.configure(filterTarget);if(!preserveEnvelope)voice->filter.noteOn();}
+    }
+    else voice->filter.invalidate();
     voice->released = false;
     voice->active = true;
     voice->articulation = articulation;
@@ -493,6 +504,39 @@ void Engine::noteOn(int note, float velocity, Articulation articulation,bool ove
     voice->serial = ++nextSerial;
 }
 
+void Engine::setFilterSettings(const Nitride::DSP::FilterSettings& requested) noexcept
+{
+    auto settings=requested;
+    const auto safe=[](double v,double lo,double hi,double fallback){return std::isfinite(v)?std::clamp(v,lo,hi):fallback;};
+    settings.family=static_cast<Nitride::DSP::FilterFamily>(std::clamp(static_cast<int>(settings.family),0,1));
+    settings.character=static_cast<Nitride::DSP::RageCharacter>(std::clamp(static_cast<int>(settings.character),0,4));
+    settings.cutoff=safe(settings.cutoff,40,18000,5500);settings.resonance=safe(settings.resonance,0,.85,.18);
+    settings.amount=safe(settings.amount,0,1,0);settings.envelopeAmount=safe(settings.envelopeAmount,-6,6,0);
+    settings.keyTracking=safe(settings.keyTracking,0,1,0);settings.velocityAmount=safe(settings.velocityAmount,-6,6,0);settings.fmDepth=safe(settings.fmDepth,0,6,0);
+    constexpr std::array low{.001,.01,0.0,.02},high{4.0,4.0,1.0,8.0},defaults{.01,.3,.5,.4};
+    for(size_t i=0;i<4;++i)settings.envelope[i]=safe(settings.envelope[i],low[i],high[i],defaults[i]);
+    if(settings==filterTarget)return;
+    const auto entering=settings.family==Nitride::DSP::FilterFamily::rage&&filterTarget.family!=settings.family;
+    const auto coldEntry=entering&&filterBlend==0;
+    filterTarget=settings;
+    for(auto& voice:voices)if(voice.active)
+    {
+        if(coldEntry)voice.filter.invalidate();
+        else if(voice.filter.prepared())voice.filter.configure(settings);
+    }
+    if(coldEntry)
+    {
+        filterDecimator.prepare(rate,internalRate);
+        filterControls={settings.cutoff,settings.resonance,settings.amount,settings.envelopeAmount,settings.keyTracking,settings.velocityAmount,settings.fmDepth};
+    }
+}
+Engine::FilterSnapshot Engine::getFilterSnapshot(int note)const noexcept
+{
+    const Voice* selected=nullptr;
+    for(const auto& voice:voices)if(voice.active&&(note<0||voice.note==note)&&(!selected||voice.serial>selected->serial))selected=&voice;
+    if(!selected||!selected->filter.prepared())return{};
+    const auto d=selected->filter.diagnostics();return{selected->filter.cutoff(),selected->filter.envelopeLevel(),d.faults,d.solverFallbacks};
+}
 void Engine::noteOff(int note) noexcept
 {
     for (auto& voice : voices)
@@ -502,6 +546,7 @@ void Engine::noteOff(int note) noexcept
             voice.releaseLevel = voice.envelope;
             voice.releaseAge = 0.0;
             voice.fmEnvelope.noteOff();
+            voice.filter.noteOff();
         }
 }
 
@@ -814,7 +859,7 @@ double Engine::networkSample(Voice& voice, NetworkState& state, double env, doub
     return result;
 }
 
-template<bool Split,bool Extended>
+template<bool Split,bool Extended,bool Filtered>
 double Engine::voiceSample(Voice& voice) noexcept
 {
     const auto env = envelope(voice);
@@ -903,23 +948,52 @@ double Engine::voiceSample(Voice& voice) noexcept
             carrierSample=carrierSample*(1-voice.fmValues.mix)+modulator*voice.fmValues.mix;
         }
     }
-    auto sample=carrierSample*env*voice.velocity;currentIndex=globalIndex;
+    auto sample=carrierSample*env*voice.velocity;
+    if constexpr(Filtered)
+    {
+        voice.classicSample=sample;
+        const auto previousFaults=voice.filter.diagnostics().faults;
+        sample=voice.filter.process(carrierSample,filterControls,voice.note,voice.velocity,voice.tonePitch,cutoffLfo,rate)*env*voice.velocity;
+        numericalFaults+=voice.filter.diagnostics().faults-previousFaults;
+    }
+    currentIndex=globalIndex;
     if (!std::isfinite(sample) || !std::isfinite(voice.bodySignal) || !std::isfinite(voice.interactionSignal))
     {
         ++numericalFaults;
         voice = {};
         return 0.0;
     }
-    if(voice.stealSamples>0){sample+=voice.stolenSample*static_cast<double>(voice.stealSamples--)/voice.stealLength;}
+    if(voice.stealSamples>0)
+    {
+        const auto tail=voice.stolenSample*static_cast<double>(voice.stealSamples--)/voice.stealLength;sample+=tail;
+        if constexpr(Filtered)voice.classicSample+=tail;
+    }
     if(pitchOverride&&(pitchSettings.glide.enabled||pitchSettings.autobend.enabled))voice.lastSample=sample;
     return sample;
 }
 
-void Engine::render(float* left, float* right, int samples,double* tonePitch,const Nitride::DSP::ModulationFrame* modulation) noexcept
+void Engine::render(float* left, float* right, int samples,double* tonePitch,const Nitride::DSP::ModulationFrame* modulation,float* classic,double* filterMix) noexcept
 {
     for (int sample = 0; sample < samples; ++sample)
     {
         schedule();
+        const auto filtering=filterProcessingActive();
+        if(filtering)
+        {
+            const auto blendTarget=filterTarget.family==Nitride::DSP::FilterFamily::rage?1.0:0.0;
+            if(filterBlend<blendTarget)filterBlend=std::min(blendTarget,filterBlend+filterBlendStep);
+            else if(filterBlend>blendTarget)filterBlend=std::max(blendTarget,filterBlend-filterBlendStep);
+            filterControls.cutoff*=std::exp(smoothing*std::log(filterTarget.cutoff/filterControls.cutoff));
+            filterControls.resonance+=smoothing*(filterTarget.resonance-filterControls.resonance);
+            filterControls.amount+=smoothing*(filterTarget.amount-filterControls.amount);
+            filterControls.envelopeAmount+=smoothing*(filterTarget.envelopeAmount-filterControls.envelopeAmount);
+            filterControls.keyTracking+=smoothing*(filterTarget.keyTracking-filterControls.keyTracking);
+            filterControls.velocityAmount+=smoothing*(filterTarget.velocityAmount-filterControls.velocityAmount);
+            filterControls.fmDepth+=smoothing*(filterTarget.fmDepth-filterControls.fmDepth);
+            cutoffLfo=modulation?modulation[sample].cutoff:0;
+            for(auto& voice:voices)if(voice.active&&!voice.filter.prepared())
+                voice.filter.prepare(internalRate,filterTarget,voice.age,voice.released,voice.releaseAge);
+        }
         const auto target = playing && pattern == Pattern::sweep && amountSweepEnabled
             ? static_cast<double>(sweepAt(static_cast<double>(clock % loopSamples) / rate)) : targetAmount;
         smoothedAmount += smoothing * (target - smoothedAmount);
@@ -1002,11 +1076,21 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch,con
         }
         for (size_t i = 0; i < modeWeights.size(); ++i)
             modeWeights[i] += smoothing * ((i == static_cast<size_t>(treatment) ? 1.0 : 0.0) - modeWeights[i]);
-        double output = 0.0;
+        double output = 0.0,filteredOutput=0;
         for (int step = 0; step < oversampling; ++step)
         {
-            double sum = 0.0;
-            for (auto& voice : voices) if (voice.active)
+            double sum = 0.0,filteredSum=0;
+            if(filtering)
+            {
+                for(auto& voice:voices)if(voice.active)
+                {
+                    filteredSum+=voice.fmExtended?(voice.splitPhase?voiceSample<true,true,true>(voice):voiceSample<false,true,true>(voice))
+                        :(voice.splitPhase?voiceSample<true,false,true>(voice):voiceSample<false,false,true>(voice));
+                    sum+=voice.classicSample;
+                }
+                filteredOutput=filterDecimator.process(filteredSum);
+            }
+            else for (auto& voice : voices) if (voice.active)
                 sum += voice.fmExtended?(voice.splitPhase?voiceSample<true,true>(voice):voiceSample<false,true>(voice))
                     :(voice.splitPhase?voiceSample<true>(voice):voiceSample<false>(voice));
             for (auto& pole : downsampleFilter)
@@ -1018,8 +1102,10 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch,con
         }
         // Conservative fixed listening level; identical soft ceiling for all candidates.
         const auto result = static_cast<float>(0.8 * std::tanh(output * 0.16 / 0.8));
-        left[sample] = result;
-        right[sample] = result;
+        if(classic)classic[sample]=result;if(filterMix)filterMix[sample]=filterBlend;
+        const auto audible=filtering?static_cast<float>(0.8*std::tanh(filteredOutput*.16/.8)):result;
+        left[sample] = audible;
+        right[sample] = audible;
         currentIndex=baseIndex;couplingDimension=baseCoupling;stressDimension=baseStress;
         if (playing) ++clock;
     }

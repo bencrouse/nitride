@@ -1,0 +1,98 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "rubber-relay-r2",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 26,
+      "study_axis": "Chewing resonant bass",
+      "intent": "Chewing resonant bass. Selected factory parent review:rubber-relay:r1; change only filter family, character and amount. Preserve rounded low body, held FM motion and short-note bite. Same frozen parent MIDI, source/FM/network/envelopes/resonance/pitch/Space/Output. Audition hypothesis, not a factory replacement or listening approval. Tape is voice-source color, not a master tape processor.",
+      "parent": "review:rubber-relay:r1",
+      "source_sha256": "7e8a460b1644dc2b569a5401fd26f7c3e39b44ed6cc83eab8ba630894c8406e5",
+      "character": "Diode",
+      "rage_amount": 0.55,
+      "preserve": "rounded low body, held FM motion and short-note bite"
+    },
+    {
+      "file": "copper-lift-r2",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 24,
+      "study_axis": "Rounded independently articulated brass",
+      "intent": "Rounded independently articulated brass. Selected factory parent review:copper-lift:r1; change only filter family, character and amount. Preserve bright entrance, solid body and staggered chord entrances. Same frozen parent MIDI, source/FM/network/envelopes/resonance/pitch/Space/Output. Audition hypothesis, not a factory replacement or listening approval. Tape is voice-source color, not a master tape processor.",
+      "parent": "review:copper-lift:r1",
+      "source_sha256": "bdeaffa119ebb6a290c1b044b099c873aaf2ac240173e612575dc0a3f270115b",
+      "character": "Softclip",
+      "rage_amount": 0.4,
+      "preserve": "bright entrance, solid body and staggered chord entrances"
+    },
+    {
+      "file": "taffy-coil-r2",
+      "category": "Physical materials",
+      "host_category": "Plucks & Mallets",
+      "seconds": 20,
+      "study_axis": "Elastic independently filtered impacts",
+      "intent": "Elastic independently filtered impacts. Selected factory parent review:taffy-coil:r1; change only filter family, character and amount. Preserve opposed pitch bend, punch and readable overlaps. Same frozen parent MIDI, source/FM/network/envelopes/resonance/pitch/Space/Output. Audition hypothesis, not a factory replacement or listening approval. Tape is voice-source color, not a master tape processor.",
+      "parent": "review:taffy-coil:r1",
+      "source_sha256": "fa71a183a625a44697dc63cc9d8cc7ed9ee550c0245bc60593245f663c67a604",
+      "character": "Diode",
+      "rage_amount": 0.45,
+      "preserve": "opposed pitch bend, punch and readable overlaps"
+    },
+    {
+      "file": "undertow-grid-r2",
+      "category": "Sequence elements",
+      "host_category": "Sequences",
+      "seconds": 26,
+      "study_axis": "Resonant held-note rhythmic bed",
+      "intent": "Resonant held-note rhythmic bed. Selected factory parent review:undertow-grid:r1; change only filter family, character and amount. Preserve low weight, sustained bed and pulse gaps. Same frozen parent MIDI, source/FM/network/envelopes/resonance/pitch/Space/Output. Audition hypothesis, not a factory replacement or listening approval. Tape is voice-source color, not a master tape processor.",
+      "parent": "review:undertow-grid:r1",
+      "source_sha256": "5e804d7bdcb4c49b8fa6ae12c10beed1efdc637c03de14de2e5d174c591fd40a",
+      "character": "Diode",
+      "rage_amount": 0.45,
+      "preserve": "low weight, sustained bed and pulse gaps"
+    },
+    {
+      "file": "paper-motor-r2",
+      "category": "Experimental",
+      "host_category": "Textures",
+      "seconds": 28,
+      "study_axis": "Small tactile papery motor",
+      "intent": "Small tactile papery motor. Selected factory parent review:paper-motor:r1; change only filter family, character and amount. Preserve changing ticks and modest stepped network strain. Same frozen parent MIDI, source/FM/network/envelopes/resonance/pitch/Space/Output. Audition hypothesis, not a factory replacement or listening approval. Tape is voice-source color, not a master tape processor.",
+      "parent": "review:paper-motor:r1",
+      "source_sha256": "c64893b2c89155a46a4fe6ffec4200b3cd6ceac14fe8b658f229319b38d2de1c",
+      "character": "Transistor",
+      "rage_amount": 0.4,
+      "preserve": "changing ticks and modest stepped network strain"
+    },
+    {
+      "file": "pressure-lift-r2",
+      "category": "Experimental",
+      "host_category": "FX & Transitions",
+      "seconds": 28,
+      "study_axis": "Strained opening pressure riser",
+      "intent": "Strained opening pressure riser. Selected factory parent review:pressure-lift:r1; change only filter family, character and amount. Preserve quiet start, rising trajectory and clean handoff. Same frozen parent MIDI, source/FM/network/envelopes/resonance/pitch/Space/Output. Audition hypothesis, not a factory replacement or listening approval. Tape is voice-source color, not a master tape processor.",
+      "parent": "review:pressure-lift:r1",
+      "source_sha256": "35e8381310fa251a6c425db53b1acfe0eb4c31661bde7edbca00b66eb5a3c408",
+      "character": "Distortion",
+      "rage_amount": 0.5,
+      "preserve": "quiet start, rising trajectory and clean handoff"
+    },
+    {
+      "file": "shred-relay-r2",
+      "category": "Sequence elements",
+      "host_category": "FX & Transitions",
+      "seconds": 26,
+      "study_axis": "Progressive signal breakup",
+      "intent": "Progressive signal breakup. Selected factory parent review:shred-relay:r1; change only filter family, character and amount. Preserve audible progression, steady AM clock and dry endpoint. Same frozen parent MIDI, source/FM/network/envelopes/resonance/pitch/Space/Output. Audition hypothesis, not a factory replacement or listening approval. Tape is voice-source color, not a master tape processor.",
+      "parent": "review:shred-relay:r1",
+      "source_sha256": "bbe32d05e1fac301586ead2328de0cc7b893f4c91a64a95a6f5b04b585a14eb8",
+      "character": "Distortion",
+      "rage_amount": 0.6,
+      "preserve": "audible progression, steady AM clock and dry endpoint"
+    }
+  ]
+}

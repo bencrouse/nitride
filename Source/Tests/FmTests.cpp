@@ -181,7 +181,7 @@ void rendererAndUi()
     child<juce::TextButton>(*panel,"FM source page")->onClick();
     auto* ratio=child<UI::ValueControl>(*panel,"FM ratio");ratio->getAccessibilityHandler()->getValueInterface()->setValue(1.414);
     require(session.read().values[fmRatio]>1.4,"Accessible FM ratio edit failed");auto* integer=child<juce::ComboBox>(*panel,"Harmonic FM ratio");integer->setSelectedId(3,juce::sendNotificationSync);near(session.read().values[fmRatio],3,0,"Integer FM ratio shortcut failed");
-    for(int i=fmRatio;i<parameterCount;++i)
+    for(int i=fmRatio;i<filterFamily;++i)
     {
         const auto param=static_cast<Parameter>(i);const auto& d=hostParameters[static_cast<size_t>(i)];auto* host=p.getState().getParameter(d.id);
         require(host&&host->getVersionHint()==6&&p.getParameters()[hostIndex(param)]==host,"Advanced FM host metadata incomplete");session.set(param,d.kind==ParameterKind::choice?1:(d.minimum+d.maximum)*.5);

@@ -14,7 +14,7 @@ from unittest import mock
 import evaluation as ev
 import factory_presets as fp
 import study_presets as study
-from test_factory_presets import synthetic_native
+from test_factory_presets import synthetic_native, historical_selection
 
 BATCH = fp.ROOT / "presets/review/batch-18/r1"
 spec = importlib.util.spec_from_file_location("motion_recipes", BATCH / "make_motion_studies.py")
@@ -35,7 +35,7 @@ class MotionStudyTests(unittest.TestCase):
         entries = [e for e in registry if e["preset"].startswith("batch-18/")]
         self.assertEqual([e["family"] for e in entries], FAMILIES)
         self.assertEqual([e["program"] for e in entries], list(range(66, 74)))
-        selection, selected = fp.validate_selection()
+        selection, selected = historical_selection()
         motion_ids = {e["id"] for e in entries}
         self.assertEqual(len(selected), 77)
         self.assertTrue(motion_ids <= {e["id"] for e in selected})
@@ -100,7 +100,7 @@ class MotionStudyTests(unittest.TestCase):
     def test_portable_study_export_and_safe_install_without_private_journal(self):
         # Preserve coverage of the original audition workflow using its pre-promotion
         # selection. Current finalized sounds must not be re-exported as new studies.
-        selection, selected = fp.validate_selection(check_history=False)
+        selection, selected = historical_selection()
         prior = [e for e in selected if e["program"] < 66]
         definitions = {66 + i: d for i, d in enumerate(self.definitions())}
         with tempfile.TemporaryDirectory(prefix="nitride-motion-study-test-") as folder:
@@ -150,7 +150,7 @@ class MotionStudyTests(unittest.TestCase):
             self.assertFalse(path.exists())
 
     def test_all_eight_owned_duplicates_retire_only_after_exact_factory_replacement(self):
-        selection, selected = fp.validate_selection()
+        selection, selected = historical_selection()
         selected = [e for e in selected if e["program"] < 74]  # Historical 53→61 promotion fixture.
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve(); package = root / "package"; package.mkdir()

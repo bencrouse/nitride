@@ -1,5 +1,118 @@
 # Performance / measured milestone-3 work
 
+## Approved-sound optimization / eval-044
+
+The final isolated 64-case M4 Max Release matrix retains **all approved eval-043
+audio fingerprints**, with identical workload settings/machine/compiler metadata.
+Median pass CPU falls **6.6–16.9%** across cases (median improvement 10.9%). All 50
+spectral result records are also exactly unchanged. Full-quality results:
+
+| Voices / workload | 48 kHz median budget load | 96 kHz median budget load |
+| --- | ---: | ---: |
+| 1, five characters | 5.9–7.2% | 11.3–13.8% |
+| 4, five characters | 20.1–23.9% | 37.0–44.6% |
+| 12, five characters | 61.0–73.1% | 116.5–138.3% |
+| Advanced 12 | 73.1–73.2% | 141.5–142.8% |
+
+**48/64 cases** meet the strict zero-overdue / p99 <= 80% headroom gate. There are
+two overdue Transistor 12-voice / 48 kHz / 64-frame blocks, none in other 48 kHz
+cases or any one/four-voice case. All 96 kHz 12-voice medians still exceed budget;
+four 48 kHz maximum-polyphony cases also fail the stricter headroom gate. These
+failures are not waived by the overall speedup or by benchmark completion.
+
+The separate continuity workload completed **1,800 audio seconds**, 61 exact
+in-memory host-parameter recalls and zero numerical faults. It used 4–5 live voices
+during retriggering and produced finite audio. It also retained **21 overdue blocks**,
+a maximum **83.301-second block**, and 1,602.963 seconds of elapsed wall time despite
+the process-scoped idle-sleep assertion. The cause of those long stalls is unproven.
+This passes audio/state continuity, **not** the deadline gate or a real-time host/device
+soak. Raw timings remain intact; `summary-with-timing.json` explicitly separates the
+two verdicts. Nothing is relabelled an M2 or Logic pass.
+
+Rage skips unused primitives, caches converged solver evaluations and hoists frozen
+excitation setup. Private helper inlining and supported Release-only DSP IPO retain
+normal floating-point semantics. A direct archived-core test preserves exact
+doubles and diagnostics across 1.6 million modulated/character-switching samples.
+No quality, solver bound, oversampling factor or voice count is reduced.
+
+Focused M4 Max prototype measurements (96 kHz / 64 frames, three two-second passes)
+retain all 16 audio fingerprints against the approved eval-043 baseline. Twelve-voice
+median loads change as follows; these are focused measurements, not the final matrix:
+
+| Workload | Approved eval-043 | Optimized focused prototype |
+| --- | ---: | ---: |
+| Diode | 156.5% | 130.5% |
+| Distortion | 135.4% | 115.3% |
+| Softclip | 149.2% | 122.5% |
+| Tape | 164.9% | 131.3% |
+| Transistor | 132.7% | 110.9% |
+| Advanced | 153.5% | 135.3% |
+
+All remain over budget in that maximum-polyphony 96 kHz case. A sampled complete
+processor profile shows both filter math and oscillator/network work are significant;
+profiled timings are not capacity evidence. The additive filter qualification tools
+retain complete raw failures and require zero overdue blocks **and** p99 <= 80% of
+the deadline for an offline headroom pass. Offline continuity is an audio-duration
+processor/state test, never a real-time Logic/device soak. Actual M2 and manual Logic
+checks remain pending; the [no-install handoff checklist](FILTER_QUALIFICATION_MANUAL.md)
+does not authorize installation or capture user projects/settings.
+
+## Character identity / eval-043
+
+The full 64-case matrix was captured twice. The initial run includes approximately
+83-second wall-clock stalls and extreme pass aggregates, retained in the private
+evidence. Their cause is not proven. A separate `caffeinate -i` repeat prevents idle
+sleep for the benchmark process only; all 64 audio hashes match between runs.
+
+Repeat M4 Max 48 kHz 12-voice medians are 68.1–86.6%, advanced 78.6%, with five
+overdue character-case blocks and no advanced misses. At 96 kHz all 12-voice
+medians exceed budget (131.2–164.9%; advanced 153.0–153.5%). One/four-voice repeat
+cases had no observed misses at either rate. Neither the original timing failures
+nor the repeat's remaining deadline misses are waived. Full 4× processing, solve
+precision and 12 voices remain enabled. Actual M2 and DAW reopen/soak remain
+unqualified. See [identity qualification and boundaries](FILTERS.md#identity-qualification-and-boundaries).
+
+## Character audibility / eval-042
+
+The added nonlinear excitation for the four revised characters retains 4× processing,
+full solver precision and 12 voices. In the unchanged 64-case M4 Max matrix, 48 kHz
+12-voice character medians are 69.9–87.8%, advanced 80.6–80.7%. Two character-case
+blocks exceeded deadline; no advanced 48 kHz misses were observed. At 96 kHz all
+12-voice medians exceed budget (132.7–165.7%; advanced 156.1–157.3%). One/four-voice
+cases had no observed misses at either rate. These are not universal 12-voice,
+actual M2 or DAW scheduling/soak qualification. Start with one/few notes at 48 kHz.
+See [character fixes and current caveats](FILTERS.md#character-audibility--0742--eval-042).
+
+## Integrator-return experiment / eval-041
+
+The new nonlinear return/discrete-gradient solver retains 4× processing, full solve
+precision and 12 voices. In the unchanged 64-case M4 Max matrix, 48 kHz medians were
+62.3–75.4% for 12-voice character cases and 68.2–68.8% for advanced 12 voices. There
+were 35 overdue character-case blocks and six advanced 64-frame overdue blocks;
+median headroom is not a no-miss qualification. At 96 kHz, 12-voice medians exceed
+budget (118.4–144.9%; advanced: 132.7–133.2%). One/four-voice cases had no observed
+misses at either rate. Start auditions at 48 kHz with one/few notes. Actual M2 and
+DAW reopen/soak remain unqualified. See [current caveats](FILTERS.md#cpu-and-audition-limits).
+
+## Stronger Rage / eval-040
+
+The residual-feedback redesign uses the unchanged 64-case `--rage` matrix. On the
+M4 Max, measured 48 kHz 12-voice loads are 55.2–60.6% (advanced: 67.6–67.7%), with
+zero observed deadline misses in this run. At 96 kHz all 12-voice characters exceed
+median budget (105.2–116.6%; advanced: 129.3–129.8%). One/four-voice cases remain
+within measured deadlines. See [current qualifications](FILTERS.md#eval-040-checks-and-limits).
+Full quality/polyphony remain enabled; use 48 kHz for auditions. Historical results
+below are not substituted for the new measurements or actual M2/DAW qualification.
+
+## Rage family / eval-039
+
+`nitride_perf --rage` adds five characters at 1/4/12 voices and an advanced 12-voice
+case. The historical matrices below are unchanged. See [current filter measurements
+and limits](FILTERS.md#measured-eval-039-limits): on the M4 Max, most 12-voice 96 kHz
+Rage cases exceed their real-time budget. One/four-voice cases passed the measured
+deadlines; full quality and the 12-voice limit remain available, not silently reduced.
+Actual M2 and DAW/soak qualification are still separate.
+
 Performance changes use `Source/Tests/PerformanceHarness.cpp` to measure the actual
 `NitrideAudioProcessor::processBlock` path in a **Release** build. This is the first
 measured optimization pass, not completion of the sound-quality/performance milestone.

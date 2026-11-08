@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_ARCHITECTURES arm64 CACHE STRING "Supported product architecture")
 set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Minimum product macOS")
-project(nitride VERSION 0.7.38 LANGUAGES C CXX)
-set(NITRIDE_EVALUATION_BUILD "eval-038" CACHE STRING "Visible evaluation build identity")
+project(nitride VERSION 0.7.46 LANGUAGES C CXX)
+set(NITRIDE_EVALUATION_BUILD "eval-046" CACHE STRING "Visible evaluation build identity")
 if(NOT NITRIDE_EVALUATION_BUILD MATCHES "^[a-zA-Z0-9_-]+$")
     message(FATAL_ERROR "Evaluation identity must use letters, numbers, underscore or hyphen")
 endif()
@@ -78,6 +78,7 @@ target_sources(nitride PRIVATE
     Source/Instrument/InstrumentPanel.cpp
     Source/Instrument/MotionPanel.cpp
     Source/Instrument/FmPanel.cpp
+    Source/Instrument/FilterPanel.cpp
     Source/Instrument/BuiltinPresets.cpp
 )
 target_include_directories(nitride PRIVATE Source)
@@ -87,12 +88,17 @@ target_link_libraries(nitride PRIVATE
     PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_warning_flags
 )
 
-add_library(nitride_dsp STATIC Source/DSP/Engine.cpp Source/DSP/Fm.cpp)
+add_library(nitride_dsp STATIC Source/DSP/Engine.cpp Source/DSP/Fm.cpp Source/DSP/RageFilter.cpp)
 add_library(nitride_study_engine ALIAS nitride_dsp)
 target_include_directories(nitride_dsp PUBLIC Source/DSP Source/Studies)
 # Keep the real-time DSP optimized while the native UI remains a normal Debug build.
 target_compile_options(nitride_dsp PRIVATE $<$<CONFIG:Debug>:-O2>)
 target_link_libraries(nitride_dsp PUBLIC juce::juce_recommended_warning_flags)
+include(CheckIPOSupported)
+check_ipo_supported(RESULT NITRIDE_IPO_SUPPORTED OUTPUT NITRIDE_IPO_ERROR LANGUAGES CXX)
+if(NITRIDE_IPO_SUPPORTED)
+    set_property(TARGET nitride_dsp PROPERTY INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+endif()
 
 if(NITRIDE_BUILD_STUDIES)
 juce_add_gui_app(nitride_studies
@@ -141,6 +147,7 @@ target_sources(nitride_review PRIVATE
     Source/Instrument/InstrumentPanel.cpp
     Source/Instrument/MotionPanel.cpp
     Source/Instrument/FmPanel.cpp
+    Source/Instrument/FilterPanel.cpp
     Source/Instrument/BuiltinPresets.cpp
 )
 target_compile_definitions(nitride_review PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
@@ -158,6 +165,12 @@ target_link_libraries(nitride_au_presets PRIVATE "-framework AudioToolbox" "-fra
 
 if(NITRIDE_BUILD_TESTS)
     enable_testing()
+    add_executable(nitride_rage_dsp_tests Source/Tests/RageDspTests.cpp)
+    target_link_libraries(nitride_rage_dsp_tests PRIVATE nitride_dsp)
+    add_test(NAME nitride_rage_dsp_tests COMMAND nitride_rage_dsp_tests)
+    add_executable(nitride_rage_spectral_tests Source/Tests/RageSpectralTests.cpp)
+    target_compile_definitions(nitride_rage_spectral_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_link_libraries(nitride_rage_spectral_tests PRIVATE nitride_dsp juce::juce_dsp)
     juce_add_console_app(nitride_ui_tests PRODUCT_NAME "nitride_ui_tests")
     target_sources(nitride_ui_tests PRIVATE Source/Tests/UiSelfTests.cpp)
     target_include_directories(nitride_ui_tests PRIVATE Source)
@@ -168,13 +181,22 @@ if(NITRIDE_BUILD_TESTS)
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_ui_tests COMMAND nitride_ui_tests)
     juce_add_console_app(nitride_automation_tests PRODUCT_NAME "nitride_automation_tests")
-    target_sources(nitride_automation_tests PRIVATE Source/Tests/AutomationStateTests.cpp Source/Tests/FilterEnvelopeTests.cpp Source/Tests/LfoTests.cpp Source/Tests/FilterModulationTests.cpp Source/Tests/FmTests.cpp Source/Tests/ReviewRegressionTests.cpp)
+    target_sources(nitride_automation_tests PRIVATE Source/Tests/AutomationStateTests.cpp Source/Tests/FilterEnvelopeTests.cpp Source/Tests/LfoTests.cpp Source/Tests/FilterModulationTests.cpp Source/Tests/FmTests.cpp Source/Tests/ReviewRegressionTests.cpp Source/Tests/FilterIntegrationTests.cpp)
     target_include_directories(nitride_automation_tests PRIVATE Source)
     target_compile_definitions(nitride_automation_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
     add_dependencies(nitride_automation_tests nitride)
     target_link_libraries(nitride_automation_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_automation_tests COMMAND nitride_automation_tests)
+    juce_add_console_app(nitride_filter_tests PRODUCT_NAME "nitride_filter_tests")
+    target_sources(nitride_filter_tests PRIVATE Source/Tests/FilterFrameworkTests.cpp)
+    target_include_directories(nitride_filter_tests PRIVATE Source)
+    target_compile_definitions(nitride_filter_tests PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0
+        NITRIDE_FILTER_BASELINES="${CMAKE_CURRENT_SOURCE_DIR}/Source/Tests/Fixtures/Filters/classic.json")
+    add_dependencies(nitride_filter_tests nitride)
+    target_link_libraries(nitride_filter_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_dsp nitride_builtin_data juce::juce_audio_utils
+        juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+    add_test(NAME nitride_filter_tests COMMAND nitride_filter_tests)
     juce_add_console_app(nitride_pitch_tests PRODUCT_NAME "nitride_pitch_tests")
     target_sources(nitride_pitch_tests PRIVATE Source/Tests/PitchMotionTests.cpp)
     target_include_directories(nitride_pitch_tests PRIVATE Source)
@@ -205,7 +227,13 @@ if(NITRIDE_BUILD_TESTS)
     target_link_libraries(nitride_safety_tests PRIVATE "$<TARGET_FILE:nitride>" nitride_study_engine juce::juce_audio_utils
         juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
     add_test(NAME nitride_safety_tests COMMAND nitride_safety_tests)
-    set_tests_properties(nitride_safety_tests PROPERTIES TIMEOUT 120)
+    if(NITRIDE_SANITIZER)
+        # Instrumented JSON/history/editor stress is much slower than native
+        # rendering. Preserve the workload rather than silently skipping checks.
+        set_tests_properties(nitride_safety_tests PROPERTIES TIMEOUT 900)
+    else()
+        set_tests_properties(nitride_safety_tests PROPERTIES TIMEOUT 120)
+    endif()
     juce_add_console_app(nitride_perf PRODUCT_NAME "nitride_perf")
     target_sources(nitride_perf PRIVATE Source/Tests/PerformanceHarness.cpp)
     target_include_directories(nitride_perf PRIVATE Source)
@@ -241,7 +269,13 @@ if(NITRIDE_BUILD_TESTS)
     add_test(NAME nitride_motion_study_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_motion_studies.py")
     add_test(NAME nitride_analog_study_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_analog_studies.py")
     add_test(NAME nitride_reverse_study_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_reverse_studies.py")
+    add_test(NAME nitride_rage_study_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_rage_studies.py")
+    add_test(NAME nitride_rage_comparison_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_rage_comparisons.py")
     add_test(NAME nitride_qualification_tool_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_qualification.py")
+    add_test(NAME nitride_filter_qualification_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_filter_qualification.py")
+    add_test(NAME nitride_factory_filter_audition_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_factory_filter_auditions.py")
+    add_test(NAME nitride_factory_filter_promotion_tests COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_factory_filter_promotion.py")
+    add_test(NAME nitride_continuity_smoke COMMAND $<TARGET_FILE:nitride_perf> --rage --case rage-diode4 --soak --passes 1 --seconds 14 --warmup .05 --rate 48000 --block 256)
     if(NITRIDE_BUILD_LOCAL_EVALUATION_TESTS)
         if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/evaluation/fs1r-studies/pass-001/source-manifest.json")
             message(FATAL_ERROR "Local FS1R research tests require the preserved pinned private workspace; no data is downloaded automatically")

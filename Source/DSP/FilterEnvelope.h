@@ -29,6 +29,15 @@ public:
         releaseStart=value;stage=Stage::release;
     }
     void reset() noexcept {value=attackStart=releaseStart=0;stage=Stage::idle;}
+    // Only used when an optional per-voice family is enabled on an already-held
+    // note. Existing shared-envelope arithmetic and note ownership are untouched.
+    void resume(double age,bool released,double releasedAge) noexcept
+    {
+        const auto held=std::max(0.0,age-(released?releasedAge:0));attackStart=0;
+        value=held<attackSeconds?held/attackSeconds:sustainLevel+(1-sustainLevel)*std::exp(-(held-attackSeconds)/decaySeconds);
+        stage=held<attackSeconds?Stage::attack:Stage::decay;
+        if(released){releaseStart=value;value*=std::max(0.0,1-releasedAge/releaseSeconds);stage=value>0?Stage::release:Stage::idle;}
+    }
     double next() noexcept
     {
         switch(stage)

@@ -31,6 +31,13 @@
       "user_feedback": "ok the r2 versions are excellent, can you promote those to first class citizens? and then commit and push please",
       "revisions": ["review:backspun-tines:r2", "review:unstruck-bell:r2", "review:spool-guitar:r2", "review:inward-tom:r2", "review:suction-bass:r2", "review:rewind-reed:r2", "review:folded-strings:r2", "review:vanishing-clav:r2"],
       "interpretation": "Explicit approval/finalization of all eight more-distinct reverse r2 versions unchanged. Add clean native/standalone factory labels; catalog69to77. Preserve all106programs, original r1/r2 definitions/MIDI, old69native files, r1comparison presets/receipt and user saves. Retire only unchanged owned exact r2Studyduplicates/receipt after clean-replacement document checks. Commit and push implementation/promotion authorized. No separate per-sound commentary, acoustic/literal reversal fidelity, Logic reopen/soak/M2 or broader release/performance qualification inferred."
+    },
+    {
+      "date": "2026-11-08",
+      "trial": "logic-045",
+      "user_feedback": "they all sounds great, let's use them. please promote them.",
+      "revisions": ["review:rubber-relay:r2", "review:copper-lift:r2", "review:taffy-coil:r2", "review:undertow-grid:r2", "review:paper-motor:r2", "review:pressure-lift:r2", "review:shred-relay:r2", "review:tension-core:r3", "review:brown-console:r3", "review:low-battery-piano:r3", "review:bent-aerial:r3", "review:reed-snap:r3", "review:melted-ensemble:r3", "review:reel-clav:r3", "review:oxide-rim:r3", "review:pulse-lattice:r3"],
+      "interpretation": "Explicit musical approval and promotion of all sixteen batch-22 filter revisions exactly as auditioned. Replace their parents, not add duplicate families: the factory catalog stays77, with61other selections unchanged. Retained lists the current preferred identities; prior approvals, frozen definitions/MIDI and all132historical programs remain preserved. Locally replace only unchanged owned factory files after durable archival, and retire only exact owned duplicate Study files/receipts after full-document replacement checks. Preserve user edits and unrelated files. No commit, push, new tuning, CPU/stall waiver, actual-M2 or Logic project-reopen/realtime-soak qualification is inferred."
     }
   ],
   "host_category_confirmation": "confirmed-by-user",
@@ -40,22 +47,22 @@
   "project_close_reopen": "not-separately-confirmed",
   "retained": [
     "factory:0", "factory:1", "factory:2", "factory:3",
-    "review:crooked-velvet:r2", "review:felt-weight:r1", "review:pocket-slap:r1", "review:sub-canvas:r1", "review:tension-core:r2",
+    "review:crooked-velvet:r2", "review:felt-weight:r1", "review:pocket-slap:r1", "review:sub-canvas:r1", "review:tension-core:r3",
     "review:afterimage-keys:r1", "review:clear-stops:r1", "review:cutoff-alloy:r2",
-    "review:copper-lift:r1", "review:glass-current:r2", "review:reed-snap:r2", "review:replica-voice:r2",
+    "review:copper-lift:r2", "review:glass-current:r2", "review:reed-snap:r3", "review:replica-voice:r2",
     "review:classic-voice:r1", "review:soft-alloy:r2", "review:stillwater:r1", "review:prism-pulse:r3",
-    "review:classic-koto:r1", "review:hollow-bronze:r2", "review:orch-chime:r1", "review:rosewood-tap:r1", "review:taffy-coil:r1",
+    "review:classic-koto:r1", "review:hollow-bronze:r2", "review:orch-chime:r1", "review:rosewood-tap:r1", "review:taffy-coil:r2",
     "review:bowl-toms:r2", "review:floor-pulse:r1", "review:rivet-kick:r1", "review:skin-knock:r1",
-    "review:buzz-loom:r1", "review:pulse-lattice:r2", "review:socket-dance:r2", "review:undertow-grid:r1",
+    "review:buzz-loom:r1", "review:pulse-lattice:r3", "review:socket-dance:r2", "review:undertow-grid:r2",
     "review:fault-bloom:r1", "review:orbit-shards:r1", "review:overtone-lantern:r1", "review:tendon-drift:r1",
-    "review:brake-bloom:r1", "review:flash-room:r1", "review:pressure-lift:r1", "review:reverse-veil:r1", "review:shred-relay:r1", "review:sinkhole:r1", "review:spectral-cut:r1",
+    "review:brake-bloom:r1", "review:flash-room:r1", "review:pressure-lift:r2", "review:reverse-veil:r1", "review:shred-relay:r2", "review:sinkhole:r1", "review:spectral-cut:r1",
     "review:classic-tines:r1", "review:classic-bass:r1", "review:classic-tubes:r1",
     "review:whistle-stem:r1", "review:jaw-twang:r1", "review:vowel-pick:r1",
     "review:plastic-hero:r1", "review:budget-heaven:r1", "review:sugar-teeth:r1",
-    "review:late-glass:r1", "review:rubber-relay:r1", "review:gate-garden:r1", "review:paper-motor:r1",
+    "review:late-glass:r1", "review:rubber-relay:r2", "review:gate-garden:r1", "review:paper-motor:r2",
     "review:closing-argument:r1", "review:undertint:r1", "review:loose-change:r1", "review:carousel-wire:r1",
-    "review:low-battery-piano:r2", "review:slack-drum:r2", "review:brown-console:r2", "review:silt-bass:r2",
-    "review:bent-aerial:r2", "review:melted-ensemble:r2", "review:oxide-rim:r2", "review:reel-clav:r2",
+    "review:low-battery-piano:r3", "review:slack-drum:r2", "review:brown-console:r3", "review:silt-bass:r2",
+    "review:bent-aerial:r3", "review:melted-ensemble:r3", "review:oxide-rim:r3", "review:reel-clav:r3",
     "review:backspun-tines:r2", "review:unstruck-bell:r2", "review:spool-guitar:r2", "review:inward-tom:r2",
     "review:suction-bass:r2", "review:rewind-reed:r2", "review:folded-strings:r2", "review:vanishing-clav:r2"
   ]

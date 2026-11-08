@@ -38,6 +38,8 @@ the plugin interface. No private evaluation workspace or separate preset downloa
 - [Detuned analog presets](docs/ANALOG_STUDIES.md) — eight finalized Beak>/Portishead mood interpretations, including piano-like keys and a loose drum.
 - [Backwards-instrument presets](docs/REVERSE_STUDIES.md) — eight finalized reverse r2 keys, plucks, bass, reed, drum and strings.
 - [Filter modulation](docs/FILTER_MODULATION.md) — key tracking, velocity and audio-rate FM.
+- [Filter families](docs/FILTERS.md) — preserved Classic routing and five voice-local Rage-inspired characters.
+- [Approved factory filters](docs/FACTORY_FILTER_AUDITIONS.md) — sixteen selectively promoted revisions and preserved matched comparisons; 77 sounds, with historical recall intact.
 - [FM expansion](docs/FM.md) — primary ratio, independent envelope, shapes and network-preserving operator mix.
 - [Preset exploration](docs/PRESET_REVIEW.md) — versioned review sounds, MIDI demos and iteration notes.
 - [Evaluation journal](docs/EVALUATION.md) — embedded Logic trial presets, persistent feedback and resumable history.

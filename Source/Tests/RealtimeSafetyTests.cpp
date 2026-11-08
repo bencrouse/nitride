@@ -56,6 +56,27 @@ void lifetime(const juce::File& directory)
         for(int i=0;i<1200;++i)process(p,audio,midi);require(s.live.voices.load()==0,"Fresh input after audio reset lost its release");
     }
 }
+void rageCold(const juce::File& directory)
+{
+    for(const auto rate:{48000,96000})for(int character=0;character<5;++character)
+    {
+        NitrideAudioProcessor p(directory);auto& s=p.getInstrumentSession();auto patch=Nitride::factoryPatches()[0];
+        patch.values[Nitride::filterFamily]=1;patch.values[Nitride::rageCharacter]=character;patch.values[Nitride::rageAmount]=1;
+        patch.values[Nitride::resonance]=.85;patch.values[Nitride::filterFmDepth]=6;patch.values[Nitride::filterAmount]=6;
+        s.apply(patch);p.prepareToPlay(rate,64);juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;midi.ensureSize(4096);
+        for(int note=48;note<60;++note)midi.addEvent(juce::MidiMessage::noteOn(1,note,.8f),0);
+        process(p,audio,midi);require(s.live.voices.load()==12,"Rage cold start reduced polyphony");
+        for(int block=0;block<240;++block)
+        {
+            if(block%2==0){s.set(Nitride::filterFamily,(block/2)%2);s.set(Nitride::rageCharacter,(character+block/2)%5);}
+            if(block%13==0)midi.addEvent(juce::MidiMessage::noteOn(1,60+(block%24),.9f),17);
+            process(p,audio,midi);
+        }
+        midi.addEvent(juce::MidiMessage::allSoundOff(1),0);process(p,audio,midi);
+        require(s.live.voices.load()==0&&s.live.faults.load()==0,"Rage switching/stealing/panic fault");
+    }
+    std::cout<<"Rage cold render, five characters, 48/96 kHz, 12 voices and switching allocated/deallocated nothing\n";
+}
 void concurrency(const juce::File& directory,bool injectMainFailure=false)
 {
     struct TestPlayhead final:juce::AudioPlayHead
@@ -123,6 +144,7 @@ int main()
 #endif
         const auto directory=juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-safety-"+juce::Uuid().toString());
         lifetime(directory);
+        rageCold(directory);
         const auto started=std::chrono::steady_clock::now();bool caught=false;
         try{concurrency(directory,true);}catch(const std::runtime_error& error){caught=std::string(error.what())=="Deliberate main-thread concurrency failure";}
         const auto cleanupSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();

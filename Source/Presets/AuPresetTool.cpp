@@ -6,6 +6,8 @@
 #include <cmath>
 #include <fcntl.h>
 #include <fstream>
+#include <filesystem>
+#include <bit>
 #include <iostream>
 #include <iterator>
 #include <memory>
@@ -15,6 +17,8 @@
 #include <utility>
 #include <vector>
 #include "FactoryPrograms.h"
+#include "BuildInfo.h"
+#include "../Instrument/Parameters.h"
 
 namespace
 {
@@ -169,7 +173,7 @@ void verify(const std::string& path,int program,const std::string& expected)
     const auto recalledBytes=CFDictionaryGetValue(static_cast<CFDictionaryRef>(after.value),CFSTR("jucePluginState"));
     require(originalBytes&&fileBytes&&recalledBytes&&CFEqual(originalBytes,fileBytes)&&CFEqual(originalBytes,recalledBytes),"Preset did not preserve the exact full Nitride document");
     const auto ids=parameterIds(baseline.unit);
-    require(ids==parameterIds(recalled.unit)&&ids.size()==89,"AU automation contract changed");
+    require(ids==parameterIds(recalled.unit)&&ids.size()==Nitride::hostParameterCount,"AU automation contract changed");
     for(const auto id:ids)
     {
         AudioUnitParameterValue a=0,b=0;
@@ -205,12 +209,81 @@ void verify(const std::string& path,int program,const std::string& expected)
     require(peak>.000001,"Serialization probe produced no audible signal");
     std::cout<<"{\"full_document_exact\":true,\"parameters\":"<<ids.size()<<",\"audio_exact\":true,\"sample_rate\":48000,\"block_frames\":64,\"frames\":192000,\"peak\":"<<peak<<"}\n";
 }
+void rageProbes(const std::string& directory,bool study=false,bool live=false,bool transients=false)
+{
+    // Same source, MIDI, cutoff, resonance and output for every character/amount.
+    // Works with archived eval-039 or the new AU via --component, without projects.
+    require(std::filesystem::create_directory(directory),"Probe directory must be new");
+    constexpr int rate=48000,frames=rate*4;
+    const auto hash=[](const char* text){std::uint32_t v=0;while(*text)v=31*v+static_cast<unsigned char>(*text++);return v&0x7fffffffu;};
+    std::cout<<"{\"sampleRate\":48000,\"frames\":192000,\"source\":\""<<(study?"unchanged-diode-current-r2":"dry-controlled")<<"\",\"performance\":\""<<(transients?"eight-short-notes":"two-held-notes")<<"\",\"liveSwitchAtFrame\":"<<(live?24000:-1)<<",\"probes\":[";
+    for(int character=0;character<5;++character)for(int step=0;step<3;++step)
+    {
+        Instance instance;instance.select(study?111:1,study?"Review / Basses / Diode Current r2":"02 / Glass keys");
+        const auto set=[&](Nitride::Parameter p,double value)
+        {
+            const auto& d=Nitride::hostParameters[p];const auto normalized=std::pow(std::clamp((value-d.minimum)/(d.maximum-d.minimum),0.0,1.0),d.skew);
+            AudioUnitParameterInfo info{};UInt32 size=sizeof(info);const auto id=hash(d.id);
+            check(AudioUnitGetProperty(instance.unit,kAudioUnitProperty_ParameterInfo,kAudioUnitScope_Global,id,&info,&size),"Read probe AU parameter range");
+            const auto native=static_cast<float>(info.minValue+normalized*(info.maxValue-info.minValue));
+            if(info.flags&kAudioUnitParameterFlag_CFNameRelease){if(info.cfNameString)CFRelease(info.cfNameString);if(info.unit==kAudioUnitParameterUnit_CustomUnit&&info.unitName)CFRelease(info.unitName);}
+            check(AudioUnitSetParameter(instance.unit,id,kAudioUnitScope_Global,0,native,0),"Set controlled probe parameter");
+            AudioUnitParameterValue actual=0;check(AudioUnitGetParameter(instance.unit,id,kAudioUnitScope_Global,0,&actual),"Read back controlled probe parameter");
+            require(std::abs(actual-native)<1e-5,"Controlled probe parameter readback differs");
+        };
+        if(!study)for(const auto& p:std::initializer_list<std::pair<Nitride::Parameter,double>>{
+            {Nitride::coupling,0},{Nitride::stress,0},{Nitride::fm,2},{Nitride::pitch,0},
+            {Nitride::fmRatio,2},{Nitride::fmShape,1},{Nitride::fmShapeAmount,1},{Nitride::fmMix,.25},
+            {Nitride::fmEnvelopeAmount,0},{Nitride::attack,.01},{Nitride::decay,.5},{Nitride::sustain,1},{Nitride::release,.1},
+            {Nitride::cutoff,900},{Nitride::resonance,.8},{Nitride::filterAmount,0},{Nitride::filterFmDepth,0},
+            {Nitride::filterKeyTracking,0},{Nitride::filterVelocity,0},{Nitride::spaceMix,0},{Nitride::output,-6},
+            {Nitride::filterFamily,1},{Nitride::rageCharacter,static_cast<double>(character)},{Nitride::rageAmount,step*.5}})set(p.first,p.second);
+        if(!study)check(AudioUnitSetParameter(instance.unit,hash("mono"),kAudioUnitScope_Global,0,0,0),"Set controlled probe poly mode");
+        set(Nitride::rageCharacter,live?0:character);set(Nitride::rageAmount,step*.5);
+        instance.prepare();std::vector<float> samples;samples.reserve(frames*2);double energy=0,peak=0;
+        for(int frame=0;frame<frames;frame+=64)
+        {
+            if(live&&frame==24000)set(Nitride::rageCharacter,character);
+            if(transients)
+            {
+                if(frame%24000==0)check(MusicDeviceMIDIEvent(instance.unit,0x90,frame<rate*2?48:60,96,0),"Transient probe note on");
+                if(frame%24000==4800)check(MusicDeviceMIDIEvent(instance.unit,0x80,frame<rate*2?48:60,0,0),"Transient probe note off");
+            }
+            else
+            {
+                if(frame==0||frame==rate*2)check(MusicDeviceMIDIEvent(instance.unit,0x90,frame==0?48:60,96,0),"Probe note on");
+                if(frame==rate*3/2||frame==rate*7/2)check(MusicDeviceMIDIEvent(instance.unit,0x80,frame==rate*3/2?48:60,0,0),"Probe note off");
+            }
+            std::array<std::array<float,64>,2> audio{};
+            struct Stereo {UInt32 count;AudioBuffer buffers[2];} storage{2,{{1,64*sizeof(float),audio[0].data()},{1,64*sizeof(float),audio[1].data()}}};
+            AudioTimeStamp time{};time.mFlags=kAudioTimeStampSampleTimeValid;time.mSampleTime=frame;AudioUnitRenderActionFlags flags=0;
+            check(AudioUnitRender(instance.unit,&flags,&time,0,64,reinterpret_cast<AudioBufferList*>(&storage)),"Render controlled Rage probe");
+            for(size_t i=0;i<64;++i)for(size_t c=0;c<2;++c)
+            {const auto x=audio[c][i];require(std::isfinite(x),"Non-finite controlled probe");samples.push_back(x);energy+=x*x;peak=std::max(peak,std::abs(static_cast<double>(x)));}
+        }
+        const auto filename="character-"+std::to_string(character)+"-rage-"+std::to_string(step*50)+".wav";
+        std::ofstream wav(std::filesystem::path(directory)/filename,std::ios::binary);
+        const auto word=[&](std::uint32_t value,int bytes){for(int i=0;i<bytes;++i)wav.put(static_cast<char>((value>>(i*8))&255));};
+        const auto size=static_cast<std::uint32_t>(samples.size()*sizeof(float));
+        wav.write("RIFF",4);word(size+36,4);wav.write("WAVEfmt ",8);word(16,4);word(3,2);word(2,2);word(rate,4);word(rate*8,4);word(8,2);word(32,2);wav.write("data",4);word(size,4);
+        for(const auto x:samples)word(std::bit_cast<std::uint32_t>(x),4);
+        require(wav.good(),"Cannot write probe WAV");
+        if(character||step)std::cout<<',';
+        std::cout<<"{\"character\":"<<character<<",\"amount\":"<<step*.5<<",\"file\":\""<<filename<<"\",\"rms\":"<<std::sqrt(energy/samples.size())<<",\"peak\":"<<peak<<'}';
+    }
+    std::cout<<"]}\n";
+}
 }
 
 int main(int argc,char** argv)
 {
     try
     {
+        if(argc==2&&std::string(argv[1])=="--identity")
+        {
+            std::cout<<"{\"format\":\"nitride-native-probe-identity\",\"version\":1,\"synthVersion\":\""<<Nitride::buildVersion
+                <<"\",\"evaluationBuild\":\""<<Nitride::evaluationBuild<<"\"}\n";return 0;
+        }
         // Explicit source installs use exactly the requested bundle, even with an
         // older AU cached by the registrar. Registration is private to this process.
         std::unique_ptr<ComponentBundle> bundle;
@@ -230,7 +303,11 @@ int main(int argc,char** argv)
             std::cout<<"Exported clean isolated AU ClassInfo; only outer host label changed\n";
         }
         else if(argc==5&&std::string(argv[1])=="verify")verify(argv[2],std::stoi(argv[3]),argv[4]);
-        else throw std::runtime_error("Usage: nitride_au_presets [--component PATH] export PROGRAM EXPECTED-FACTORY-NAME HOST-LABEL NEW.aupreset | verify FILE PROGRAM EXPECTED-FACTORY-NAME");
+        else if(argc==3&&std::string(argv[1])=="rage-probes")rageProbes(argv[2]);
+        else if(argc==3&&std::string(argv[1])=="rage-study-probes")rageProbes(argv[2],true);
+        else if(argc==3&&std::string(argv[1])=="rage-study-live-probes")rageProbes(argv[2],true,true);
+        else if(argc==3&&std::string(argv[1])=="rage-study-transient-probes")rageProbes(argv[2],true,false,true);
+        else throw std::runtime_error("Usage: nitride_au_presets [--component PATH] export PROGRAM EXPECTED-FACTORY-NAME HOST-LABEL NEW.aupreset | verify FILE PROGRAM EXPECTED-FACTORY-NAME | rage-probes NEW-DIRECTORY | rage-study-probes NEW-DIRECTORY | rage-study-live-probes NEW-DIRECTORY | rage-study-transient-probes NEW-DIRECTORY");
         return 0;
     }
     catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

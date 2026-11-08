@@ -117,7 +117,22 @@ int main(int argc,char** argv)
             "Review / Physical materials / Backspun Tines r2","Review / Physical materials / Unstruck Bell r2",
             "Review / Physical materials / Spool Guitar r2","Review / Physical materials / Inward Tom r2",
             "Review / Basses / Suction Bass r2","Review / Leads / Rewind Reed r2",
-            "Review / Pads / Folded Strings r2","Review / Physical materials / Vanishing Clav r2"};
+            "Review / Pads / Folded Strings r2","Review / Physical materials / Vanishing Clav r2",
+            "Review / Basses / Diode Current r1","Review / Leads / Pressure Brass r1",
+            "Review / Leads / Soft Circuit r1","Review / Pads / Spool Horizon r1",
+            "Review / Physical materials / Switch Grain r1",
+            "Review / Basses / Diode Current r2","Review / Leads / Pressure Brass r2",
+            "Review / Leads / Soft Circuit r2","Review / Pads / Spool Horizon r2",
+            "Review / Physical materials / Switch Grain r2",
+            "Review / Basses / Rubber Relay r2","Review / Leads / Copper Lift r2",
+            "Review / Physical materials / Taffy Coil r2","Review / Sequence elements / Undertow Grid r2",
+            "Review / Experimental / Paper Motor r2","Review / Experimental / Pressure Lift r2",
+            "Review / Sequence elements / Shred Relay r2",
+            "Review / Basses / Tension Core r3","Review / Leads / Brown Console r3",
+            "Review / Physical materials / Low Battery Piano r3","Review / Leads / Bent Aerial r3",
+            "Review / Leads / Reed Snap r3","Review / Pads / Melted Ensemble r3",
+            "Review / Physical materials / Reel Clav r3","Review / Physical materials / Oxide Rim r3",
+            "Review / Sequence elements / Pulse Lattice r3"};
         if(Nitride::legacyProgramNames.size()!=4+reviewNames.size())throw std::runtime_error("Legacy fixture coverage changed");
         for(CFIndex i=0;i<static_cast<CFIndex>(Nitride::legacyProgramNames.size());++i)
         {

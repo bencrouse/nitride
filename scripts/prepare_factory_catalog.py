@@ -38,7 +38,7 @@ def adapt_wrapper(data):
         raise ValueError("AU wrapper differs from pinned JUCE 8.0.15; review adapter explicitly, never patch an unknown dependency")
     text = data.decode()
     # Keep the vendor checkout/SDK/DSP untouched. Preserve original license in the copy.
-    text = text.replace("#include <set>", '#include <set>\n#include "FactoryPrograms.h"', 1)
+    text = text.replace("#include <set>", '#include <set>\n#include "FactoryPrograms.h"\n#include "Instrument/AuParameterState.h"', 1)
     first = text.index("    ComponentResult GetPresets (CFArrayRef* outData) const override")
     last = text.index("    OSStatus NewFactoryPresetSet", first)
     text = text[:first] + """    // Nitride: categorized .aupreset files are the host browser. Advertising a
@@ -57,7 +57,24 @@ def adapt_wrapper(data):
         chosenPreset.presetName = (displayName != nullptr ? String (displayName) : juceFilter->getProgramName (chosenPresetNumber)).toCFString();""", 1)
     text = text.replace("const String currentProgramName = juceFilter->getProgramName (currentProgramNumber);", """const auto* displayName = Nitride::factoryProgramName (currentProgramNumber);
         const String currentProgramName = displayName != nullptr ? String (displayName) : juceFilter->getProgramName (currentProgramNumber);""", 1)
-    return "// Nitride generated AU visibility/name adapter; original source checksum verified.\n" + text
+    anchor = "                CFDictionarySetValue (dict, key.get(), ourState.get());"
+    # Keep native legacy presets byte-identical as well as their plugin document.
+    # Never trim a v8 document, a nonzero new value or an unknown SDK table layout.
+    if text.count(anchor) != 1:
+        raise ValueError("Pinned AU SaveState anchor changed")
+    text = text.replace(anchor, anchor + """
+                if (const auto xml = AudioProcessor::getXmlFromBinary (state.getData(), static_cast<int> (state.getSize()));
+                    xml != nullptr && xml->hasTagName ("NITRIDE_INSTRUMENT") && xml->getIntAttribute ("version") == 7)
+                {
+                    const auto data = static_cast<CFDataRef> (CFDictionaryGetValue (dict, CFSTR (kAUPresetDataKey)));
+                    if (data != nullptr && CFGetTypeID (data) == CFDataGetTypeID())
+                        if (const auto legacy = Nitride::legacyAuParameterData (CFDataGetBytePtr (data), static_cast<size_t> (CFDataGetLength (data))))
+                        {
+                            CFUniquePtr<CFDataRef> replacement (CFDataCreate (nullptr, legacy->data(), static_cast<CFIndex> (legacy->size())));
+                            CFDictionarySetValue (dict, CFSTR (kAUPresetDataKey), replacement.get());
+                        }
+                }""", 1)
+    return "// Nitride generated AU visibility/name/legacy-state adapter; original source checksum verified.\n" + text
 
 
 def write_changed(path, text):

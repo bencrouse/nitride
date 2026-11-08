@@ -10,7 +10,7 @@ FmPanel::FmPanel(InstrumentSession& s):session(s),epoch(s.restoreEpoch.load())
     source.onClick=[this]{selectPage(0);};envelopeTab.onClick=[this]{selectPage(1);};modulation.onClick=[this]{selectPage(2);};
     close.setName("Close advanced FM");close.onClick=[this]{finishEdits();if(onClose)onClose();};
     for(auto* button:{&source,&envelopeTab,&modulation,&close})addAndMakeVisible(button);
-    for(int p=fmRatio;p<parameterCount;++p)
+    for(int p=fmRatio;p<filterFamily;++p)
     {
         const auto parameter=static_cast<Parameter>(p);const auto i=static_cast<size_t>(p-fmRatio);const auto& d=hostParameters[static_cast<size_t>(p)];
         if(d.kind==ParameterKind::choice)
@@ -58,7 +58,7 @@ void FmPanel::end(Parameter p)
 {const auto i=static_cast<size_t>(p-fmRatio);if(editing[i]){editing[i]=false;session.endEdit({hostIndex(p)});}}
 void FmPanel::set(Parameter p,double value){session.setIfCurrent(p,value,epoch);}
 void FmPanel::finishEdits()
-{for(int p=fmRatio;p<parameterCount;++p)end(static_cast<Parameter>(p));cancelEdits();}
+{for(int p=fmRatio;p<filterFamily;++p)end(static_cast<Parameter>(p));cancelEdits();}
 void FmPanel::cancelEdits(){editing={};for(auto& v:values)if(v)v->cancelGesture();envelope.cancelGesture();}
 void FmPanel::sync(const Patch& patch,std::uint64_t generation)
 {
@@ -77,7 +77,7 @@ void FmPanel::sync(const Patch& patch,std::uint64_t generation)
 void FmPanel::selectPage(int selected)
 {
     finishEdits();page=selected;
-    for(int p=fmRatio;p<parameterCount;++p)
+    for(int p=fmRatio;p<filterFamily;++p)
     {
         const auto i=static_cast<size_t>(p-fmRatio);const auto visible=page==0?p<fmAttack:page==1?(p>=fmAttack&&p<=fmEnvelopeAmount):p>=fmRoute1Source;
         if(values[i])values[i]->setVisible(visible);if(choices[i])choices[i]->setVisible(visible);

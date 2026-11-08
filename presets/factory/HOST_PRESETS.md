@@ -1,4 +1,19 @@
-# Host-native presets / 0.7.38 · eval-038
+# Host-native presets / 0.7.46 · eval-046
+
+The sixteen [approved filter revisions](../../docs/FACTORY_FILTER_AUDITIONS.md) now
+replace their parents under the same clean names/categories. The library remains
+**77 sounds: 16 Rage and 61 Classic**. Approved definitions/MIDI are not retuned.
+Historical parents remain recallable through their old program numbers and the
+standalone Evaluation archive. Local unchanged owned factory originals and exact
+duplicate Study files are durably archived during the explicit revision update;
+user edits cause a refusal and unrelated files remain untouched. No commit/push or
+broader host/hardware/performance approval follows from this promotion.
+
+The local eval-046 promotion is installed and registered, with all 77 clean native
+recalls and all 132 historical programs / 92 controls verified. Restart Logic and
+use the normal clean names, not the retired duplicate Study labels. The previous
+factory files/receipt and exact retired Study files/receipts remain in the private
+`evaluation/filters/factory-002-promotion/native-archive/` evidence folder.
 
 All eight [motion/envelope presets](../../docs/MOTION_STUDIES.md) from eval-031 are now
 explicitly promoted, unchanged, with clean names in both normal browsers. Only exact
@@ -49,17 +64,17 @@ project-close/reopen is not separately inferred from the editing/saving confirma
 
 The AU does **not advertise a Factory Presets list**. Logic otherwise adds a redundant
 **AU Presets** submenu alongside the real category folders. Categorized `.aupreset`
-files are the sole host-facing browser; the prior 69 files remain byte-identical.
+files are the sole host-facing browser; the 61 non-replaced factory files remain byte-identical.
 Historical numeric selection still works for compatibility, without advertising a list.
 Names/categories are release metadata: original preset JSON, stored inner names and
 sound definitions are not edited. An old project can still contain an archived name.
 
 ## Legacy sounds and session compatibility
 
-No historical program was deleted or renumbered. All **106 program numbers**
-(four starting patches plus 102 review revisions, including eight archived analog r1
-studies, eight finalized analog r2 sounds, eight unselected reverse r1 studies and
-eight finalized reverse r2 sounds), v7 documents, undo/redo histories,
+No historical program was deleted or renumbered. All **132 program numbers**
+(four starting patches plus 128 review revisions, including archived parents,
+reverse/analog revisions, ten filter-character studies and sixteen promoted filter
+revisions), legacy v7 and Rage v8 documents, undo/redo histories,
 Compare references and portable kept sounds retain their existing storage/recall paths.
 The AU adapter disables public enumeration and retains outer display labels. It operates
 on a checksum-verified generated copy of the pinned JUCE wrapper, not the vendor
@@ -115,7 +130,7 @@ Only checked-in selection, acceptance and sound definitions are needed. No priva
 `evaluation/` journal, archived build, manual preset copying or separate package is required.
 The native export helper is built even with `NITRIDE_BUILD_TESTS=OFF`. It loads the specified
 bundle directly in an isolated process, avoiding an older component cached by AU discovery.
-Every generated preset receives the same full-document, 89-parameter and stereo-audio
+Every generated preset receives the same full-document, 92-parameter and stereo-audio
 recall checks used by the checkpoint exporter before any preset is published.
 
 Re-running the command adds only missing factory paths. **No existing path is replaced**,
@@ -125,6 +140,28 @@ and how many paths were preserved; a preserved path is not a claim that its cont
 the factory sound. This additive installer does not claim ownership of existing files or
 provide an automatic sound updater/uninstaller. New files use exclusive, staged publication;
 on failure it rolls back only unchanged files newly created by that attempt.
+
+### Explicit approved revision replacement
+
+`scripts/factory_presets.py replace-factory PACKAGE --archive NEW-ARCHIVE` is separate
+from normal installation. It requires the full current verified factory package,
+the existing factory ownership receipt and one `--replace-file` for **every and only**
+changed clean path. It refuses edited owned files, additions/removals, symbolic links
+and non-current packages. The sixteen paths are the names in the approved filter guide.
+The archive must be new and outside the native preset tree.
+
+Only explicitly named `--retire-study factory-filters-r2-001` and
+`--retire-study factory-filters-r3-001` receipts may be retired for this promotion.
+Every owned Study file must be checksum-identical and have the exact full document
+of a changed clean replacement. The previous sixteen factory files/receipt are saved
+under `previous-factory/`, and the sixteen duplicate Study files/two receipts under
+`retired-studies/`, before mutation. Failed publication restores moved originals;
+a concurrent user save wins and conflicting moved originals are retained in the
+archive. Existing user/other Study files are never swept for deletion.
+
+Fresh clones get the promoted selections automatically. Existing installations keep
+their files on a normal `make reload-au`; replacing an owned old factory revision is
+an explicit versioned operation, never permission to overwrite a user-edited sound.
 
 `BUILD_DIR` and `CONFIG` select the build as usual. `AU_INSTALL_DIR` selects the component
 destination; `AU_PRESET_INSTALL_DIR` can select a different preset destination for testing.

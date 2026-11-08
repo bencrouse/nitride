@@ -1,5 +1,6 @@
 # Adapt a generated copy, not the pinned vendor checkout. Only AU preset visibility
-# and outer display labels change; the full historical program API stays intact.
+# and outer display labels change; legacy-only redundant parameter tables retain
+# their historical bytes. The full program API and 92-control host list stay intact.
 get_target_property(nitride_module_path juce::juce_audio_plugin_client INTERFACE_JUCE_MODULE_PATH)
 set(nitride_au_wrapper "${nitride_module_path}/juce_audio_plugin_client/juce_audio_plugin_client_AU_1.mm")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/prepare_factory_catalog.py"

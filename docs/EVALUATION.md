@@ -1,5 +1,184 @@
 # Persistent evaluation
 
+## Approved filter-preset promotion / eval-046
+
+Verbatim user feedback on `logic-045`: "they all sounds great, let's use them. please
+promote them." All sixteen batch-22 r2/r3 definitions are selected unchanged under
+the existing factory names/categories; 61 other choices remain unchanged, for 77
+sounds total. Every historical program/source/MIDI and the approved DSP remain intact.
+Portable acceptance records the specific sixteen IDs and does not infer commit/push,
+new tuning, CPU/stall waivers, actual-M2 or Logic reopen/real-time-soak qualification.
+
+Private promotion evidence and durable previous-native/duplicate-Study archives are
+under `evaluation/filters/factory-002-promotion/`. Only explicitly requested unchanged
+owned factory files may be replaced, and only exact owned duplicate Study documents
+may be retired. User edits and unrelated files are protected. The eval-045 section
+below records the earlier audition checkpoint, not a current pending listening verdict.
+
+Installed and registered **0.7.46 / eval-046**. AU validation, all 132 historical
+programs / 92 controls and all 77 clean native recalls pass. Sixteen approved complete
+performances and 64 prior benchmark audio fingerprints remain exact, as do 87
+historical native export bytes. All 22 Release/22 Debug suites, 174 Python tests and
+ASan/TSan core/state/safety checks pass. The explicit owned-file update archived the
+sixteen old factory files/receipt and sixteen exact duplicate Study files/two receipts,
+while preserving the other 61 factory files and unrelated/user files. Each promoted
+revision has an explicit approved decision in the journal. No commit or push was made.
+
+The user subsequently requested committing and pushing the completed work. Source,
+tests, frozen original MIDI/recipes and portable acceptance may be published; the
+private journal, audio/native evidence, handoff binaries and local archives remain
+ignored and local. This does not change the outstanding qualification boundaries.
+
+## Selective factory filter auditions / eval-045
+
+The user requested continuation of the 77-preset review. Sixteen targeted audition
+revisions preserve their parent MIDI and change only family/character/amount; no
+factory parent or default selection is overwritten. Seven r2 and nine r3 revisions
+append at programs 116–131. The approved DSP is unchanged. Planned trial `logic-045`
+compares original Classic, clean Rage and proposed character using complete identical
+MIDI and matched listening levels. Private evidence remains under
+`evaluation/filters/factory-001/`; no Logic projects/settings are captured. See the
+[audition guide](FACTORY_FILTER_AUDITIONS.md). Listening, promotion and broader host
+qualification are not inferred from offline checks or the request to continue.
+
+Installed **0.7.45 / eval-045** and published sixteen additive **Study - … r2/r3**
+native files in the existing host categories, with two new ownership receipts.
+All old native files/receipts and 87 factory/Study export bytes remain exact; the
+previous component is archived. Actual registered-version validation and all 132
+program / 92-control recalls pass. All 21 Release/21 Debug suites, 168 Python tests
+and three suites per sanitizer pass. All sixteen frozen candidate performances
+match the pre-registration prototypes byte-for-byte; all 64 prior benchmark audio
+hashes are retained. Fresh 48 kHz benchmark cases show no overdue blocks, but known
+96 kHz maximum-polyphony failures and earlier stall/manual-host limits remain open.
+No musical approval, factory-selection change, commit or push is inferred.
+
+## Approved-sound wrap-up / eval-044
+
+The user approved eval-043's sound and requested wrap-up. CPU work must retain exact
+audio, full 4× processing, solver precision and 12 voices; no promotion, commit or
+push is authorized. The approved component, source, benchmark and before-file hashes
+are preserved privately in `evaluation/filters/pass-006/`. The first archived-core
+comparison retains exact doubles/diagnostics across 1.6 million modulated/switching
+samples; native/full-performance comparisons and fresh qualification are recorded
+alongside it, never over earlier evidence.
+
+The new no-install filter handoff is separate from historical `qualification-001`.
+It packages only the pinned AU/tools/manual, not private evaluation audio or the
+journal. Generated probe state and offline metrics do not capture Logic projects or
+settings. Actual M2 execution and manual Logic reopen/real-time soak remain pending;
+offline continuity must never be relabelled a DAW/device soak. See
+[filter architecture and limits](FILTERS.md) and the
+[manual checklist](FILTER_QUALIFICATION_MANUAL.md).
+
+Installed checkpoint: **0.7.44 / eval-044**, planned manual trial `logic-044`.
+Registered-version AU validation, 116-program/92-control checks and all 87 installed
+native recalls pass; prior components and every existing preset/receipt are preserved.
+All 64 CPU-matrix audio fingerprints, 50 spectral result records, 60 native probe
+WAVs and 20 frozen raw/preview WAVs retain approved eval-043 results exactly. The
+final 20 Release / 20 Debug suites, 162 Python tests and three suites per sanitizer
+pass. Median CPU falls 6.6–16.9%, but only 48/64 cases meet the strict headroom gate.
+
+The offline continuity run retains 1,800 audio seconds, 61 exact state round trips
+and zero numerical faults **alongside** 21 overdue blocks and an 83.301-second
+maximum block. Numerical continuity is not deadline/DAW/device-soak qualification.
+The no-install handoff ZIP is in `evaluation/filters/pass-006/`; it has been fully
+exercised on M4 Max only and contains no private audio/projects/settings/results.
+Actual M2, Logic reopen and a 30–60-minute real-time Logic soak remain pending.
+
+## Character identity / eval-043
+
+The user confirmed all characters audible on eval-042 and requested more contrast.
+The revised four receive distinct harmonic, edge and dynamic behavior while Diode
+is preserved. No new patches, native presets or factory selections are created.
+Magnitude-spectrum comparisons remove phase/gain advantages; core harmonic and
+conditioning-burst tests check identity, particularly Tape's per-voice compression
+memory versus the faster other characters. Same-source held, live-switch and short
+note examples remain private in `evaluation/filters/pass-005/`. See FILTERS.md for
+the character voicings and qualification boundaries. No promotion/commit/push or
+overall factory approval follows from the user's audibility feedback.
+
+Installed checkpoint: **0.7.43 / eval-043**, with planned trial `logic-043`. Native
+registered-version validation and 116-program/92-control checks pass; all 77 factory
+and ten Study native exports retain their existing bytes with exact recall. No new
+native files/receipts or preset revisions are installed. Full Diode r1/r2 raw renders
+match eval-042 byte-for-byte. The initial CPU matrix's long stalls and a separate
+idle-sleep-inhibited repeat are both preserved; all 64 audio hashes agree. Remaining
+CPU/spectral/M2/Logic-soak limits are documented in FILTERS.md, not hidden by reducing
+quality or voice count. Compare the matched held/short-note sequences before judging
+the revised characters; numerical spectral separation is not listening approval.
+
+## Character audibility / eval-042
+
+User feedback on eval-041: Diode on Diode Current r2 is good and audible; the other
+four feel inactive. Native held-note probes verify live selection reaches each DSP,
+and UI-vs-host audio tests cover all five choices. The correction preserves Diode
+and adds bounded, band-regenerated nonlinear excitation to the other four instead
+of relying only on their restoring-force return. Quiet-level regression rejects
+the old core. See [design and exact-study comparison](FILTERS.md).
+
+No new patch revisions are created. Same-source native tests use frozen historical
+program 111, changing only character/amount. Local level-matched study/live/dry
+evidence is in `evaluation/filters/pass-004/`. The Diode feedback is not interpreted
+as factory approval, permission to overwrite sources, or commit/push consent.
+
+Installed checkpoint: **0.7.42 / eval-042**, with planned trial `logic-042`. Actual
+registered AU validation, 116-program/92-control native checks, all 77 factory and
+ten Study exact native recalls/bytes pass. All existing native files/receipts and
+frozen definitions/MIDI remain unchanged. Both 28-second Diode Current r1/r2 raw
+performances are byte-identical to eval-041. No new native presets are installed.
+Primary actual-patch clips are in `evaluation/filters/pass-004/study-auditions/listen/`;
+the 64-case CPU and 50-case spectral limitations are documented in FILTERS.md.
+
+## Integrator-return experiment / eval-041
+
+The user also rejected eval-040: full Rage still mainly squished the sound. Its
+numerical qualification is preserved, not recast as listening approval. The new
+core replaces residual damping with a nonlinear integrator return, retaining a
+linear resonant path and using a discrete-gradient solve to avoid numerical energy
+injection. See [the architecture and caveats](FILTERS.md).
+
+No r3 studies are added: all frozen r1/r2 source/MIDI/native files and the 77 factory
+selection remain intact. One identical dry 0/50/100% source is the primary audition;
+archived eval-040 provides the actual old engine. Merely loading r2 on a new AU does
+not pin its DSP. Full-quality 4× processing and 12 voices remain enabled; measured
+spectral/CPU limits are reported separately, never hidden by lower quality.
+
+The installed audition checkpoint is **0.7.41 / eval-041**, with planned trial
+`logic-041`. Actual registered-version validation and native recall checks pass;
+all 77 factory and ten r1/r2 Study native exports remain byte-identical. No new
+preset files/receipts are installed. Ten same-source r1/r2 performances are recorded
+under the new build without replacing earlier renders. Primary RMS-matched clips
+are local in `evaluation/filters/pass-003/auditions/listen/`. User listening approval,
+actual M2 and Logic reopen/soak remain unqualified; no promotion/commit/push is implied.
+
+## Stronger Rage / eval-040
+
+The user found eval-039 too subtle and explicitly requested the feedback redesign.
+Rage now injects a character-specific nonlinear residual into regeneration rather
+than shrinking the shaped signal by drive. Identical native 0/50/100% examples and
+old/new full-drive clips are level-matched; numerical gates do not substitute for
+listening. See [current design and comparison workflow](FILTERS.md).
+
+Batch-21/r2 preserves all r1 source/MIDI/native files and appends programs 111–115.
+The finalized 77, Classic and all host IDs/ranges/state formats are unchanged.
+R1 on the new AU also uses the new Rage DSP: the preserved eval-039 component and
+renders, not a revision label alone, are the exact old-engine comparison. No user
+approval, promotion, commit/push or broader host/M2/Arturia qualification is inferred.
+
+## Filter framework and five Rage studies / eval-039
+
+Classic's original shared path is preserved; Rage adds independently implemented
+per-voice nonlinear-feedback characters, not a verified Pigments clone. Three
+appended controls bring the host total to 92. Conditional legacy/new state retains
+old preset/session/native compatibility. See [architecture, studies and qualification
+boundaries](FILTERS.md).
+
+Batch-21/r1 appends programs 106–110: Diode Current, Pressure Brass, Soft Circuit,
+Spool Horizon and Switch Grain. The finalized 77 and all prior revisions remain
+unchanged. These are unapproved auditions, not promotion or commit/push consent.
+Private evidence and current installed/trial status live in `evaluation/CURRENT.md`;
+Logic reopen/soak, actual M2 and Arturia sonic matching are not inferred.
+
 ## Finalized backwards-instrument r2 eight / eval-038
 
 The user explicitly said: “ok the r2 versions are excellent, can you promote those

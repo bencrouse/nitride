@@ -26,7 +26,7 @@ private:
     std::uint64_t epoch;
     bool updating=false;
     int page=0;
-    static constexpr size_t count=parameterCount-fmRatio;
+    static constexpr size_t count=filterFamily-fmRatio;
     std::array<std::unique_ptr<UI::ValueControl>,count> values;
     std::array<std::unique_ptr<juce::ComboBox>,count> choices;
     std::array<bool,count> editing{};

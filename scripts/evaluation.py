@@ -155,7 +155,7 @@ def validate_builtins(project=PROJECT, *, check_history=True):
         if not path.is_relative_to(root.resolve()) or path.name in filenames or digest(path) != entry["sha256"]:
             raise ValueError("Missing, duplicate-resource or changed builtin preset: " + entry["id"])
         data = json.loads(path.read_text())
-        if data.get("format") != "nitride-preset" or data.get("version") != 6:
+        if data.get("format") != "nitride-preset" or data.get("version") not in (6, 7):
             raise ValueError("Unsupported embedded preset schema")
         ids.add(entry["id"])
         filenames.add(path.name)

@@ -7,6 +7,7 @@
 #include "EngineData.h"
 #include "Fm.h"
 #include "FilterEnvelope.h"
+#include "FilterFramework.h"
 
 namespace SoundStudies
 {
@@ -38,7 +39,12 @@ public:
     void silenceOwner(int owner,const std::array<int,128>& retainedOwners) noexcept;
     void noteOff(int note) noexcept;
     void allNotesOff() noexcept;
-    void render(float* left, float* right, int samples, double* tonePitch = nullptr,const Nitride::DSP::ModulationFrame* modulation=nullptr) noexcept;
+    void render(float* left, float* right, int samples, double* tonePitch = nullptr,const Nitride::DSP::ModulationFrame* modulation=nullptr,
+                float* classic=nullptr,double* filterMix=nullptr) noexcept;
+    void setFilterSettings(const Nitride::DSP::FilterSettings&) noexcept;
+    bool filterProcessingActive()const noexcept{return filterTarget.family==Nitride::DSP::FilterFamily::rage||filterBlend>0;}
+    struct FilterSnapshot {double cutoff=0,envelope=0;std::uint64_t faults=0,solverFallbacks=0;};
+    FilterSnapshot getFilterSnapshot(int note=-1)const noexcept;
     using PitchSnapshot=Nitride::DSP::PitchSnapshot;
     PitchSnapshot getPitchSnapshot(int note=-1) const noexcept;
     void setFmSettings(const Nitride::DSP::FmSettings&) noexcept;
@@ -110,6 +116,8 @@ private:
         DelayState noteDelay;
         NetworkState network, stressedNetwork, expressiveNetwork;
         Nitride::DSP::FilterEnvelope fmEnvelope;
+        Nitride::DSP::VoiceFilter filter;
+        double classicSample=0;
         Nitride::DSP::FmValues fmValues;
         bool fmExtended=false;
         double primaryPhase=0,primaryHz=0,modulatorOutput=0,referenceModulator=0;
@@ -127,7 +135,7 @@ private:
     void schedule() noexcept;
     // Compile constant-ratio and moving-ratio paths separately: inactive motion
     // must not add branches inside every partial and network oscillator evaluation.
-    template<bool Split,bool Extended=false> double voiceSample(Voice&) noexcept;
+    template<bool Split,bool Extended=false,bool Filtered=false> double voiceSample(Voice&) noexcept;
     double envelope(Voice&) noexcept;
     double bodySample(Voice&, double env, double fundamental) noexcept;
     double interactionSample(Voice&, double env, double fundamental) noexcept;
@@ -189,5 +197,9 @@ private:
     bool networkBiasValid=false;
     double cachedBiasStress=0,cachedBiasExcitation=0;
     std::array<double,9> biasSine{},biasCosine{};
+    Nitride::DSP::FilterSettings filterTarget;
+    Nitride::DSP::FilterControls filterControls;
+    Nitride::DSP::FilterDecimator filterDecimator;
+    double filterBlend=0,filterBlendStep=0,cutoffLfo=0;
 };
 }

@@ -24,6 +24,7 @@ public:
     double filterNoteVelocity() const noexcept {return filterVelocityValue;}
     double filterCutoffFrequency() const noexcept {return lastFilterCutoff;}
     SoundStudies::Engine::FmSnapshot fmSnapshot(int note=-1) const noexcept {return engine.getFmSnapshot(note);}
+    SoundStudies::Engine::FilterSnapshot voiceFilterSnapshot(int note=-1)const noexcept{return engine.getFilterSnapshot(note);}
 
 private:
     void updateEngine();

@@ -14,7 +14,7 @@ from unittest import mock
 import evaluation as ev
 import factory_presets as fp
 import study_presets as study
-from test_factory_presets import synthetic_native
+from test_factory_presets import synthetic_native, historical_selection
 
 BATCH = fp.ROOT / "presets/review/batch-20/r1"
 spec = importlib.util.spec_from_file_location("reverse_recipes", BATCH / "make_reverse_studies.py")
@@ -38,7 +38,7 @@ class ReverseStudyTests(unittest.TestCase):
         entries = [e for e in registry if e["preset"].startswith("batch-20/r1/")]
         self.assertEqual([e["family"] for e in entries], FAMILIES)
         self.assertEqual([e["program"] for e in entries], list(range(90, 98)))
-        selection, selected = fp.validate_selection()
+        selection, selected = historical_selection()
         programs = {e["id"]: e["program"] for e in selected}
         prior = [e for e in selection["entries"] if programs[e["id"]] < 98]
         self.assertEqual(hashlib.sha256(ev.canonical(prior)).hexdigest(),
@@ -184,7 +184,7 @@ class ReverseStudyTests(unittest.TestCase):
     def test_r2_native_labels_install_beside_r1_without_claiming_old_paths(self):
         # Preserve the original audition-stage coverage; current finalized r2
         # cannot be republished as a new unapproved study.
-        selection, selected = fp.validate_selection(check_history=False)
+        selection, selected = historical_selection()
         prior = [e for e in selected if e["program"] < 98]
         definitions = {98 + i: json.loads((R2_BATCH / (family + "-r2.nitridepreset")).read_text()) for i, family in enumerate(FAMILIES)}
         with tempfile.TemporaryDirectory(prefix="nitride-reverse-r2-test-") as folder:
@@ -242,7 +242,7 @@ class ReverseStudyTests(unittest.TestCase):
             self.assertFalse(path.exists())
 
     def test_promotion_retires_only_exact_owned_r2_preserving_r1_and_old_69(self):
-        selection, selected = fp.validate_selection()
+        selection, selected = historical_selection()
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder).resolve(); package = root / "package"; package.mkdir()
             destination = root / "installed"; archive = root / "archive"

@@ -46,22 +46,22 @@ def main():
         if args.full and not args.resume_from and directory.exists():
             shutil.rmtree(directory)
         run(["cmake", "--preset", preset], log=reports / (profile + "-configure.log"))
-        targets = ["nitride_safety_tests"] if profile in ("asan", "tsan") else ["nitride", "nitride_ui_tests", "nitride_automation_tests", "nitride_pitch_tests", "nitride_reference_tests", "nitride_study_tests", "nitride_safety_tests"]
+        targets = ["nitride_rage_dsp_tests", "nitride_automation_tests", "nitride_safety_tests"] if profile in ("asan", "tsan") else ["nitride", "nitride_ui_tests", "nitride_automation_tests", "nitride_filter_tests", "nitride_rage_dsp_tests", "nitride_pitch_tests", "nitride_reference_tests", "nitride_study_tests", "nitride_safety_tests"]
         if profile not in ("asan", "tsan"):
-            targets.append("nitride_socket_tests")
+            targets += ["nitride_socket_tests", "nitride_perf"]
         if profile == "release" or (args.full and profile == "debug"):
-            targets += ["nitride_AU", "nitride_Standalone", "nitride_review", "nitride_perf", "nitride_au_component_tests"]
+            targets += ["nitride_AU", "nitride_Standalone", "nitride_review", "nitride_au_component_tests"]
         run(["cmake", "--build", "--preset", preset, "--target", *targets], log=reports / (profile + "-build.log"))
         env = os.environ.copy()
         if profile == "asan":
             env["ASAN_OPTIONS"] = "detect_leaks=0:halt_on_error=1"
         if profile == "tsan":
             env["TSAN_OPTIONS"] = "halt_on_error=1"
-        selection = ["-R", "nitride_safety_tests"] if profile in ("asan", "tsan") else []
+        selection = ["-R", "nitride_(rage_dsp|automation|safety)_tests"] if profile in ("asan", "tsan") else []
         run(["ctest", "--preset", preset, *selection], log=reports / (profile + "-tests.log"), env=env)
         if profile == "release":
             benchmark = directory / "nitride_perf_artefacts/Release/nitride_perf"
-            for suffix, options in [("ordinary", []), ("pitch", ["--pitch-motion"]), ("filter", ["--filter-envelope"]), ("lfo", ["--lfo"]), ("filter-modulation", ["--filter-modulation"]), ("fm-expansion", ["--fm-expansion"])]:
+            for suffix, options in [("ordinary", []), ("pitch", ["--pitch-motion"]), ("filter", ["--filter-envelope"]), ("lfo", ["--lfo"]), ("filter-modulation", ["--filter-modulation"]), ("fm-expansion", ["--fm-expansion"]), ("rage", ["--rage"])]:
                 run([str(benchmark), "--quick", *options, "--output", str(reports / (suffix + ".json"))], log=reports / (suffix + "-benchmark.log"))
             component_dir = Path.home() / "Library/Audio/Plug-Ins/Components"
             component_dir.mkdir(parents=True, exist_ok=True)

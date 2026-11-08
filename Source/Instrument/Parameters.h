@@ -23,15 +23,18 @@ enum Parameter
     filterKeyTracking,filterVelocity,filterFmDepth,
     fmRatio,fmShape,fmShapeAmount,fmMix,fmAttack,fmDecay,fmSustain,fmRelease,fmEnvelopeAmount,
     fmRoute1Source,fmRoute1Target,fmRoute1Amount,fmRoute2Source,fmRoute2Target,fmRoute2Amount,fmRoute3Source,fmRoute3Target,fmRoute3Amount,
+    filterFamily,rageCharacter,rageAmount,
     parameterCount
 };
 inline constexpr int legacyParameterCount = 16;
+inline constexpr int v6ParameterCount = 88;
+inline constexpr int v6HostParameterCount = 89;
 inline constexpr int pitchParameterCount = 27; // Preset v2 / 0.3.0 conditions.
 inline constexpr int monoHostIndex = 16;
 inline constexpr int hostParameterCount = parameterCount + 1;
 constexpr int hostIndex(Parameter p) noexcept { return p < legacyParameterCount ? static_cast<int>(p) : static_cast<int>(p) + 1; }
 constexpr Parameter conditionIndex(int host) noexcept { return static_cast<Parameter>(host < monoHostIndex ? host : host - 1); }
-constexpr int versionHint(Parameter p) noexcept {return p<legacyParameterCount?1:p<pitchParameterCount?2:p<=filterAmount?3:p<=lfoTempo?4:p<=filterFmDepth?5:6;}
+constexpr int versionHint(Parameter p) noexcept {return p<legacyParameterCount?1:p<pitchParameterCount?2:p<=filterAmount?3:p<=lfoTempo?4:p<=filterFmDepth?5:p<filterFamily?6:7;}
 
 enum class ParameterKind { continuous, boolean, choice };
 struct HostParameterDefinition
@@ -111,6 +114,9 @@ inline constexpr auto hostParameters=[] {
     NITRIDE_FM_ROUTE(1,fmRoute1Source,fmRoute1Target,fmRoute1Amount)
     NITRIDE_FM_ROUTE(2,fmRoute2Source,fmRoute2Target,fmRoute2Amount)
     NITRIDE_FM_ROUTE(3,fmRoute3Source,fmRoute3Target,fmRoute3Amount)
+    definitions[filterFamily]={"filter_family","Filter family",0,1,1,0,ParameterKind::choice,"Classic|Rage"};
+    definitions[rageCharacter]={"rage_character","Rage character",0,4,1,0,ParameterKind::choice,"Diode|Distortion|Softclip|Tape|Transistor"};
+    definitions[rageAmount]={"rage_amount","Rage",0,1,1,0};
 #undef NITRIDE_FM_ROUTE
     return definitions;
 }();

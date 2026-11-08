@@ -1,0 +1,47 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "diode-current-r1",
+      "category": "Basses",
+      "host_category": "Bass",
+      "seconds": 28,
+      "study_axis": "asymmetric feedback acid bass",
+      "intent": "A dry, resonant acid-like bass. Harder notes open a voice-local filter; asymmetric diode-like feedback colors the resonant bite, rather than adding post-filter distortion. Independent Rage-inspired implementation, not copied Arturia presets or a verified Pigments sonic match."
+    },
+    {
+      "file": "pressure-brass-r1",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 28,
+      "study_axis": "balanced feedback overdrive in a brass-like lead",
+      "intent": "A forceful brass-like lead with a short opening vowel and balanced feedback overdrive. Detached phrases expose each filter articulation; not an acoustic brass or transistor circuit model. Independent Rage-inspired implementation, not copied Arturia presets or a verified Pigments sonic match."
+    },
+    {
+      "file": "soft-circuit-r1",
+      "category": "Leads",
+      "host_category": "Keys & Organs",
+      "seconds": 28,
+      "study_axis": "soft feedback electric keys with independent chord articulation",
+      "intent": "Rounded electric keys with a brief independent FM strike and soft feedback saturation. Staggered chord entrances demonstrate that a new note does not retrigger the other voices' filter envelopes. Independent Rage-inspired implementation, not copied Arturia presets or a verified Pigments sonic match."
+    },
+    {
+      "file": "spool-horizon-r1",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 28,
+      "study_axis": "slow beating pad with memory-shaped feedback rounding",
+      "intent": "A warm, slowly opening chord with near-unison beating and tape-inspired feedback compression/rounding. No tape recording, physical hysteresis or reversed room is claimed; ordinary Space remains downstream. Independent Rage-inspired implementation, not copied Arturia presets or a verified Pigments sonic match."
+    },
+    {
+      "file": "switch-grain-r1",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 28,
+      "study_axis": "short bright asymmetric feedback percussion",
+      "intent": "A short papery metallic hit. Biased hard feedback clipping and voice-local audio-rate cutoff FM make the bright edge; no noise samples, random hit variation or separate post-distortion stage. Independent Rage-inspired implementation, not copied Arturia presets or a verified Pigments sonic match."
+    }
+  ]
+}

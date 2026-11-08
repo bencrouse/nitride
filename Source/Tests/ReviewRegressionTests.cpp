@@ -328,6 +328,9 @@ void analogDetune()
 {
     constexpr std::array ids{"review:low-battery-piano:r1","review:slack-drum:r1","review:brown-console:r1","review:silt-bass:r1",
         "review:bent-aerial:r1","review:melted-ensemble:r1","review:oxide-rim:r1","review:reel-clav:r1"};
+    constexpr std::array selectedPrograms{125,83,124,85,126,128,130,129};
+    constexpr std::array selectedNames{"Low Battery Piano","Slack Drum","Brown Console","Silt Bass",
+        "Bent Aerial","Melted Ensemble","Oxide Rim","Reel Clav"};
     for(size_t i=0;i<ids.size();++i)
     {
         const auto program=74+static_cast<int>(i);
@@ -337,7 +340,10 @@ void analogDetune()
         require(!patch.chord&&patch.values[fmMix]>0&&patch.values[pitchLfoSync]==0&&patch.values[fmLfoSync]==0,"Analog study lost its explicit branch/free-motion design");
         const auto revisedId=juce::String(ids[i]).dropLastCharacters(2)+"r2";
         const auto revisedProgram=82+static_cast<int>(i);
-        require(builtInIndex(revisedId)==revisedProgram&&factoryProgramName(revisedProgram)!=nullptr,"Finalized analog r2 lost its stable program or clean factory label");
+        require(builtInIndex(revisedId)==revisedProgram,"Historical analog r2 lost its stable program");
+        const auto selected=selectedPrograms[i];const auto* name=factoryProgramName(selected);
+        require(name&&juce::String(name)==selectedNames[i],"Preferred analog/filter revision lost its clean factory label");
+        require((factoryProgramName(revisedProgram)!=nullptr)==(selected==revisedProgram),"Superseded analog r2 is duplicated in normal browsing");
         const auto& revised=builtInPresets()[static_cast<size_t>(revisedProgram)].patch;
         require(revised.mono==patch.mono&&revised.chord==patch.chord,"Detune refinement changed mono/chord behavior");
         for(size_t parameter=0;parameter<parameterCount;++parameter)

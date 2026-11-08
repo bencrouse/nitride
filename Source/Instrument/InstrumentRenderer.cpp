@@ -29,6 +29,13 @@ void InstrumentRenderer::prepare(double sampleRate)
 
 void InstrumentRenderer::updateEngine()
 {
+    DSP::FilterSettings filters;
+    filters.family=static_cast<DSP::FilterFamily>(static_cast<int>(session.audioValue(filterFamily)));
+    filters.character=static_cast<DSP::RageCharacter>(static_cast<int>(session.audioValue(rageCharacter)));
+    filters.amount=session.audioValue(rageAmount);filters.cutoff=session.audioValue(cutoff);filters.resonance=session.audioValue(resonance);
+    filters.envelope={session.audioValue(filterAttack),session.audioValue(filterDecay),session.audioValue(filterSustain),session.audioValue(filterRelease)};
+    filters.envelopeAmount=session.audioValue(filterAmount);filters.keyTracking=session.audioValue(filterKeyTracking);
+    filters.velocityAmount=session.audioValue(filterVelocity);filters.fmDepth=session.audioValue(filterFmDepth);engine.setFilterSettings(filters);
     DSP::FmSettings fmSettings;fmSettings.ratio=session.audioValue(fmRatio);fmSettings.shape=static_cast<DSP::FmShape>(static_cast<int>(session.audioValue(fmShape)));
     fmSettings.shapeAmount=session.audioValue(fmShapeAmount);fmSettings.mix=session.audioValue(fmMix);fmSettings.envelopeAmount=session.audioValue(fmEnvelopeAmount);
     fmSettings.envelope={session.audioValue(fmAttack),session.audioValue(fmDecay),session.audioValue(fmSustain),session.audioValue(fmRelease)};
@@ -203,15 +210,17 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
         const auto size = std::min(32, samples - offset);
         std::array<DSP::ModulationFrame,32> engineModulation{};
         std::array<double,32> cutoffModulation{},amplitudeModulation{},filterLevels{};
-        const auto engineActive=lfos.engineActive()||fmRouteFrames;
+        const auto filtering=engine.filterProcessingActive();
+        const auto engineActive=lfos.engineActive()||fmRouteFrames||filtering;
         for(int i=0;i<size;++i)
         {
             const auto values=lfos.next();const auto n=static_cast<size_t>(i);
             filterLevels[n]=filterEnvelope.next();
-            engineModulation[n]={values[0],values[1],values[4],values[5],lfos.fmWave(),filterLevels[n]};cutoffModulation[n]=values[2];amplitudeModulation[n]=values[3];
+            engineModulation[n]={values[0],values[1],values[4],values[5],lfos.fmWave(),filterLevels[n],values[2]};cutoffModulation[n]=values[2];amplitudeModulation[n]=values[3];
         }
         std::array<double,32> toneMotion{};
-        engine.render(left+offset,right+offset,size,toneMotion.data(),engineActive?engineModulation.data():nullptr);
+        std::array<float,32> classic{};std::array<double,32> filterMix{};
+        engine.render(left+offset,right+offset,size,toneMotion.data(),engineActive?engineModulation.data():nullptr,filtering?classic.data():nullptr,filtering?filterMix.data():nullptr);
         for(int i=0;i<size;++i)
         {
             const auto base=static_cast<double>(cutoffSmooth.getNextValue());
@@ -221,7 +230,7 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
             const auto fmDepth=filterFmSmooth.getNextValue();
             // Engine::render produces a bipolar +/-0.8 soft-limited oscillator mix.
             // Tap before Tone, tremolo, Space and master gain; no feedback or LPF.
-            const auto oscillator=fmDepth>0?(static_cast<double>(left[offset+i])+right[offset+i])*.625:0;
+            const auto oscillator=fmDepth>0?(filtering?static_cast<double>(classic[static_cast<size_t>(i)])*1.25:(static_cast<double>(left[offset+i])+right[offset+i])*.625):0;
             const auto frequency=DSP::modulatedCutoff(base,shift/12+filterNoteSmooth.getNextValue(),fmDepth,oscillator,rate);
             lastFilterCutoff=frequency;
             const auto g=std::tan(juce::MathConstants<double>::pi*frequency/rate);
@@ -231,7 +240,13 @@ void InstrumentRenderer::renderRange(float* left, float* right, int samples)
                 t[0]=2*v1-t[0];t[1]=2*v2-t[1];return static_cast<float>(v2);
             };
             const auto amplitude=static_cast<float>(amplitudeModulation[static_cast<size_t>(i)]);
-            left[offset+i]=filterSample(left[offset+i],0)*amplitude;if(right!=left)right[offset+i]=filterSample(right[offset+i],1)*amplitude;
+            if(filtering)
+            {
+                const auto mix=static_cast<float>(filterMix[static_cast<size_t>(i)]),legacy=classic[static_cast<size_t>(i)];
+                left[offset+i]=(filterSample(legacy,0)*(1-mix)+left[offset+i]*mix)*amplitude;
+                if(right!=left)right[offset+i]=(filterSample(legacy,1)*(1-mix)+right[offset+i]*mix)*amplitude;
+            }
+            else{left[offset+i]=filterSample(left[offset+i],0)*amplitude;if(right!=left)right[offset+i]=filterSample(right[offset+i],1)*amplitude;}
         }
         offset += size;
     }

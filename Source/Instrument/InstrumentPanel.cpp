@@ -4,6 +4,7 @@
 #include "InstrumentKeyboard.h"
 #include "MotionPanel.h"
 #include "FmPanel.h"
+#include "FilterPanel.h"
 #include "../DSP/Fm.h"
 #include "BuildInfo.h"
 #include "FactoryPrograms.h"
@@ -22,7 +23,7 @@ public:
         filterAttackValue("Attack",.001,4,.01,true),filterDecayValue("Decay",.01,4,.3,true),filterSustainValue("Sustain",0,1,.5),
         filterReleaseValue("Release",.02,8,.4,true),filterAmountValue("Amount",-6,6,0),filterEnvelope("Filter envelope"),
         filterTrackingValue("Key track",0,1,0),filterVelocityValue("Velocity",-6,6,0),filterFmValue("Filter FM",0,6,0),
-        filter(XYControl::Kind::filter),motion(s),space(XYControl::Kind::space),advancedFm(s)
+         filter(XYControl::Kind::filter),motion(s),space(XYControl::Kind::space),advancedFm(s),advancedFilter(s)
     {
         setLookAndFeel(&look);
         look.setColour(juce::TextButton::buttonColourId,juce::Colour(0xff252b27));look.setColour(juce::TextButton::buttonOnColourId,accent());
@@ -40,9 +41,13 @@ public:
         for(auto* button:{&undo,&compare,&hold,&settings})addAndMakeVisible(button);
         if(!hostPresets()){addAndMakeVisible(keep);addAndMakeVisible(patchBox);}
         fmDisclosure.setButtonText("FM...");fmDisclosure.setName("Open advanced FM");fmDisclosure.setClickingTogglesState(true);
-        fmDisclosure.onClick=[this]{advancedFm.finishEdits();advancedFm.setVisible(fmDisclosure.getToggleState());if(advancedFm.isVisible()){advancedFm.toFront(true);advancedFm.grabKeyboardFocus();}};
+        fmDisclosure.onClick=[this]{advancedFilter.finishEdits();advancedFilter.setVisible(false);filterDisclosure.setToggleState(false,juce::dontSendNotification);advancedFm.finishEdits();advancedFm.setVisible(fmDisclosure.getToggleState());if(advancedFm.isVisible()){advancedFm.toFront(true);advancedFm.grabKeyboardFocus();}};
         advancedFm.onClose=[this]{fmDisclosure.setToggleState(false,juce::dontSendNotification);advancedFm.setVisible(false);fmDisclosure.grabKeyboardFocus();};
         addAndMakeVisible(fmDisclosure);addChildComponent(advancedFm);
+        filterDisclosure.setButtonText("FILTER...");filterDisclosure.setName("Open advanced filter");filterDisclosure.setClickingTogglesState(true);
+        filterDisclosure.onClick=[this]{advancedFm.finishEdits();advancedFm.setVisible(false);fmDisclosure.setToggleState(false,juce::dontSendNotification);advancedFilter.finishEdits();advancedFilter.setVisible(filterDisclosure.getToggleState());if(advancedFilter.isVisible()){advancedFilter.toFront(true);advancedFilter.grabKeyboardFocus();}};
+        advancedFilter.onClose=[this]{filterDisclosure.setToggleState(false,juce::dontSendNotification);advancedFilter.setVisible(false);filterDisclosure.grabKeyboardFocus();};
+        addAndMakeVisible(filterDisclosure);addChildComponent(advancedFilter);
         field.onGestureBegin=[this]{begin({coupling,stress});};field.onGestureEnd=[this]{end({coupling,stress});};
         ribbon.onGestureBegin=[this]{begin({response});};ribbon.onGestureEnd=[this]{end({response});};
         field.onShape=[this](float c,float t){group({{coupling,c},{stress,t}});};
@@ -76,9 +81,9 @@ public:
         filterAmountValue.setTooltip("Envelope depth in octaves. Positive opens the filter; negative closes it. Zero preserves the base cutoff.");
         filterTrackingValue.format=sustainValue.format;filterVelocityValue.format=filterAmountValue.format;
         filterFmValue.format=[](double v){return juce::String(v,2)+" oct";};
-        filterTrackingValue.setTooltip("Cutoff key tracking around MIDI note 60. 0% is fixed; 100% tracks one octave per octave. Uses the most recent held note.");
+        filterTrackingValue.setTooltip("Cutoff tracking around MIDI 60. Classic uses the latest held note; Rage tracks each voice independently.");
         filterVelocityValue.setTooltip("Signed octave offset at full velocity. Positive opens the cutoff for harder notes; negative closes it. Retained through release.");
-        filterFmValue.setTooltip("Audio-rate cutoff modulation from the pre-filter oscillator mix. Depth in octaves; the oscillator signal is not control-rate smoothed.");
+        filterFmValue.setTooltip("Audio-rate cutoff modulation, in octaves. Classic uses the oscillator mix; Rage uses each voice before its filter/amplitude. The audio signal is not control-rate smoothed.");
         filterEnvelope.onBegin=[this]{begin({hostIndex(filterAttack),hostIndex(filterDecay),hostIndex(filterSustain),hostIndex(filterRelease)});};
         filterEnvelope.onEnd=[this]{end({hostIndex(filterAttack),hostIndex(filterDecay),hostIndex(filterSustain),hostIndex(filterRelease)});};
         filterEnvelope.onChange=[this](std::array<double,4> v){group({{filterAttack,v[0]},{filterDecay,v[1]},{filterSustain,v[2]},{filterRelease,v[3]}});};addAndMakeVisible(filterEnvelope);
@@ -138,13 +143,13 @@ public:
         section(g,"SOUND",{24,112,238,18});section(g,"NETWORK",{310,112,584,18});section(g,"AMPLITUDE",{942,112,234,18});
         text(g,"COUPLING "+juce::String(current.values[coupling]*100,0)+"%   /   STRESS "+juce::String(current.values[stress]*100,0)+"%",{310,428,584,17},muted(),8);
         sourceWave(g);text(g,"SOURCE / NETWORK FM",{36,190,225,14},muted(),8);
-        section(g,"TONE",{24,550,344,18});text(g,"LP / 12 dB",{205,550,163,18},muted(),8,juce::Justification::right);
+        section(g,"TONE",{24,550,344,18});text(g,current.values[filterFamily]>=.5?"RAGE / PER VOICE":"CLASSIC / 12 dB",{116,550,174,18},muted(),8,juce::Justification::right);
         section(g,"MOTION",{416,550,360,18});int active=0;for(const auto& lane:lfoParameters)active+=current.values[lane.enabled]>=.5?1:0;
         text(g,juce::String(active)+" / 6 LANES",{580,550,196,18},muted(),8,juce::Justification::right);
         section(g,"SPACE",{824,550,352,18});text(g,"DIFFUSION",{1000,550,176,18},muted(),8,juce::Justification::right);
         text(g,formatCutoff(current.values[cutoff])+"  /  RES "+juce::String(current.values[resonance]*100,0)+"%",{36,692,332,17},muted(),9);
         text(g,"MIX "+juce::String(current.values[spaceMix]*100,0)+"%  /  SIZE "+juce::String(current.values[spaceSize]*100,0)+"%",{836,692,340,17},muted(),9);
-        section(g,"FILTER ENVELOPE",{24,742,344,18});text(g,"SHARED > CUTOFF",{836,742,340,18},muted(),8);
+        section(g,"FILTER ENVELOPE",{24,742,344,18});text(g,current.values[filterFamily]>=.5?"PER VOICE > CUTOFF":"SHARED > CUTOFF",{836,742,340,18},muted(),8);
         text(g,"SIGNED DEPTH / OCTAVES",{836,810,340,17},muted(),8);
         text(g,"NATIVE INSTRUMENT",{26,928,260,17},muted(),8);text(g,juce::String(live.voices.load())+" VOICES",{600,928,146,17},muted(),8);text(g,"AUDIO PROCESSOR",{250,928,340,17},muted(),8);
         const auto peak=live.peak.load();for(int i=0;i<14;++i){g.setColour(peak>static_cast<float>(i)/20?accent().withAlpha(.8f):juce::Colour(0xff30372f));g.fillRect(790+i*8,933,5,10);}
@@ -155,6 +160,7 @@ public:
         if(hostPresets()){undo.setBounds(746,33,70,34);compare.setBounds(824,33,94,34);}
         field.setBounds(310,145,584,274);ribbon.setBounds(310,448,584,82);fmValue.setBounds(36,208,226,28);pitchValue.setBounds(36,242,226,28);
         fmDisclosure.setBounds(192,108,70,26);advancedFm.setBounds(310,145,584,385);
+        filterDisclosure.setBounds(298,546,70,26);advancedFilter.setBounds(310,145,584,385);
         poly.setBounds(36,280,70,24);monoButton.setBounds(112,280,70,24);legatoButton.setBounds(188,280,74,24);glidePanel.setBounds(36,317,226,85);autobendPanel.setBounds(36,418,226,85);
         envelope.setBounds(942,145,234,147);attackValue.setBounds(942,309,234,34);decayValue.setBounds(942,351,234,34);sustainValue.setBounds(942,393,234,34);releaseValue.setBounds(942,435,234,34);
         filter.setBounds(36,586,152,96);filterTrackingValue.setBounds(196,586,172,28);
@@ -215,6 +221,7 @@ private:
         filterTrackingValue.setValue(current.values[filterKeyTracking]);filterVelocityValue.setValue(current.values[filterVelocity]);filterFmValue.setValue(current.values[filterFmDepth]);
         motion.sync(current,epoch);space.setPosition(static_cast<float>(current.values[spaceMix]/.65),static_cast<float>(current.values[spaceSize]));
         advancedFm.sync(current,epoch);
+        advancedFilter.sync(current,epoch);
         poly.setToggleState(!current.mono,juce::dontSendNotification);monoButton.setToggleState(current.mono&&current.values[legato]<.5,juce::dontSendNotification);legatoButton.setToggleState(current.mono&&current.values[legato]>=.5,juce::dontSendNotification);
         compare.setToggleState(session.isComparing(),juce::dontSendNotification);undo.setEnabled(session.canUndo());const auto id=session.selectedPresetId();bool found=false;
         for(size_t i=0;i<presetIds.size();++i)if(presetIds[i]==id){patchBox.setSelectedId(static_cast<int>(i)+1,juce::dontSendNotification);found=true;break;}if(!found){patchBox.setSelectedId(0,juce::dontSendNotification);patchBox.setText(current.name,juce::dontSendNotification);}
@@ -293,8 +300,8 @@ private:
     ValueControl fmValue,pitchValue,attackValue,decayValue,sustainValue,releaseValue,outputValue;
     ValueControl filterAttackValue,filterDecayValue,filterSustainValue,filterReleaseValue,filterAmountValue;
     EnvelopeControl filterEnvelope,envelope;ValueControl filterTrackingValue,filterVelocityValue,filterFmValue;
-    XYControl filter;MotionPanel motion;XYControl space;FmPanel advancedFm;
-    juce::ComboBox patchBox;juce::TextButton undo,compare,keep,hold,settings,poly,monoButton,legatoButton,fmDisclosure;
+    XYControl filter;MotionPanel motion;XYControl space;FmPanel advancedFm;FilterPanel advancedFilter;
+    juce::ComboBox patchBox;juce::TextButton undo,compare,keep,hold,settings,poly,monoButton,legatoButton,fmDisclosure,filterDisclosure;
     std::vector<juce::String> presetIds;std::unique_ptr<juce::FileChooser> chooser;Patch current;juce::Array<int> notes;
     std::array<bool,hostParameterCount> edits{};std::uint64_t lastRevision=0,lastLibrary=0,lastEpoch=0,editorGeneration=0;bool touching=false;
 };
