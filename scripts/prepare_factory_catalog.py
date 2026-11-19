@@ -59,16 +59,16 @@ def adapt_wrapper(data):
         const String currentProgramName = displayName != nullptr ? String (displayName) : juceFilter->getProgramName (currentProgramNumber);""", 1)
     anchor = "                CFDictionarySetValue (dict, key.get(), ourState.get());"
     # Keep native legacy presets byte-identical as well as their plugin document.
-    # Never trim a v8 document, a nonzero new value or an unknown SDK table layout.
+    # Never trim a Ripple v9 document, a nondefault appended value or an unknown SDK layout.
     if text.count(anchor) != 1:
         raise ValueError("Pinned AU SaveState anchor changed")
     text = text.replace(anchor, anchor + """
                 if (const auto xml = AudioProcessor::getXmlFromBinary (state.getData(), static_cast<int> (state.getSize()));
-                    xml != nullptr && xml->hasTagName ("NITRIDE_INSTRUMENT") && xml->getIntAttribute ("version") == 7)
+                    xml != nullptr && xml->hasTagName ("NITRIDE_INSTRUMENT") && (xml->getIntAttribute ("version") == 7 || xml->getIntAttribute ("version") == 8))
                 {
                     const auto data = static_cast<CFDataRef> (CFDictionaryGetValue (dict, CFSTR (kAUPresetDataKey)));
                     if (data != nullptr && CFGetTypeID (data) == CFDataGetTypeID())
-                        if (const auto legacy = Nitride::legacyAuParameterData (CFDataGetBytePtr (data), static_cast<size_t> (CFDataGetLength (data))))
+                        if (const auto legacy = Nitride::legacyAuParameterData (CFDataGetBytePtr (data), static_cast<size_t> (CFDataGetLength (data)), xml->getIntAttribute ("version") == 7 ? Nitride::v6HostParameterCount : Nitride::v7HostParameterCount))
                         {
                             CFUniquePtr<CFDataRef> replacement (CFDataCreate (nullptr, legacy->data(), static_cast<CFIndex> (legacy->size())));
                             CFDictionarySetValue (dict, CFSTR (kAUPresetDataKey), replacement.get());

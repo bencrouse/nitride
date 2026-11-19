@@ -25,13 +25,13 @@ class FactoryFilterAuditions(unittest.TestCase):
         registry = ev.validate_builtins()["entries"]
         self.assertEqual(hashlib.sha256(ev.canonical(registry[:112])).hexdigest(),
                          "cbffd66820772dfe5b67c0b9428c4cd0bee45214883698c1e70f3a7af328fea7")
-        self.assertEqual([e["program"] for e in registry[112:]], list(range(116, 132)))
+        self.assertEqual([e["program"] for e in registry[112:128]], list(range(116, 132)))
         _, selected = fp.validate_selection(); self.assertEqual(len(selected), 77)
-        self.assertTrue({e["id"] for e in registry[112:]} <= {e["id"] for e in selected})
+        self.assertTrue({e["id"] for e in registry[112:128]} <= {e["id"] for e in selected})
         self.assertFalse({r["parent"]["id"] for r in recipes.recipes()} & {e["id"] for e in selected})
 
     def test_only_three_filter_controls_change_and_parent_midi_is_exact(self):
-        expected = recipes.files(); entries = ev.validate_builtins()["entries"][112:]
+        expected = recipes.files(); entries = ev.validate_builtins()["entries"][112:128]
         self.assertEqual(len(entries), 16)
         for recipe, entry in zip(recipes.recipes(), entries):
             a, b = recipe["original"], recipe["definition"]

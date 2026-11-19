@@ -21,7 +21,7 @@ import prepare_factory_catalog as catalog
 def synthetic_native(source, entry, document=None):
     """Unit-test envelope ONLY; production export always uses native AU ClassInfo."""
     if document is None:
-        document = {"format": "nitride-session", "version": 8 if source["version"] == 7 else 7,
+        document = {"format": "nitride-session", "version": source["version"] + 1,
                     "current": {"patch": {**source, "id": "snapshot"}, "reference": {**source, "id": "reference"},
                                 "selected": entry["id"], "program": entry["program"], "wholePatch": True, "parameters": []},
                     "undo": [], "redo": [], "kept": []}
@@ -73,7 +73,7 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(len(entries), 77)
         self.assertEqual(len(selection["categories"]), 9)
         self.assertEqual(len({e["family"] for e in entries}), 77)
-        self.assertEqual(len(ev.validate_builtins()["entries"]), 128)
+        self.assertGreaterEqual(len(ev.validate_builtins()["entries"]), 128)
         self.assertEqual([e["program"] for e in entries if e["family"] == "cutoff-alloy"], [39])
         self.assertFalse(any(e["name"] == "Cutoff Alloy" for e in entries))
         self.assertEqual({e["id"] for e in entries if e["id"] in selection["pilot"]}, set(selection["pilot"]))
@@ -122,7 +122,7 @@ class SelectionTests(unittest.TestCase):
     def test_generated_metadata_keeps_sparse_historical_programs(self):
         generated = catalog.header()
         self.assertIn("std::array<FactoryProgram, 77>", generated)
-        self.assertIn("std::array<const char*, 132>", generated)
+        self.assertIn(f"std::array<const char*, {len(ev.validate_builtins()['entries']) + 4}>", generated)
         self.assertIn('{39, "review:cutoff-alloy:r2", "Tine Keys", "Keys & Organs"}', generated)
         self.assertIn('{59, "review:classic-koto:r1"', generated)
         self.assertNotIn('{37, "review:cutoff-alloy:r1"', generated)

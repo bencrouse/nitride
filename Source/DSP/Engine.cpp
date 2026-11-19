@@ -86,10 +86,10 @@ void Engine::prepare(double sampleRate)
     responseDimension = targetResponse;
     updateDimensionRates();
     voices = {};
-    filterBlend=filterTarget.family==Nitride::DSP::FilterFamily::rage?1.0:0.0;
+    filterBlend=filterTarget.family!=Nitride::DSP::FilterFamily::classic?1.0:0.0;
     filterBlendStep=1/std::max(1.0,std::ceil(rate*.005));filterDecimator.prepare(rate,internalRate);
     filterControls={filterTarget.cutoff,filterTarget.resonance,filterTarget.amount,filterTarget.envelopeAmount,
-        filterTarget.keyTracking,filterTarget.velocityAmount,filterTarget.fmDepth};
+        filterTarget.keyTracking,filterTarget.velocityAmount,filterTarget.fmDepth,filterTarget.rippleDry,filterTarget.rippleDrive,filterTarget.rippleFeedback};
     for(size_t i=0;i<coldDelays.size();++i)resetColdDelays(i);
     downsampleFilter = {};
     modeWeights = {};
@@ -264,7 +264,7 @@ void Engine::updateVoiceFm(Voice& voice,double index,const Nitride::DSP::Modulat
     const auto envelope=voice.fmEnvelope.next();
     if(!fmActive&&!voice.fmExtended){voice.fmValues.index=std::clamp(index,0.0,4.0);voice.primaryHz=2*(pitchOverride?voice.modulatorHz:voice.frequency*pitchMultiplier);return;}
     if(!voice.fmExtended){voice.primaryPhase=2*(voice.splitPhase?voice.modulatorPhase:voice.phase);voice.fmExtended=true;}
-    const auto filterLevel=filterTarget.family==Nitride::DSP::FilterFamily::rage&&voice.filter.prepared()?voice.filter.envelopeLevel():(frame?frame->filterEnvelope:0);
+    const auto filterLevel=filterTarget.family!=Nitride::DSP::FilterFamily::classic&&voice.filter.prepared()?voice.filter.envelopeLevel():(frame?frame->filterEnvelope:0);
     const std::array<double,5> sources{0,frame?frame->fmWave:0,std::clamp(voice.envelope,0.0,1.0),filterLevel,std::clamp(std::abs(voice.expressiveNetwork.signal),0.0,1.0)};
     std::array<double,4> offsets{};
     for(const auto& route:fmTarget.routes)offsets[static_cast<size_t>(route.target)]+=route.amount*sources[static_cast<size_t>(route.source)];
@@ -508,7 +508,10 @@ void Engine::setFilterSettings(const Nitride::DSP::FilterSettings& requested) no
 {
     auto settings=requested;
     const auto safe=[](double v,double lo,double hi,double fallback){return std::isfinite(v)?std::clamp(v,lo,hi):fallback;};
-    settings.family=static_cast<Nitride::DSP::FilterFamily>(std::clamp(static_cast<int>(settings.family),0,1));
+    settings.family=static_cast<Nitride::DSP::FilterFamily>(std::clamp(static_cast<int>(settings.family),0,2));
+    settings.rippleType=static_cast<Nitride::DSP::RippleType>(std::clamp(static_cast<int>(settings.rippleType),0,2));
+    settings.rippleMode=static_cast<Nitride::DSP::RippleMode>(std::clamp(static_cast<int>(settings.rippleMode),0,1));
+    settings.rippleDry=safe(settings.rippleDry,0,1,.5);settings.rippleDrive=safe(settings.rippleDrive,0,1,0);settings.rippleFeedback=safe(settings.rippleFeedback,-1,1,0);
     settings.character=static_cast<Nitride::DSP::RageCharacter>(std::clamp(static_cast<int>(settings.character),0,4));
     settings.cutoff=safe(settings.cutoff,40,18000,5500);settings.resonance=safe(settings.resonance,0,.85,.18);
     settings.amount=safe(settings.amount,0,1,0);settings.envelopeAmount=safe(settings.envelopeAmount,-6,6,0);
@@ -516,7 +519,7 @@ void Engine::setFilterSettings(const Nitride::DSP::FilterSettings& requested) no
     constexpr std::array low{.001,.01,0.0,.02},high{4.0,4.0,1.0,8.0},defaults{.01,.3,.5,.4};
     for(size_t i=0;i<4;++i)settings.envelope[i]=safe(settings.envelope[i],low[i],high[i],defaults[i]);
     if(settings==filterTarget)return;
-    const auto entering=settings.family==Nitride::DSP::FilterFamily::rage&&filterTarget.family!=settings.family;
+    const auto entering=settings.family!=Nitride::DSP::FilterFamily::classic&&filterTarget.family==Nitride::DSP::FilterFamily::classic;
     const auto coldEntry=entering&&filterBlend==0;
     filterTarget=settings;
     for(auto& voice:voices)if(voice.active)
@@ -527,7 +530,7 @@ void Engine::setFilterSettings(const Nitride::DSP::FilterSettings& requested) no
     if(coldEntry)
     {
         filterDecimator.prepare(rate,internalRate);
-        filterControls={settings.cutoff,settings.resonance,settings.amount,settings.envelopeAmount,settings.keyTracking,settings.velocityAmount,settings.fmDepth};
+        filterControls={settings.cutoff,settings.resonance,settings.amount,settings.envelopeAmount,settings.keyTracking,settings.velocityAmount,settings.fmDepth,settings.rippleDry,settings.rippleDrive,settings.rippleFeedback};
     }
 }
 Engine::FilterSnapshot Engine::getFilterSnapshot(int note)const noexcept
@@ -980,7 +983,7 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch,con
         const auto filtering=filterProcessingActive();
         if(filtering)
         {
-            const auto blendTarget=filterTarget.family==Nitride::DSP::FilterFamily::rage?1.0:0.0;
+            const auto blendTarget=filterTarget.family!=Nitride::DSP::FilterFamily::classic?1.0:0.0;
             if(filterBlend<blendTarget)filterBlend=std::min(blendTarget,filterBlend+filterBlendStep);
             else if(filterBlend>blendTarget)filterBlend=std::max(blendTarget,filterBlend-filterBlendStep);
             filterControls.cutoff*=std::exp(smoothing*std::log(filterTarget.cutoff/filterControls.cutoff));
@@ -990,6 +993,9 @@ void Engine::render(float* left, float* right, int samples,double* tonePitch,con
             filterControls.keyTracking+=smoothing*(filterTarget.keyTracking-filterControls.keyTracking);
             filterControls.velocityAmount+=smoothing*(filterTarget.velocityAmount-filterControls.velocityAmount);
             filterControls.fmDepth+=smoothing*(filterTarget.fmDepth-filterControls.fmDepth);
+            filterControls.rippleDry+=smoothing*(filterTarget.rippleDry-filterControls.rippleDry);
+            filterControls.rippleDrive+=smoothing*(filterTarget.rippleDrive-filterControls.rippleDrive);
+            filterControls.rippleFeedback+=smoothing*(filterTarget.rippleFeedback-filterControls.rippleFeedback);
             cutoffLfo=modulation?modulation[sample].cutoff:0;
             for(auto& voice:voices)if(voice.active&&!voice.filter.prepared())
                 voice.filter.prepare(internalRate,filterTarget,voice.age,voice.released,voice.releaseAge);

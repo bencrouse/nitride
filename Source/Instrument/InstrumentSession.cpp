@@ -315,16 +315,17 @@ juce::var InstrumentSession::encodeSnapshot(const Snapshot& s)
     juce::Array<juce::var> parameters;for(int i=0;i<hostParameterCount;++i)if(s.parameters[static_cast<size_t>(i)])parameters.add(i);
     object->setProperty("wholePatch",s.wholePatch);object->setProperty("parameters",parameters);return juce::var(object);
 }
-std::optional<InstrumentSession::Snapshot> InstrumentSession::decodeSnapshot(const juce::var& data,bool legacy)
+std::optional<InstrumentSession::Snapshot> InstrumentSession::decodeSnapshot(const juce::var& data,int version)
 {
     const auto patch=PresetStore::decode(data["patch"]),referencePatch=PresetStore::decode(data["reference"]);
     if(!patch||!referencePatch||!data["program"].isInt())return std::nullopt;
-    if(legacy&&(static_cast<int>(data["patch"]["version"])!=6||static_cast<int>(data["reference"]["version"])!=6
+    if(version==7&&(static_cast<int>(data["patch"]["version"])!=6||static_cast<int>(data["reference"]["version"])!=6
         ||!PresetStore::isLegacy(patch->patch)||!PresetStore::isLegacy(referencePatch->patch)))return std::nullopt;
+    if(version==8&&(static_cast<int>(data["patch"]["version"])>7||static_cast<int>(data["reference"]["version"])>7))return std::nullopt;
     const auto p=static_cast<int>(data["program"]);if(p<0||p>=static_cast<int>(builtInPresets().size()))return std::nullopt;
     Snapshot result{patch->patch,referencePatch->patch,data["selected"].toString(),p};
     const auto* parameters=data["parameters"].getArray();
-    const auto count=legacy?v6HostParameterCount:hostParameterCount;
+    const auto count=version==7?v6HostParameterCount:version==8?v7HostParameterCount:hostParameterCount;
     if(!data["wholePatch"].isBool()||!parameters||parameters->size()>count)return std::nullopt;
     result.wholePatch=static_cast<bool>(data["wholePatch"]);
     for(const auto& parameter:*parameters)
@@ -348,32 +349,32 @@ juce::var InstrumentSession::saveDocument()const
     }
     else for(const auto& s:future)redo.add(encodeSnapshot(s));
     for(const auto& p:portablePresets)kept.add(PresetStore::encode(p));
-    const auto legacySnapshot=[](const juce::var& s)
+    const auto snapshotVersion=[](const juce::var& s)
     {
-        if(static_cast<int>(s["patch"]["version"])!=6||static_cast<int>(s["reference"]["version"])!=6)return false;
-        if(const auto* parameters=s["parameters"].getArray())for(const auto& p:*parameters)if(static_cast<int>(p)>=v6HostParameterCount)return false;
-        return true;
+        int result=std::max(static_cast<int>(s["patch"]["version"]),static_cast<int>(s["reference"]["version"]))+1;
+        if(const auto* parameters=s["parameters"].getArray())for(const auto& p:*parameters)
+            result=std::max(result,static_cast<int>(p)>=v7HostParameterCount?9:static_cast<int>(p)>=v6HostParameterCount?8:7);
+        return result;
     };
-    bool legacy=legacySnapshot(object->getProperty("current"));
-    for(const auto& s:undo)legacy&=legacySnapshot(s);for(const auto& s:redo)legacy&=legacySnapshot(s);
-    for(const auto& p:kept)legacy&=static_cast<int>(p["version"])==6;
-    object->setProperty("version",legacy?7:8);
+    int version=snapshotVersion(object->getProperty("current"));
+    for(const auto& s:undo)version=std::max(version,snapshotVersion(s));for(const auto& s:redo)version=std::max(version,snapshotVersion(s));
+    for(const auto& p:kept)version=std::max(version,static_cast<int>(p["version"])+1);
+    object->setProperty("version",version);
     object->setProperty("undo",undo);object->setProperty("redo",redo);object->setProperty("kept",kept);return juce::var(object);
 }
 juce::Result InstrumentSession::restoreDocument(const juce::var& data)
 {
     const auto version=static_cast<int>(data["version"]);
-    if(data["format"].toString()!="nitride-session"||(version!=7&&version!=8))return juce::Result::fail("Unsupported session state.");
-    const auto legacy=version==7;
-    const auto current=decodeSnapshot(data["current"],legacy);if(!current)return juce::Result::fail("Invalid sound conditions.");
+    if(data["format"].toString()!="nitride-session"||(version!=7&&version!=8&&version!=9))return juce::Result::fail("Unsupported session state.");
+    const auto current=decodeSnapshot(data["current"],version);if(!current)return juce::Result::fail("Invalid sound conditions.");
     std::vector<Snapshot> newHistory,newFuture;std::vector<StoredPreset> newKept;
     for(const auto field:{"undo","redo"})
     {
         const auto* array=data[field].getArray();if(array==nullptr||array->size()>40)return juce::Result::fail("Invalid history.");
-        for(const auto& item:*array){auto s=decodeSnapshot(item,legacy);if(!s)return juce::Result::fail("Invalid history sound.");(juce::String(field)=="undo"?newHistory:newFuture).push_back(*s);}
+        for(const auto& item:*array){auto s=decodeSnapshot(item,version);if(!s)return juce::Result::fail("Invalid history sound.");(juce::String(field)=="undo"?newHistory:newFuture).push_back(*s);}
     }
     const auto* kept=data["kept"].getArray();if(kept==nullptr||kept->size()>256)return juce::Result::fail("Invalid kept sounds.");
-    for(const auto& item:*kept){auto p=PresetStore::decode(item);if(!p||(legacy&&(static_cast<int>(item["version"])!=6||!PresetStore::isLegacy(p->patch))))return juce::Result::fail("Invalid kept sound.");newKept.push_back(*p);}
+    for(const auto& item:*kept){auto p=PresetStore::decode(item);if(!p||static_cast<int>(item["version"])+1>version)return juce::Result::fail("Invalid kept sound.");newKept.push_back(*p);}
     endAllEdits();const juce::ScopedLock lock(documentLock);closeCompare();
     pendingProgram.store(-1);program.store(current->program);currentName=current->patch.name;selectedId=current->selected;reference=current->reference;
     storeConditions(current->patch);history=std::move(newHistory);future=std::move(newFuture);portablePresets=std::move(newKept);

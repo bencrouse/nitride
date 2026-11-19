@@ -156,7 +156,7 @@ private:
     void rememberPortable(const StoredPreset&);
     static bool same(const Patch&,const Patch&);
     static juce::var encodeSnapshot(const Snapshot&);
-    static std::optional<Snapshot> decodeSnapshot(const juce::var&,bool legacy);
+    static std::optional<Snapshot> decodeSnapshot(const juce::var&,int version);
     void closeCompare() noexcept;
 
     mutable juce::CriticalSection documentLock;

@@ -1,5 +1,6 @@
 #pragma once
 #include "RageFilter.h"
+#include "RippleFilter.h"
 #include "FilterEnvelope.h"
 #include "FilterModulation.h"
 #include <array>
@@ -10,7 +11,7 @@ namespace Nitride::DSP
 {
 // Stable family IDs. Classic is an explicit legacy bus route, not a voice filter.
 // Future families (e.g. all-pass Ripple) own a different core and parameter set.
-enum class FilterFamily { classic=0,rage=1 };
+enum class FilterFamily { classic=0,rage=1,ripple=2 };
 struct FilterSettings
 {
     FilterFamily family=FilterFamily::classic;
@@ -18,9 +19,12 @@ struct FilterSettings
     double amount=0,cutoff=5500,resonance=.18;
     std::array<double,4> envelope{.01,.3,.5,.4};
     double envelopeAmount=0,keyTracking=0,velocityAmount=0,fmDepth=0;
+    RippleType rippleType=RippleType::subtle;
+    RippleMode rippleMode=RippleMode::waveshape;
+    double rippleDry=.5,rippleDrive=0,rippleFeedback=0;
     bool operator==(const FilterSettings&) const = default;
 };
-struct FilterControls {double cutoff=5500,resonance=.18,amount=0,envelopeAmount=0,keyTracking=0,velocityAmount=0,fmDepth=0;};
+struct FilterControls {double cutoff=5500,resonance=.18,amount=0,envelopeAmount=0,keyTracking=0,velocityAmount=0,fmDepth=0,rippleDry=.5,rippleDrive=0,rippleFeedback=0;};
 struct FilterProcessingContract
 {
     static constexpr int rageRateMultiplier=4;
@@ -35,11 +39,17 @@ public:
     void prepare(double rate,const FilterSettings& settings,double age=0,bool released=false,double releaseAge=0) noexcept
     {
         core.setCharacter(settings.character);core.prepare(rate);
+        ripple.prepare(rate,settings.rippleType,settings.rippleMode);
+        rippleSelected=settings.family==FilterFamily::ripple;blend=rippleSelected?1.:0.;blendStep=1/std::max(1.,std::ceil(rate*.005));
         envelope.prepare(rate);configure(settings);envelope.resume(age,released,releaseAge);
         noteOffset=0;noteSmoothing=-std::expm1(-1/(rate*.025));ready=true;
     }
     void configure(const FilterSettings& settings) noexcept
-    {envelope.configure(settings.envelope[0],settings.envelope[1],settings.envelope[2],settings.envelope[3]);core.setCharacter(settings.character);}
+    {
+        envelope.configure(settings.envelope[0],settings.envelope[1],settings.envelope[2],settings.envelope[3]);core.setCharacter(settings.character);
+        ripple.configure(settings.rippleType,settings.rippleMode);
+        if(settings.family!=FilterFamily::classic)rippleSelected=settings.family==FilterFamily::ripple;
+    }
     void noteOn() noexcept {if(ready)envelope.noteOn();}
     void noteOff() noexcept {if(ready)envelope.noteOff();}
     double process(double input,const FilterControls& controls,int note,double velocity,double pitchTone,double cutoffLfo,double hostRate) noexcept
@@ -47,13 +57,21 @@ public:
         noteOffset+=(filterNoteOctaves(note,controls.keyTracking,velocity,controls.velocityAmount)-noteOffset)*noteSmoothing;
         const auto octaves=noteOffset+pitchTone/12+cutoffLfo+controls.envelopeAmount*envelope.next();
         lastCutoff=modulatedCutoff(controls.cutoff,octaves,controls.fmDepth,input,hostRate);
-        return core.process(input,lastCutoff,controls.resonance,controls.amount);
+        if(rippleSelected)blend=std::min(1.,blend+blendStep);else blend=std::max(0.,blend-blendStep);
+        if(blend==0)return core.process(input,lastCutoff,controls.resonance,controls.amount);
+        const auto wet=ripple.process(input,lastCutoff,controls.resonance,controls.rippleDry,controls.rippleDrive,controls.rippleFeedback);
+        if(blend==1)return wet;
+        return (1-blend)*core.process(input,lastCutoff,controls.resonance,controls.amount)+blend*wet;
     }
     double cutoff()const noexcept{return lastCutoff;}
     double envelopeLevel()const noexcept{return envelope.level();}
-    RageFilter::Diagnostics diagnostics()const noexcept{return core.diagnostics();}
+    RageFilter::Diagnostics diagnostics()const noexcept
+    {auto d=core.diagnostics();const auto r=ripple.diagnostics();d.faults+=r.faults;d.maximumResidual=std::max(d.maximumResidual,r.maximumResidual);return d;}
 private:
     RageFilter core;FilterEnvelope envelope;
+    RippleFilter ripple;
+    bool rippleSelected=false;
+    double blend=0,blendStep=1;
     double noteOffset=0,noteSmoothing=0,lastCutoff=5500;
     bool ready=false;
 };

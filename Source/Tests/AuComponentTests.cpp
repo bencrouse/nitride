@@ -132,7 +132,13 @@ int main(int argc,char** argv)
             "Review / Physical materials / Low Battery Piano r3","Review / Leads / Bent Aerial r3",
             "Review / Leads / Reed Snap r3","Review / Pads / Melted Ensemble r3",
             "Review / Physical materials / Reel Clav r3","Review / Physical materials / Oxide Rim r3",
-            "Review / Sequence elements / Pulse Lattice r3"};
+            "Review / Sequence elements / Pulse Lattice r3",
+            "Review / Pads / Phase Silk r1","Review / Leads / Negative Reed r1",
+            "Review / Leads / Ripple Glass r1","Review / Sequence elements / Positive Loom r1",
+            "Review / Physical materials / Folded Prism r1","Review / Experimental / Phase Vault r1",
+            "Review / Pads / Phase Silk r2","Review / Leads / Negative Reed r2",
+            "Review / Leads / Ripple Glass r2","Review / Sequence elements / Positive Loom r2",
+            "Review / Physical materials / Folded Prism r2","Review / Experimental / Phase Vault r2"};
         if(Nitride::legacyProgramNames.size()!=4+reviewNames.size())throw std::runtime_error("Legacy fixture coverage changed");
         for(CFIndex i=0;i<static_cast<CFIndex>(Nitride::legacyProgramNames.size());++i)
         {
@@ -151,6 +157,15 @@ int main(int argc,char** argv)
             const auto after=CFDictionaryGetValue(static_cast<CFDictionaryRef>(recalled),CFSTR("jucePluginState"));
             const auto same=before&&after&&CFEqual(before,after);CFRelease(recalled);CFRelease(saved);
             if(!same)throw std::runtime_error("Installed AU failed exact review document/conditions recall");
+            if(i>=132&&i<144)
+            {
+                AudioUnitParameterValue enabled=0,type=0,mode=0,legacy=0;
+                check(AudioUnitGetParameter(instance.unit,hash("ripple_enabled"),kAudioUnitScope_Global,0,&enabled),"Ripple active state");
+                check(AudioUnitGetParameter(instance.unit,hash("ripple_type"),kAudioUnitScope_Global,0,&type),"Ripple type state");
+                check(AudioUnitGetParameter(instance.unit,hash("ripple_mode"),kAudioUnitScope_Global,0,&mode),"Ripple mode state");
+                check(AudioUnitGetParameter(instance.unit,hash("filter_family"),kAudioUnitScope_Global,0,&legacy),"Ripple dormant legacy state");
+                if(enabled!=1||type!=((i-132)%6)/2||mode!=(i-132)%2||legacy!=0)throw std::runtime_error("Ripple appended programs lost native family/type/mode state");
+            }
             if(i==5||i==7)
             {
                 AudioUnitParameterValue enabled=0;check(AudioUnitGetParameter(instance.unit,autobendId,kAudioUnitScope_Global,0,&enabled),"Bass revision Autobend state");
@@ -301,7 +316,7 @@ int main(int argc,char** argv)
         constexpr std::array filterModulationValues{.8f,.7f,.5f};
         for(size_t i=0;i<filterModulationIds.size();++i)check(AudioUnitSetParameter(instance.unit,filterModulationIds[i],kAudioUnitScope_Global,0,filterModulationValues[i],0),"Filter modulation write");
         std::array<AudioUnitParameterID,Nitride::parameterCount-Nitride::fmRatio> fmIds{};
-        for(size_t i=0;i<fmIds.size();++i){const auto& d=Nitride::hostParameters[Nitride::fmRatio+i];fmIds[i]=hash(d.id);check(AudioUnitSetParameter(instance.unit,fmIds[i],kAudioUnitScope_Global,0,d.kind==Nitride::ParameterKind::choice?1:.75f,0),"Advanced FM write");}
+        for(size_t i=0;i<fmIds.size();++i){const auto& d=Nitride::hostParameters[Nitride::fmRatio+i];fmIds[i]=hash(d.id);check(AudioUnitSetParameter(instance.unit,fmIds[i],kAudioUnitScope_Global,0,d.kind==Nitride::ParameterKind::continuous?.75f:1,0),"Advanced FM write");}
         AudioUnitParameterValue retained=0;check(AudioUnitGetParameter(instance.unit,couplingId,kAudioUnitScope_Global,0,&retained),"Host parameter read");
         if(std::abs(retained-.82f)>.0001f)throw std::runtime_error("AU did not retain host automation value");
         CFPropertyListRef savedState=nullptr;UInt32 stateSize=sizeof(savedState);
@@ -329,7 +344,7 @@ int main(int argc,char** argv)
         {
             check(AudioUnitGetParameter(instance.unit,fmIds[i],kAudioUnitScope_Global,0,&retained),"Restored advanced FM");
             const auto& d=Nitride::hostParameters[Nitride::fmRatio+i];
-            const auto expected=d.kind==Nitride::ParameterKind::choice?1:.75f;
+            const auto expected=d.kind==Nitride::ParameterKind::continuous?.75f:1;
             if(std::abs(retained-expected)>.0001f)throw std::runtime_error(std::string("Installed AU lost ")+d.name+" during state restore: "+std::to_string(retained));
         }
         std::cout<<"Installed AU automation/state verified\n"<<std::flush;

@@ -1,5 +1,64 @@
 # Filter families
 
+The user subsequently authorized committing and pushing the Ripple implementation,
+audition presets, gain correction and factory-fit review. This source-publication
+authorization does not promote any Ripple factory replacements or waive remaining
+qualification limits. Evaluation audio, journals, native evidence and binary
+archives remain private/local and excluded from Git.
+
+## Ripple gain correction / 0.7.49 · eval-049
+
+**Installed and verified: 0.7.49 / eval-049.** Keep the existing `Study - … r2`
+files; no presets/native files or receipts were rewritten. Registered-version AU
+validation, 144-program / 98-control checks and all twelve installed Ripple
+recalls pass. Classic/Rage audio and the 77 factory selections remain unchanged.
+Quit/reopen Logic and start quietly; CPU/M2/manual-device limits remain open.
+
+[Control-only post-sum makeup](RIPPLE_GAIN.md) replaces Ripple's fixed 6 dB output
+attenuation. It preserves the wet/Dry ratio, phase response, waveshaper and signed
+feedback loop; it is not an audio-dependent normalizer or new limiter. Existing
+r2 renders gain 9.9–16.3 dB active RMS while retaining at least 4 dB peak headroom
+in the frozen performances. The archived-core comparison proves a common scalar
+change before the existing downstream ceiling. Classic/Rage, all preset/native
+files, automation/state contracts and the 77 factory selections stay unchanged.
+
+## Exposed Ripple auditions / 0.7.48 · eval-048
+
+Following the user's weak-effect feedback, offline probes confirmed working
+routing but exposed weak voicing. Six [r2 auditions](RIPPLE_R2.md) put broader phase
+transitions through the
+source's actual harmonics and rebalance Dry against the wet branch. Original
+oscillator/FM/amp settings and MIDI remain exact; fixed output trims are removed
+by matched-level comparisons. Magnitude-profile checks distinguish tonal changes
+from pure phase/volume changes, without inferring listening approval.
+
+All DSP sources and old r1/approved sounds remain unchanged. Programs 138–143
+append; the 77 factory selections and existing native files/receipts are not
+replaced. CPU/headroom, M2 and manual host/device-soak limits remain open.
+
+**Installed experimental audition: 0.7.48 / eval-048.** Registered-version AU
+validation, 144-program / 98-control native checks, 25 Release/25 Debug suites and
+184 Python tests pass. Six additive `Study - … r2` files are installed. All DSP,
+old native files/receipts and approved/r1 audio remain exact. Quit/reopen Logic and
+confirm the new version before auditioning; no factory promotion or commit/push.
+
+## Ripple implementation / 0.7.47 · eval-047
+
+Ripple is a separate voice-local same-frequency all-pass family with three stage
+depths, waveshaping, additive Dry and signed feedback. Six appended controls leave
+all old automation IDs/ranges intact. Six original Study programs append at
+132–137; the 77 approved factory selections remain unchanged. See the
+[implementation, automation/storage contract, auditions and qualification boundaries](RIPPLE.md).
+No Arturia sonic equivalence, factory promotion or commit/push is implied.
+
+**Installed experimental audition: 0.7.47 / eval-047.** Actual registered-version
+AU validation and all 138-program / 98-control native checks pass. Six additive
+`Study - …` files are installed; all old native files/receipts and 77 factory
+selections remain unchanged. Release/Debug/Python/sanitizer checks pass, but only
+89/108 CPU cases meet the strict headroom gate, and the offline continuity run
+has deadline misses. M2 and manual Logic/device-soak qualification remain pending.
+Restart Logic/create a fresh instance before auditioning the new Study files.
+
 ## Approved factory integration / 0.7.46 · eval-046
 
 The user approved all sixteen eval-045 factory-filter revisions and explicitly
@@ -625,7 +684,8 @@ nonlinear band-pass resonance feedback. The five transfers differ structurally:
 These names describe intended behaviors, not measured analog circuits. Tape is not
 a physical hysteresis, wow/flutter or tape-recording model. Each family owns its
 topology; this is not a universal Rage core with every future family mapped onto it.
-Ripple/all-pass work remains future scope.
+Ripple/all-pass was future scope at this checkpoint; eval-047 adds it as a
+[separate core/family](RIPPLE.md), without changing the approved Rage transfers.
 
 The original scalar implicit feedback equation used safeguarded Newton solving (10 iterations,
 then at most 24 bisections if needed). Transfer slopes are bounded above by one and the

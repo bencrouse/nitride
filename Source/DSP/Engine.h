@@ -42,7 +42,7 @@ public:
     void render(float* left, float* right, int samples, double* tonePitch = nullptr,const Nitride::DSP::ModulationFrame* modulation=nullptr,
                 float* classic=nullptr,double* filterMix=nullptr) noexcept;
     void setFilterSettings(const Nitride::DSP::FilterSettings&) noexcept;
-    bool filterProcessingActive()const noexcept{return filterTarget.family==Nitride::DSP::FilterFamily::rage||filterBlend>0;}
+    bool filterProcessingActive()const noexcept{return filterTarget.family!=Nitride::DSP::FilterFamily::classic||filterBlend>0;}
     struct FilterSnapshot {double cutoff=0,envelope=0;std::uint64_t faults=0,solverFallbacks=0;};
     FilterSnapshot getFilterSnapshot(int note=-1)const noexcept;
     using PitchSnapshot=Nitride::DSP::PitchSnapshot;

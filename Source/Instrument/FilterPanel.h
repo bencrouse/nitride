@@ -19,9 +19,12 @@ private:
     void choose(Parameter,double);
     InstrumentSession& session;
     juce::ComboBox family,character;
+    juce::ComboBox rippleTypeChoice,rippleModeChoice;
     UI::ValueControl amount{"Rage",0,1,0};
+    UI::ValueControl dry{"Dry level",0,1,.5},drive{"Drive",0,1,0},feedback{"Feedback",-1,1,0};
+    std::array<bool,3> rippleEditing{};
     juce::TextButton close{"CLOSE"};
     std::uint64_t epoch=0;
-    bool editing=false,rage=false;
+    bool editing=false,rage=false,isRipple=false;
 };
 }

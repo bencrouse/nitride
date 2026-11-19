@@ -1,0 +1,55 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r1",
+  "sketches": [
+    {
+      "file": "phase-silk-r1",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 16,
+      "study_axis": "gentle moving phase cancellation",
+      "intent": "A dry-added two-section phase pad; staggered chord entrances retain independent filter envelopes. Independent Ripple-inspired DSP; not an Arturia-identical model or sonic equivalence claim."
+    },
+    {
+      "file": "negative-reed-r1",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 16,
+      "study_axis": "negative feedback hollow reed",
+      "intent": "Negative phase feedback hollows a triangle-rich lead; note velocity moves the phase center, not a low-pass edge. Independent Ripple-inspired DSP; not an Arturia-identical model or sonic equivalence claim."
+    },
+    {
+      "file": "ripple-glass-r1",
+      "category": "Leads",
+      "host_category": "Keys & Organs",
+      "seconds": 16,
+      "study_axis": "four-section shaped phase keys",
+      "intent": "Four all-pass sections and moderate post-phase shaping produce bright electric keys with moving dry cancellation. Independent Ripple-inspired DSP; not an Arturia-identical model or sonic equivalence claim."
+    },
+    {
+      "file": "positive-loom-r1",
+      "category": "Sequence elements",
+      "host_category": "Sequences",
+      "seconds": 16,
+      "study_axis": "positive feedback phase pulse",
+      "intent": "Positive feedback through four same-frequency all-pass sections; restrained cutoff motion and short notes expose the comb-like structure. Independent Ripple-inspired DSP; not an Arturia-identical model or sonic equivalence claim."
+    },
+    {
+      "file": "folded-prism-r1",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 16,
+      "study_axis": "eight-section shaped phase strike",
+      "intent": "Eight all-pass sections concentrate a brief metallic strike before waveshaping. No copied sample, circuit or Pigments preset. Independent Ripple-inspired DSP; not an Arturia-identical model or sonic equivalence claim."
+    },
+    {
+      "file": "phase-vault-r1",
+      "category": "Experimental",
+      "host_category": "Textures",
+      "seconds": 16,
+      "study_axis": "deep negative feedback phase texture",
+      "intent": "Eight-section negative feedback with a slowly moving phase center and wet-dominant sum. The explicit feedback input attenuation is not AGC. Independent Ripple-inspired DSP; not an Arturia-identical model or sonic equivalence claim."
+    }
+  ]
+}

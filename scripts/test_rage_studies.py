@@ -73,7 +73,7 @@ class RageStudies(unittest.TestCase):
             self.assertEqual(edited.read_bytes(), b"edited study")
 
     def test_versioned_host_contract(self):
-        self.assertEqual([fp.native_parameter_count(v) for v in (None, "unit-test", "0.7.38", "0.7.39", "0.8.0")], [89, 89, 89, 92, 92])
+        self.assertEqual([fp.native_parameter_count(v) for v in (None, "unit-test", "0.7.38", "0.7.39", "0.7.46", "0.7.47", "0.8.0")], [89, 89, 89, 92, 92, 98, 98])
 
     def test_r2_append_only_and_frozen_source_midi(self):
         registry = ev.validate_builtins()["entries"]

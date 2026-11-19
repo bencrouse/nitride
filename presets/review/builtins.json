@@ -1437,6 +1437,132 @@
       "parent": "review:pulse-lattice:r2",
       "preset": "batch-22/r3/pulse-lattice-r3.nitridepreset",
       "sha256": "9facc2c0e9575518a8bac0d6d08008dffa99ce535eadf3bee5095d212b937ea3"
+    },
+    {
+      "program": 132,
+      "id": "review:phase-silk:r1",
+      "family": "phase-silk",
+      "revision": "r1",
+      "category": "Pads",
+      "study_axis": "gentle moving phase cancellation",
+      "preset": "batch-23/r1/phase-silk-r1.nitridepreset",
+      "sha256": "e669a3cf95f4b76515c3bba584a5bc89537504ea784c33f072293044c7076297"
+    },
+    {
+      "program": 133,
+      "id": "review:negative-reed:r1",
+      "family": "negative-reed",
+      "revision": "r1",
+      "category": "Leads",
+      "study_axis": "negative feedback hollow reed",
+      "preset": "batch-23/r1/negative-reed-r1.nitridepreset",
+      "sha256": "0df9970b705e9fb909d2edff7c6b70a5b9b0bdef49d541e0e5659bad85bc916e"
+    },
+    {
+      "program": 134,
+      "id": "review:ripple-glass:r1",
+      "family": "ripple-glass",
+      "revision": "r1",
+      "category": "Leads",
+      "study_axis": "four-section shaped phase keys",
+      "preset": "batch-23/r1/ripple-glass-r1.nitridepreset",
+      "sha256": "1d12fb13ff220f2564da83681cb2833bd88f4451583378d562143cc83c1956dc"
+    },
+    {
+      "program": 135,
+      "id": "review:positive-loom:r1",
+      "family": "positive-loom",
+      "revision": "r1",
+      "category": "Sequence elements",
+      "study_axis": "positive feedback phase pulse",
+      "preset": "batch-23/r1/positive-loom-r1.nitridepreset",
+      "sha256": "599a2c00d3d4403ec27c1498afbcc05039ca60508c3d68a53ccc936056a7d8e0"
+    },
+    {
+      "program": 136,
+      "id": "review:folded-prism:r1",
+      "family": "folded-prism",
+      "revision": "r1",
+      "category": "Physical materials",
+      "study_axis": "eight-section shaped phase strike",
+      "preset": "batch-23/r1/folded-prism-r1.nitridepreset",
+      "sha256": "b7fc837b7ff0895e2d4360deefbd0f89cad7932b64c132715c6dac1c88577e53"
+    },
+    {
+      "program": 137,
+      "id": "review:phase-vault:r1",
+      "family": "phase-vault",
+      "revision": "r1",
+      "category": "Experimental",
+      "study_axis": "deep negative feedback phase texture",
+      "preset": "batch-23/r1/phase-vault-r1.nitridepreset",
+      "sha256": "45bbfcf03d92042e443b2c603bfa41f3fa133a6884ae2faa81f4b55c42547e13"
+    },
+    {
+      "program": 138,
+      "id": "review:phase-silk:r2",
+      "family": "phase-silk",
+      "revision": "r2",
+      "category": "Pads",
+      "parent": "review:phase-silk:r1",
+      "study_axis": "gentle moving phase cancellation; exposed phase range",
+      "preset": "batch-23/r2/phase-silk-r2.nitridepreset",
+      "sha256": "3ae41416f57fd95441bbb0a13ba9e37f30104662ad01af7c758c36677e053046"
+    },
+    {
+      "program": 139,
+      "id": "review:negative-reed:r2",
+      "family": "negative-reed",
+      "revision": "r2",
+      "category": "Leads",
+      "parent": "review:negative-reed:r1",
+      "study_axis": "negative feedback hollow reed; exposed phase range",
+      "preset": "batch-23/r2/negative-reed-r2.nitridepreset",
+      "sha256": "0635ff6ec3fb0900b79b6f41a6660f740cf7e4f4079739024bbc47379e3600a4"
+    },
+    {
+      "program": 140,
+      "id": "review:ripple-glass:r2",
+      "family": "ripple-glass",
+      "revision": "r2",
+      "category": "Leads",
+      "parent": "review:ripple-glass:r1",
+      "study_axis": "four-section shaped phase keys; exposed phase range",
+      "preset": "batch-23/r2/ripple-glass-r2.nitridepreset",
+      "sha256": "5e2dcb9e610a057ba8a87abda0bf62f114226f73c478d290d446301fae9bd22e"
+    },
+    {
+      "program": 141,
+      "id": "review:positive-loom:r2",
+      "family": "positive-loom",
+      "revision": "r2",
+      "category": "Sequence elements",
+      "parent": "review:positive-loom:r1",
+      "study_axis": "positive feedback phase pulse; exposed phase range",
+      "preset": "batch-23/r2/positive-loom-r2.nitridepreset",
+      "sha256": "cc0177e369ca67b2a1537e80c5c568bb1bc82132973af2d693d424b690f56440"
+    },
+    {
+      "program": 142,
+      "id": "review:folded-prism:r2",
+      "family": "folded-prism",
+      "revision": "r2",
+      "category": "Physical materials",
+      "parent": "review:folded-prism:r1",
+      "study_axis": "eight-section shaped phase strike; exposed phase range",
+      "preset": "batch-23/r2/folded-prism-r2.nitridepreset",
+      "sha256": "7b72cc3c6682a031d7c288afd7b09fbbfbbeed63cfdcd87fb2889b3270f421d3"
+    },
+    {
+      "program": 143,
+      "id": "review:phase-vault:r2",
+      "family": "phase-vault",
+      "revision": "r2",
+      "category": "Experimental",
+      "parent": "review:phase-vault:r1",
+      "study_axis": "deep negative feedback phase texture; exposed phase range",
+      "preset": "batch-23/r2/phase-vault-r2.nitridepreset",
+      "sha256": "af7cf6cf69180df480b1e055ebc73a701bf3b6b3115069dacea2df488a8e74d3"
     }
   ]
 }

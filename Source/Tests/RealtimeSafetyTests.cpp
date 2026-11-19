@@ -132,6 +132,29 @@ void concurrency(const juce::File& directory,bool injectMainFailure=false)
     {Nitride::Audit::Scope scope;first->setValueNotifyingHost(.7f);}
     std::cout<<"Framework FIRST parameter callback allocations: "<<Nitride::Audit::allocations-initial<<" (separate from processBlock)\n";
 }
+void rippleCold(const juce::File& directory)
+{
+    for(const auto rate:{48000,96000})for(int type=0;type<3;++type)for(int mode=0;mode<2;++mode)
+    {
+        NitrideAudioProcessor p(directory);auto& s=p.getInstrumentSession();auto patch=Nitride::factoryPatches()[0];
+        patch.values[Nitride::rippleOn]=1;patch.values[Nitride::rippleType]=type;patch.values[Nitride::rippleMode]=mode;
+        patch.values[Nitride::rippleFeedback]=-.99;patch.values[Nitride::rippleDrive]=1;patch.values[Nitride::rippleDry]=1;
+        patch.values[Nitride::resonance]=.85;patch.values[Nitride::filterFmDepth]=6;s.apply(patch);p.prepareToPlay(rate,64);
+        juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;midi.ensureSize(4096);
+        for(int note=48;note<60;++note)midi.addEvent(juce::MidiMessage::noteOn(1,note,.8f),0);
+        process(p,audio,midi);require(s.live.voices.load()==12,"Ripple cold start reduced polyphony");
+        for(int block=0;block<180;++block)
+        {
+            s.set(Nitride::rippleOn,block%3?1:0);s.set(Nitride::filterFamily,block%2);
+            s.set(Nitride::rippleType,block%3);s.set(Nitride::rippleMode,block%2);s.set(Nitride::rippleFeedback,block%2?-1:1);
+            if(block%13==0)midi.addEvent(juce::MidiMessage::noteOn(1,60+(block%24),.9f),17);
+            process(p,audio,midi);
+        }
+        midi.addEvent(juce::MidiMessage::allSoundOff(1),0);process(p,audio,midi);
+        require(s.live.voices.load()==0&&s.live.faults.load()==0,"Ripple switching/stealing/panic fault");
+    }
+    std::cout<<"Ripple cold render, six type/mode combinations, signed extremes, 48/96 kHz, 12 voices and all-family switching allocated/deallocated nothing\n";
+}
 }
 int main()
 {
@@ -145,6 +168,7 @@ int main()
         const auto directory=juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("nitride-safety-"+juce::Uuid().toString());
         lifetime(directory);
         rageCold(directory);
+        rippleCold(directory);
         const auto started=std::chrono::steady_clock::now();bool caught=false;
         try{concurrency(directory,true);}catch(const std::runtime_error& error){caught=std::string(error.what())=="Deliberate main-thread concurrency failure";}
         const auto cleanupSeconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();

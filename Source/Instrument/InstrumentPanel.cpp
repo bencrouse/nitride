@@ -143,13 +143,13 @@ public:
         section(g,"SOUND",{24,112,238,18});section(g,"NETWORK",{310,112,584,18});section(g,"AMPLITUDE",{942,112,234,18});
         text(g,"COUPLING "+juce::String(current.values[coupling]*100,0)+"%   /   STRESS "+juce::String(current.values[stress]*100,0)+"%",{310,428,584,17},muted(),8);
         sourceWave(g);text(g,"SOURCE / NETWORK FM",{36,190,225,14},muted(),8);
-        section(g,"TONE",{24,550,344,18});text(g,current.values[filterFamily]>=.5?"RAGE / PER VOICE":"CLASSIC / 12 dB",{116,550,174,18},muted(),8,juce::Justification::right);
+        section(g,"TONE",{24,550,344,18});text(g,current.values[rippleOn]>=.5?"RIPPLE / PER VOICE":current.values[filterFamily]>=.5?"RAGE / PER VOICE":"CLASSIC / 12 dB",{116,550,174,18},muted(),8,juce::Justification::right);
         section(g,"MOTION",{416,550,360,18});int active=0;for(const auto& lane:lfoParameters)active+=current.values[lane.enabled]>=.5?1:0;
         text(g,juce::String(active)+" / 6 LANES",{580,550,196,18},muted(),8,juce::Justification::right);
         section(g,"SPACE",{824,550,352,18});text(g,"DIFFUSION",{1000,550,176,18},muted(),8,juce::Justification::right);
         text(g,formatCutoff(current.values[cutoff])+"  /  RES "+juce::String(current.values[resonance]*100,0)+"%",{36,692,332,17},muted(),9);
         text(g,"MIX "+juce::String(current.values[spaceMix]*100,0)+"%  /  SIZE "+juce::String(current.values[spaceSize]*100,0)+"%",{836,692,340,17},muted(),9);
-        section(g,"FILTER ENVELOPE",{24,742,344,18});text(g,current.values[filterFamily]>=.5?"PER VOICE > CUTOFF":"SHARED > CUTOFF",{836,742,340,18},muted(),8);
+        section(g,"FILTER ENVELOPE",{24,742,344,18});text(g,current.values[filterFamily]>=.5||current.values[rippleOn]>=.5?"PER VOICE > CUTOFF":"SHARED > CUTOFF",{836,742,340,18},muted(),8);
         text(g,"SIGNED DEPTH / OCTAVES",{836,810,340,17},muted(),8);
         text(g,"NATIVE INSTRUMENT",{26,928,260,17},muted(),8);text(g,juce::String(live.voices.load())+" VOICES",{600,928,146,17},muted(),8);text(g,"AUDIO PROCESSOR",{250,928,340,17},muted(),8);
         const auto peak=live.peak.load();for(int i=0;i<14;++i){g.setColour(peak>static_cast<float>(i)/20?accent().withAlpha(.8f):juce::Colour(0xff30372f));g.fillRect(790+i*8,933,5,10);}

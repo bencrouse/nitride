@@ -27,9 +27,9 @@ struct Harness
     void tick(int count,juce::MidiMessage message={})
     {juce::AudioBuffer<float> audio(2,count);juce::MidiBuffer midi;if(message.getRawDataSize()>0)midi.addEvent(message,0);renderer.process(audio,midi);require(std::isfinite(audio.getMagnitude(0,count))&&session.live.faults.load()==0,"Rage rendering fault");}
 };
-void voices()
+void voices(bool ripple=false)
 {
-    Harness h;h.tick(4800,juce::MidiMessage::noteOn(1,60,.8f));const auto first=h.renderer.voiceFilterSnapshot(60);
+    Harness h;if(ripple)h.session.set(rippleOn,1);h.tick(4800,juce::MidiMessage::noteOn(1,60,.8f));const auto first=h.renderer.voiceFilterSnapshot(60);
     require(first.envelope>.39&&first.envelope<.41,"Per-voice filter attack timing is wrong");
     h.tick(128,juce::MidiMessage::noteOn(1,72,.4f));const auto old=h.renderer.voiceFilterSnapshot(60),fresh=h.renderer.voiceFilterSnapshot(72);
     require(old.envelope>first.envelope&&fresh.envelope<.02,"New chord note retriggered an existing voice's filter");
@@ -43,10 +43,11 @@ void voices()
     rapid.session.set(filterFamily,0);rapid.tick(64);rapid.session.set(filterFamily,1);rapid.tick(64);
     require(rapid.renderer.voiceFilterSnapshot(72).cutoff>tracked*.99,"Rapid family reversal reset a still-running voice filter/tracking state");
 }
-std::vector<float> render(int rate,int block,bool switching)
+std::vector<float> render(int rate,int block,bool switching,bool ripple=false)
 {
     InstrumentSession s(library());auto p=patch();p.values[filterFmDepth]=3;
     p.values[cutoffLfoOn]=1;p.values[cutoffLfoRate]=3.1;p.values[cutoffLfoDepth]=.8;
+    if(ripple){p.values[rippleOn]=1;p.values[rippleType]=2;p.values[rippleMode]=1;p.values[rippleFeedback]=-.9;}
     s.apply(p);InstrumentRenderer r(s);r.prepare(rate);std::vector<float> result;
     const auto total=rate/2;juce::MidiBuffer performance;
     performance.addEvent(juce::MidiMessage::noteOn(1,60,.8f),7);performance.addEvent(juce::MidiMessage::noteOn(1,67,.7f),rate/10+3);
@@ -56,8 +57,8 @@ std::vector<float> render(int rate,int block,bool switching)
         // Fixed sample boundaries for family/character automation, independent of
         // the host's block partitioning.
         const auto boundary=offset<rate/5?rate/5:offset<rate*3/10?rate*3/10:total;
-        if(switching&&offset==rate/5){s.set(rageCharacter,4);s.set(filterFamily,0);}
-        if(switching&&offset==rate*3/10){s.set(filterFamily,1);s.set(rageCharacter,3);}
+        if(switching&&offset==rate/5){s.set(rageCharacter,4);s.set(filterFamily,0);if(ripple)s.set(rippleOn,0);}
+        if(switching&&offset==rate*3/10){s.set(filterFamily,1);s.set(rageCharacter,3);if(ripple){s.set(rippleOn,1);s.set(rippleMode,0);s.set(rippleType,1);s.set(rippleDrive,.8);}}
         const auto count=std::min({block,total-offset,boundary-offset});juce::AudioBuffer<float> audio(2,count);juce::MidiBuffer midi;
         midi.addEvents(performance,offset,count,-offset);r.process(audio,midi);
         require(s.live.faults.load()==0,"Rage modulation or switching caused a fault");
@@ -67,9 +68,9 @@ std::vector<float> render(int rate,int block,bool switching)
 }
 void partitioning()
 {
-    for(const auto rate:{44100,48000,96000})for(const auto switches:{false,true})
+    for(const auto rate:{44100,48000,96000})for(const auto switches:{false,true})for(const auto ripple:{false,true})
     {
-        const auto a=render(rate,64,switches),repeat=render(rate,64,switches),b=render(rate,257,switches);
+        const auto a=render(rate,64,switches,ripple),repeat=render(rate,64,switches,ripple),b=render(rate,257,switches,ripple);
         require(a==repeat,"Rage rendering is nondeterministic");double maximum=0;
         for(size_t i=0;i<a.size();++i)maximum=std::max(maximum,std::abs(static_cast<double>(a[i])-b[i]));
         require(maximum<1e-5,"Rage depends on host block partitioning");
@@ -82,11 +83,17 @@ void state()
     const auto hash=[](const char* text){std::uint32_t v=0;while(*text)v=31*v+static_cast<unsigned char>(*text++);return v&0x7fffffffu;};
     write(8,hostParameterCount);
     for(int h=0;h<hostParameterCount;++h)write(12+static_cast<size_t>(h)*8,hash(h==monoHostIndex?monoParameterId:hostParameters[conditionIndex(h)].id));
+    for(const auto parameter:{rippleDry,rippleFeedback})write(12+static_cast<size_t>(hostIndex(parameter))*8+4,0x3f000000u);
     const auto trimmed=legacyAuParameterData(table.data(),table.size());require(trimmed&&trimmed->size()==12+v6HostParameterCount*8&&(*trimmed)[11]==89,"Legacy AU redundant table was not preserved");
+    const auto rageTable=legacyAuParameterData(table.data(),table.size(),v7HostParameterCount);
+    require(rageTable&&rageTable->size()==12+v7HostParameterCount*8&&(*rageTable)[11]==92,"Rage AU redundant table was not preserved");
     write(12+89*8+4,1);require(!legacyAuParameterData(table.data(),table.size()),"AU adapter discarded a nondefault new value");
     require(!legacyAuParameterData(table.data(),table.size()-1),"AU adapter accepted an unknown SDK layout");
     NitrideAudioProcessor p(library());auto& s=p.getInstrumentSession();
-    require(hostParameterCount==92&&hostIndex(filterFamily)==89&&hostIndex(rageCharacter)==90&&hostIndex(rageAmount)==91,"New filter host indices displaced old automation");
+    require(hostParameterCount==98&&hostIndex(filterFamily)==89&&hostIndex(rageCharacter)==90&&hostIndex(rageAmount)==91&&hostIndex(rippleOn)==92&&hostIndex(rippleFeedback)==97,"New filter host indices displaced old automation");
+    const auto* oldFamily=p.getState().getParameter("filter_family");
+    require(oldFamily->getNormalisableRange().start==0&&oldFamily->getNormalisableRange().end==1,"Legacy family automation range changed");
+    for(int i=rippleOn;i<parameterCount;++i)require(p.getState().getParameter(hostParameters[static_cast<size_t>(i)].id)->getVersionHint()==8,"Ripple host hint is wrong");
     for(const auto parameter:{filterFamily,rageCharacter,rageAmount})require(p.getState().getParameter(hostParameters[parameter].id)->getVersionHint()==7,"Filter host version hint is wrong");
     const auto legacy=PresetStore::encode({"legacy",factoryPatches()[1]});require(static_cast<int>(legacy["version"])==6&&legacy["values"].getDynamicObject()->getProperties().size()==88,"Legacy preset serialization changed");
     require(PresetStore::decode(legacy).has_value(),"Frozen v6 preset no longer imports");
@@ -109,6 +116,31 @@ void state()
     require(legacyXml&&legacyXml->getIntAttribute("version")==7&&legacyXml->getChildByName("NITRIDE_PARAMETERS")->getNumChildElements()==89,"Legacy XML wire format acquired new fields");
     restored.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));
     require(loaded.read().values[filterFamily]==0&&loaded.read().values[rageCharacter]==0&&loaded.read().values[rageAmount]==0,"Loading legacy state retained stale Rage controls");
+}
+void rippleState()
+{
+    NitrideAudioProcessor p(library());auto& s=p.getInstrumentSession();auto conditions=patch();
+    conditions.values[rippleOn]=1;conditions.values[rippleType]=2;conditions.values[rippleMode]=1;
+    conditions.values[rippleDry]=.3;conditions.values[rippleDrive]=.7;conditions.values[rippleFeedback]=-.8;s.apply(conditions);
+    const auto encoded=PresetStore::encode({"ripple",s.read()});
+    require(static_cast<int>(encoded["version"])==8&&encoded["values"].getDynamicObject()->getProperties().size()==97,"Ripple preset schema is incomplete");
+    require(PresetStore::decode(encoded)->patch.values==conditions.values,"Ripple preset did not round trip");
+    s.beginEdit({hostIndex(rippleFeedback)});s.set(rippleFeedback,.9);s.endEdit({hostIndex(rippleFeedback)});
+    s.undo();require(s.read().values[rippleFeedback]==-.8,"Ripple undo failed");s.redo();require(s.read().values[rippleFeedback]==.9,"Ripple redo failed");
+    s.set(rippleOn,0);require(PresetStore::wireVersion(s.read())==8&&static_cast<int>(s.saveDocument()["version"])==9,"Dormant Ripple settings were discarded");
+    juce::MemoryBlock saved;p.getStateInformation(saved);auto xml=juce::AudioProcessor::getXmlFromBinary(saved.getData(),static_cast<int>(saved.getSize()));
+    require(xml&&xml->getIntAttribute("version")==9&&xml->getChildByName("NITRIDE_PARAMETERS")->getNumChildElements()==98,"Ripple XML schema is incomplete");
+    NitrideAudioProcessor restored(library());restored.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));
+    auto& loaded=restored.getInstrumentSession();require(loaded.read().values==s.read().values,"Dormant Ripple state lost conditions");
+    loaded.undo();require(loaded.read().values[rippleOn]==1&&loaded.read().values[rippleFeedback]==.9,"Ripple saved family history was lost");
+    loaded.undo();require(loaded.read().values[rippleFeedback]==-.8,"Ripple saved feedback history was lost");
+    auto invalid=juce::JSON::parse(juce::JSON::toString(encoded));invalid.getDynamicObject()->setProperty("version",7);
+    require(!PresetStore::decode(invalid),"Mislabeled Ripple preset accepted");
+    invalid=juce::JSON::parse(juce::JSON::toString(s.saveDocument()));invalid.getDynamicObject()->setProperty("version",8);
+    require(loaded.restoreDocument(invalid).failed(),"Mislabeled Ripple session accepted");
+    restored.getInstrumentSession().applyProgram(0);NitrideAudioProcessor legacy(library());legacy.getStateInformation(saved);
+    restored.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));
+    for(int i=rippleOn;i<parameterCount;++i)require(loaded.read().values[static_cast<size_t>(i)]==hostParameters[static_cast<size_t>(i)].initial,"Legacy restore retained stale Ripple values");
 }
 template<class T>T* child(juce::Component& root,const juce::String& name)
 {for(auto* c:root.getChildren()){if(auto* found=dynamic_cast<T*>(c);found&&c->getName()==name)return found;if(auto* found=child<T>(*c,name))return found;}return nullptr;}
@@ -155,6 +187,45 @@ void liveCharacters()
         }
     }
 }
+std::vector<float> liveRipple(int type,int mode,bool throughUi)
+{
+    NitrideAudioProcessor p(library());auto& s=p.getInstrumentSession();s.apply(patch());
+    s.set(rippleDrive,.75);s.set(rippleFeedback,-.8);
+    std::unique_ptr<juce::AudioProcessorEditor> editor;FilterPanel* panel=nullptr;
+    if(throughUi){editor.reset(p.createEditor());panel=child<FilterPanel>(*editor,"Advanced filter");panel->sync(s.readVisible(),s.restoreEpoch.load());}
+    InstrumentRenderer renderer(s);renderer.prepare(48000);std::vector<float> result;
+    for(int frame=0;frame<48000;frame+=64)
+    {
+        if(frame==12032)
+        {
+            if(throughUi)
+            {
+                child<juce::ComboBox>(*panel,"Filter family")->setSelectedId(3,juce::sendNotificationSync);
+                child<juce::ComboBox>(*panel,"Ripple type")->setSelectedId(type+1,juce::sendNotificationSync);
+                child<juce::ComboBox>(*panel,"Ripple mode")->setSelectedId(mode+1,juce::sendNotificationSync);
+            }
+            else for(const auto& [parameter,value]:std::initializer_list<std::pair<Parameter,double>>{{rippleOn,1},{rippleType,static_cast<double>(type)},{rippleMode,static_cast<double>(mode)}})
+            {auto* control=p.getState().getParameter(hostParameters[parameter].id);control->setValueNotifyingHost(control->convertTo0to1(static_cast<float>(value)));}
+        }
+        if(frame==24000){s.set(rippleOn,0);s.set(filterFamily,0);}
+        if(frame==30016){s.set(rippleOn,1);}
+        if(frame==36032){s.set(rippleOn,0);s.set(filterFamily,1);}
+        juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;if(frame==0)midi.addEvent(juce::MidiMessage::noteOn(1,60,.8f),0);
+        renderer.process(audio,midi);require(s.live.faults.load()==0,"All-family live switching fault");
+        for(int n=0;n<64;++n)result.push_back(audio.getSample(0,n));
+    }
+    return result;
+}
+void liveRipples()
+{
+    for(int type=0;type<3;++type)for(int mode=0;mode<2;++mode)
+    {
+        const auto ui=liveRipple(type,mode,true),host=liveRipple(type,mode,false);
+        require(ui==host,"Ripple UI versus host automation changed transition audio");
+        double peakStep=0;for(size_t n=1;n<ui.size();++n)peakStep=std::max(peakStep,std::abs(static_cast<double>(ui[n])-ui[n-1]));
+        require(peakStep<.2,"Ripple family transitions produced excessive sample steps");
+    }
+}
 void ui()
 {
     NitrideAudioProcessor p(library());auto& s=p.getInstrumentSession();std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());editor->addToDesktop(0);editor->setVisible(true);
@@ -164,10 +235,23 @@ void ui()
     require(family&&character&&amount&&!amount->isEnabled(),"Classic exposed active Rage controls");
     family->setSelectedId(2,juce::sendNotificationSync);character->setSelectedId(5,juce::sendNotificationSync);amount->getAccessibilityHandler()->getValueInterface()->setValue(.7);
     require(s.read().values[filterFamily]==1&&s.read().values[rageCharacter]==4&&std::abs(s.read().values[rageAmount]-.7)<1e-12,"Native filter controls did not edit host state");
+    require(static_cast<int>(s.saveDocument()["version"])==8,"Legacy family UI edit acquired untouched Ripple history fields");
     juce::MemoryBlock saved;p.getStateInformation(saved);amount->onBegin();p.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));
     amount->onChange(.1);amount->onEnd();require(std::abs(s.read().values[rageAmount]-.7)<1e-12,"Stale filter gesture overwrote recalled state");
     panel->sync(s.readVisible(),s.restoreEpoch.load());family->setSelectedId(1,juce::sendNotificationSync);require(s.read().values[rageCharacter]==4&&std::abs(s.read().values[rageAmount]-.7)<1e-12,"Family switch discarded character settings");
+    family->setSelectedId(3,juce::sendNotificationSync);panel->sync(s.readVisible(),s.restoreEpoch.load());
+    auto* type=child<juce::ComboBox>(*panel,"Ripple type");auto* mode=child<juce::ComboBox>(*panel,"Ripple mode");
+    auto* dry=child<UI::ValueControl>(*panel,"Ripple dry level");auto* feedback=child<UI::ValueControl>(*panel,"Ripple feedback");
+    require(type&&mode&&dry&&feedback&&type->isVisible()&&!character->isVisible(),"Ripple UI controls missing or overlapping Rage");
+    require(s.read().values[rippleOn]==1&&s.read().values[filterFamily]==0,"Ripple UI overwrote dormant legacy family");
+    type->setSelectedId(3,juce::sendNotificationSync);mode->setSelectedId(2,juce::sendNotificationSync);
+    dry->getAccessibilityHandler()->getValueInterface()->setValue(.4);feedback->getAccessibilityHandler()->getValueInterface()->setValue(-.7);
+    require(s.read().values[rippleType]==2&&s.read().values[rippleMode]==1&&s.read().values[rippleDry]==.4&&s.read().values[rippleFeedback]==-.7,"Ripple UI did not edit host controls");
+    p.getStateInformation(saved);dry->onBegin();p.setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));dry->onChange(.1);dry->onEnd();
+    require(s.read().values[rippleDry]==.4,"Stale Ripple gesture overwrote recalled state");
+    panel->sync(s.readVisible(),s.restoreEpoch.load());family->setSelectedId(2,juce::sendNotificationSync);
+    require(s.read().values[rippleOn]==0&&s.read().values[filterFamily]==1&&s.read().values[rippleFeedback]==-.7,"Legacy selection discarded dormant Ripple settings");
     panel->keyPressed(juce::KeyPress(juce::KeyPress::escapeKey));require(!panel->isShowing(),"Escape did not close filter panel");
 }
 }
-void runFilterIntegrationTests(){voices();partitioning();state();ui();liveCharacters();std::cout<<"Filter framework passed per-voice ownership, note lifetime, partitioning, migration, dormant settings, history, host metadata, native UI and five-character live audio switching\n";}
+void runFilterIntegrationTests(){voices();voices(true);partitioning();state();rippleState();ui();liveCharacters();liveRipples();std::cout<<"Classic/Rage/Ripple framework passed per-voice ownership, note lifetime, partitioning, migration, dormant settings, history, host metadata, native UI and all type/mode live UI/host audio switching\n";}

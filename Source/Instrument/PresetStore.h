@@ -10,6 +10,7 @@ public:
     explicit PresetStore(juce::File directory = defaultDirectory()) : folder(std::move(directory)) {}
     static juce::File defaultDirectory();
     static bool isLegacy(const Patch&) noexcept;
+    static int wireVersion(const Patch&) noexcept;
     std::vector<StoredPreset> loadAll() const;
     juce::Result save(const StoredPreset&) const;
     static juce::var encode(const StoredPreset&);

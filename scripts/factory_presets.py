@@ -93,12 +93,12 @@ def validate_selection(path=SELECTION, project=ROOT, require_feedback=True, chec
 
 
 def native_parameter_count(plugin_version=None):
-    """Historical packages retain their original contract; 0.7.39 adds three IDs."""
+    """Historical packages retain their original host contracts."""
     try:
         version = tuple(int(part) for part in plugin_version.split("."))
     except (AttributeError, ValueError):
         return 89  # Historical/unit-fixture manifests without a product version.
-    return 92 if version >= (0, 7, 39) else 89
+    return 98 if version >= (0, 7, 47) else 92 if version >= (0, 7, 39) else 89
 
 
 def document_from_native(preset):
@@ -113,7 +113,7 @@ def document_from_native(preset):
     if magic != 0x21324356 or length != len(data) - 9 or data[-1] != 0:
         raise ValueError("Invalid JUCE XML state envelope")
     root = ET.fromstring(data[8:8 + length])
-    if root.tag != "NITRIDE_INSTRUMENT" or root.get("version") not in ("7", "8"):
+    if root.tag != "NITRIDE_INSTRUMENT" or root.get("version") not in ("7", "8", "9"):
         raise ValueError("Unsupported Nitride session XML")
     document = json.loads(root.findtext("DOCUMENT", ""))
     if document.get("format") != "nitride-session" or document.get("version") != int(root.get("version")):

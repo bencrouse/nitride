@@ -1,0 +1,55 @@
+{
+  "format": "nitride-review-batch",
+  "version": 1,
+  "revision": "r2",
+  "sketches": [
+    {
+      "file": "phase-silk-r2",
+      "category": "Pads",
+      "host_category": "Pads",
+      "seconds": 16,
+      "study_axis": "gentle moving phase cancellation; exposed phase range",
+      "intent": "r2 moves the phase transition into the source's harmonics, broadens it and balances Dry against the actual wet level. Same r1 MIDI, oscillator/FM/amp settings, type/mode and unchanged Ripple DSP. Fixed output trims recover wet attenuation; matched comparisons remove gain. Independent Ripple-inspired implementation, not Pigments equivalence or factory approval."
+    },
+    {
+      "file": "negative-reed-r2",
+      "category": "Leads",
+      "host_category": "Leads & Brass",
+      "seconds": 16,
+      "study_axis": "negative feedback hollow reed; exposed phase range",
+      "intent": "r2 moves the phase transition into the source's harmonics, broadens it and balances Dry against the actual wet level. Same r1 MIDI, oscillator/FM/amp settings, type/mode and unchanged Ripple DSP. Fixed output trims recover wet attenuation; matched comparisons remove gain. Independent Ripple-inspired implementation, not Pigments equivalence or factory approval."
+    },
+    {
+      "file": "ripple-glass-r2",
+      "category": "Leads",
+      "host_category": "Keys & Organs",
+      "seconds": 16,
+      "study_axis": "four-section shaped phase keys; exposed phase range",
+      "intent": "r2 moves the phase transition into the source's harmonics, broadens it and balances Dry against the actual wet level. Same r1 MIDI, oscillator/FM/amp settings, type/mode and unchanged Ripple DSP. Fixed output trims recover wet attenuation; matched comparisons remove gain. Independent Ripple-inspired implementation, not Pigments equivalence or factory approval."
+    },
+    {
+      "file": "positive-loom-r2",
+      "category": "Sequence elements",
+      "host_category": "Sequences",
+      "seconds": 16,
+      "study_axis": "positive feedback phase pulse; exposed phase range",
+      "intent": "r2 moves the phase transition into the source's harmonics, broadens it and balances Dry against the actual wet level. Same r1 MIDI, oscillator/FM/amp settings, type/mode and unchanged Ripple DSP. Fixed output trims recover wet attenuation; matched comparisons remove gain. Independent Ripple-inspired implementation, not Pigments equivalence or factory approval."
+    },
+    {
+      "file": "folded-prism-r2",
+      "category": "Physical materials",
+      "host_category": "Drums & Percussion",
+      "seconds": 16,
+      "study_axis": "eight-section shaped phase strike; exposed phase range",
+      "intent": "r2 moves the phase transition into the source's harmonics, broadens it and balances Dry against the actual wet level. Same r1 MIDI, oscillator/FM/amp settings, type/mode and unchanged Ripple DSP. Fixed output trims recover wet attenuation; matched comparisons remove gain. Independent Ripple-inspired implementation, not Pigments equivalence or factory approval."
+    },
+    {
+      "file": "phase-vault-r2",
+      "category": "Experimental",
+      "host_category": "Textures",
+      "seconds": 16,
+      "study_axis": "deep negative feedback phase texture; exposed phase range",
+      "intent": "r2 moves the phase transition into the source's harmonics, broadens it and balances Dry against the actual wet level. Same r1 MIDI, oscillator/FM/amp settings, type/mode and unchanged Ripple DSP. Fixed output trims recover wet attenuation; matched comparisons remove gain. Independent Ripple-inspired implementation, not Pigments equivalence or factory approval."
+    }
+  ]
+}

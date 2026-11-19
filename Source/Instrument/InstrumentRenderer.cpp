@@ -31,6 +31,10 @@ void InstrumentRenderer::updateEngine()
 {
     DSP::FilterSettings filters;
     filters.family=static_cast<DSP::FilterFamily>(static_cast<int>(session.audioValue(filterFamily)));
+    if(session.audioValue(rippleOn)>=.5)filters.family=DSP::FilterFamily::ripple;
+    filters.rippleType=static_cast<DSP::RippleType>(static_cast<int>(session.audioValue(rippleType)));
+    filters.rippleMode=static_cast<DSP::RippleMode>(static_cast<int>(session.audioValue(rippleMode)));
+    filters.rippleDry=session.audioValue(rippleDry);filters.rippleDrive=session.audioValue(rippleDrive);filters.rippleFeedback=session.audioValue(rippleFeedback);
     filters.character=static_cast<DSP::RageCharacter>(static_cast<int>(session.audioValue(rageCharacter)));
     filters.amount=session.audioValue(rageAmount);filters.cutoff=session.audioValue(cutoff);filters.resonance=session.audioValue(resonance);
     filters.envelope={session.audioValue(filterAttack),session.audioValue(filterDecay),session.audioValue(filterSustain),session.audioValue(filterRelease)};

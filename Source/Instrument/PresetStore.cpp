@@ -14,15 +14,20 @@ bool PresetStore::isLegacy(const Patch& patch) noexcept
     for(size_t i=v6ParameterCount;i<parameterCount;++i)if(patch.values[i]!=hostParameters[i].initial)return false;
     return true;
 }
+int PresetStore::wireVersion(const Patch& patch) noexcept
+{
+    for(size_t i=v7ParameterCount;i<parameterCount;++i)if(patch.values[i]!=hostParameters[i].initial)return 8;
+    return isLegacy(patch)?6:7;
+}
 juce::var PresetStore::encode(const StoredPreset& preset)
 {
     auto* object = new juce::DynamicObject();
-    const auto legacy=isLegacy(preset.patch);
-    object->setProperty("format", "nitride-preset"); object->setProperty("version", legacy?6:7);
+    const auto version=wireVersion(preset.patch);
+    object->setProperty("format", "nitride-preset"); object->setProperty("version", version);
     object->setProperty("id", preset.id); object->setProperty("name", preset.patch.name);
     object->setProperty("mono", preset.patch.mono); object->setProperty("chord", preset.patch.chord);
     auto* values = new juce::DynamicObject();
-    for (size_t i = 0; i < static_cast<size_t>(legacy?v6ParameterCount:parameterCount); ++i) values->setProperty(hostParameters[i].id, preset.patch.values[i]);
+    for (size_t i = 0; i < static_cast<size_t>(version==6?v6ParameterCount:version==7?v7ParameterCount:parameterCount); ++i) values->setProperty(hostParameters[i].id, preset.patch.values[i]);
     object->setProperty("values", juce::var(values));
     return juce::var(object);
 }
@@ -30,7 +35,7 @@ juce::var PresetStore::encode(const StoredPreset& preset)
 std::optional<StoredPreset> PresetStore::decode(const juce::var& data)
 {
     const auto version=static_cast<int>(data["version"]);
-    if (!data.isObject() || data["format"].toString() != "nitride-preset" || (version!=6&&version!=7)) return std::nullopt;
+    if (!data.isObject() || data["format"].toString() != "nitride-preset" || (version!=6&&version!=7&&version!=8)) return std::nullopt;
     StoredPreset preset;
     preset.id = data["id"].toString(); preset.patch.name = data["name"].toString().trim();
     if (preset.id.isEmpty() || preset.id.length() > 128 || preset.patch.name.isEmpty() || preset.patch.name.length() > 256) return std::nullopt;
@@ -38,8 +43,8 @@ std::optional<StoredPreset> PresetStore::decode(const juce::var& data)
     preset.patch.mono = static_cast<bool>(data["mono"]); preset.patch.chord = static_cast<bool>(data["chord"]);
     const auto values = data["values"];
     if (!values.isObject()) return std::nullopt;
-    if(version==6)for(size_t i=v6ParameterCount;i<parameterCount;++i)if(values.hasProperty(hostParameters[i].id))return std::nullopt;
-    const auto count=version==6?v6ParameterCount:parameterCount;
+    const auto count=version==6?v6ParameterCount:version==7?v7ParameterCount:parameterCount;
+    for(size_t i=static_cast<size_t>(count);i<parameterCount;++i)if(values.hasProperty(hostParameters[i].id))return std::nullopt;
     for (size_t i = 0; i < static_cast<size_t>(count); ++i)
     {
         const auto value = values[hostParameters[i].id];

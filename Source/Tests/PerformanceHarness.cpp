@@ -13,7 +13,7 @@ namespace
 {
 using Clock = std::chrono::steady_clock;
 constexpr int workloadVersion = 1;
-struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0,filterModulation=0,fmExtension=0,rage=0; };
+struct Workload { const char* name; int patch, voices; bool stress = false, automation = false, retrigger = false, release = false; int pitchMotion=0,filterEnvelope=0,lfo=0,filterModulation=0,fmExtension=0,rage=0,ripple=0; };
 constexpr std::array workloads {
     Workload{"idle",0,0}, Workload{"lead",2,1}, Workload{"pad4",0,4}, Workload{"pad12",0,12},
     Workload{"stress12",0,12,true}, Workload{"automation12",0,12,true,true},
@@ -87,7 +87,7 @@ struct Options
     double seconds = 2, warmup = .5;
     std::vector<int> rates {48000,96000}, blocks {64,256};
     juce::String only, label, output, compare;
-    bool pitchMotion=false,filterEnvelope=false,lfo=false,filterModulation=false,fmExpansion=false,rage=false,allowSoundChange=false,soak=false;
+    bool pitchMotion=false,filterEnvelope=false,lfo=false,filterModulation=false,fmExpansion=false,rage=false,ripple=false,allowSoundChange=false,soak=false;
 };
 struct Result
 {
@@ -124,6 +124,7 @@ Options parse(int argc, char** argv)
         if(argument=="--filter-modulation"){options.filterModulation=true;continue;}
         if(argument=="--fm-expansion"){options.fmExpansion=true;continue;}
         if(argument=="--rage"){options.rage=true;continue;}
+        if(argument=="--ripple"){options.ripple=true;continue;}
         if(argument=="--soak"){options.soak=true;continue;}
         if(argument=="--allow-sound-change"){options.allowSoundChange=true;continue;}
         require(i+1<argc,"Missing value for "+argument);const juce::String value(argv[++i]);
@@ -139,14 +140,14 @@ Options parse(int argc, char** argv)
         else throw std::runtime_error("Unknown option: "+argument.toStdString());
     }
     require(options.passes>=1 && options.passes<=20,"Passes must be 1-20");
-    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)+static_cast<int>(options.fmExpansion)+static_cast<int>(options.rage)<=1,"Select only one feature matrix");
+    require(static_cast<int>(options.pitchMotion)+static_cast<int>(options.filterEnvelope)+static_cast<int>(options.lfo)+static_cast<int>(options.filterModulation)+static_cast<int>(options.fmExpansion)+static_cast<int>(options.rage)+static_cast<int>(options.ripple)<=1,"Select only one feature matrix");
     require(options.seconds<=(options.soak?3600:120) && options.warmup<=10,"Duration out of range");
     for(const auto rate:options.rates)require(rate>=11025 && rate<=192000,"Sample rate out of range");
     for(const auto block:options.blocks)require(block>=16 && block<=4096,"Block size out of range");
     require(options.compare.isEmpty() || options.output.isEmpty() || juce::File(options.compare)!=juce::File(options.output),"Do not overwrite the baseline with the comparison output");
-    if(options.soak)require(options.rage&&options.only=="rage-diode4"&&options.passes==1&&options.rates==std::vector<int>{48000}
+    if(options.soak)require(((options.rage&&options.only=="rage-diode4")||(options.ripple&&options.only=="ripple-hard-positive4"))&&options.passes==1&&options.rates==std::vector<int>{48000}
         &&options.blocks==std::vector<int>{256}&&options.compare.isEmpty()&&!options.allowSoundChange,
-        "Continuity soak requires --rage --case rage-diode4 --passes 1 --rate 48000 --block 256; no benchmark comparison");
+        "Continuity soak requires rage-diode4 or ripple-hard-positive4, one pass at 48k/256; no benchmark comparison");
     return options;
 }
 double percentile(std::vector<double> values, double fraction)
@@ -253,6 +254,13 @@ void runPass(Result& result, const Options& options)
         patch.values[Nitride::filterFamily]=1;patch.values[Nitride::rageCharacter]=result.workload.rage-1;
         patch.values[Nitride::rageAmount]=1;patch.values[Nitride::resonance]=.85;
     }
+    if(result.workload.ripple>0)
+    {
+        const auto variant=(result.workload.ripple-1)%3;
+        patch.values[Nitride::rippleOn]=1;patch.values[Nitride::rippleType]=(result.workload.ripple-1)/3;
+        patch.values[Nitride::rippleMode]=variant==0?0:1;patch.values[Nitride::rippleDrive]=.85;
+        patch.values[Nitride::rippleFeedback]=variant==1?-1:1;patch.values[Nitride::rippleDry]=1;patch.values[Nitride::resonance]=.85;
+    }
     if(options.soak)
     {
         patch.values[Nitride::attack]=.004;patch.values[Nitride::decay]=.2;
@@ -305,6 +313,12 @@ void runPass(Result& result, const Options& options)
                 constexpr std::array resonance{.1,.4,.7,.85,.6};
                 session.set(Nitride::filterFamily,selected%6==5?0:1);
                 session.set(Nitride::rageCharacter,selected%5);session.set(Nitride::rageAmount,selected%3==0?.5:1);
+                if(options.ripple)
+                {
+                    session.set(Nitride::rippleOn,selected%8<6?1:0);session.set(Nitride::rippleType,selected%3);
+                    session.set(Nitride::rippleMode,(selected/3)%2);session.set(Nitride::rippleFeedback,selected%2==0?-.94:.94);
+                    session.set(Nitride::rippleDrive,(selected%5)/4.0);session.set(Nitride::rippleDry,(selected%3)/2.0);
+                }
                 session.set(Nitride::cutoff,cutoff[static_cast<size_t>(selected%5)]);
                 session.set(Nitride::resonance,resonance[static_cast<size_t>(selected%5)]);
                 session.set(Nitride::filterFmDepth,selected%2==0?0:3);
@@ -418,6 +432,7 @@ int main(int argc,char** argv)
             "--filter-modulation selects tracking, velocity, audio-rate FM and combined on/off performances.\n"
             "--fm-expansion selects paired ratio, envelope, shape, mix and integrated FM performances.\n"
              "--rage selects five characters at 1/4/12 voices and an advanced 12-voice workload.\n"
+             "--ripple selects three types with waveshaping / signed feedback at 1/4/12 voices.\n"
              "--soak runs one offline rage-diode4 pass at 48k/256 with cycling characters/families and state round trips; max 3600 audio seconds.\n"
             "--allow-sound-change records intentional greenfield sound changes during comparison.\n";return 0;
     }
@@ -429,7 +444,15 @@ int main(int argc,char** argv)
             for(const auto rate:options.rates)for(const auto block:options.blocks)for(const auto& workload:matrix)
                 if(options.only.isEmpty()||options.only==workload.name)results.push_back({workload,rate,block});
         };
-        if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else if(options.filterModulation)add(filterModulationWorkloads);else if(options.fmExpansion)add(fmWorkloads);else if(options.rage)add(rageWorkloads);else add(workloads);
+        if(options.ripple)
+        {
+            // Stable labels and storage outlive every measured pass/report.
+            static const auto names=[] {std::array<std::string,27> n{};size_t i=0;for(const auto* type:{"subtle","medium","hard"})for(const auto* mode:{"shape","negative","positive"})for(const auto voices:{1,4,12})n[i++]="ripple-"+std::string(type)+"-"+mode+std::to_string(voices);return n;}();
+            std::array<Workload,27> matrix{};
+            for(size_t i=0;i<matrix.size();++i){const auto voices=std::array{1,4,12}[i%3];matrix[i]={names[i].c_str(),voices==1?2:0,voices,false,false,false,false,0,1,0,7,0,0,static_cast<int>(i/3)+1};}
+            add(matrix);
+        }
+        else if(options.pitchMotion)add(pitchWorkloads);else if(options.filterEnvelope)add(filterWorkloads);else if(options.lfo)add(lfoWorkloads);else if(options.filterModulation)add(filterModulationWorkloads);else if(options.fmExpansion)add(fmWorkloads);else if(options.rage)add(rageWorkloads);else add(workloads);
         require(!results.empty(),"Unknown workload: "+options.only);
         for(auto& result:results)result.times.reserve(static_cast<size_t>(std::ceil(options.seconds*result.rate/result.block))*static_cast<size_t>(options.passes));
         std::cout<<"Nitride "<<NITRIDE_BENCH_CONFIG<<" benchmark: "<<juce::SystemStats::getCpuModel()<<", "<<options.passes<<" passes, "<<options.seconds<<" audio seconds per case/pass\n";

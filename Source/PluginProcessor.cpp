@@ -141,17 +141,17 @@ void NitrideAudioProcessor::getStateInformation(juce::MemoryBlock& destination)
     const juce::ScopedLock transaction(session.stateTransactionLock());
     juce::XmlElement state("NITRIDE_INSTRUMENT");
     const auto document=session.saveDocument();
-    const auto legacy=static_cast<int>(document["version"])==7;
-    state.setAttribute("version",legacy?7:8);
+    const auto version=static_cast<int>(document["version"]);
+    state.setAttribute("version",version);
     state.createNewChildElement("DOCUMENT")->addTextElement(juce::JSON::toString(document,true));
     // The document's edited conditions are the authority even while Compare is
     // auditioning a reference, or automation is changing the live parameter bank.
     const auto preset=Nitride::PresetStore::decode(document["current"]["patch"]);
-    if(preset)if(auto xml=parameterStateFor(preset->patch,legacy).createXml())state.addChildElement(xml.release());
+    if(preset)if(auto xml=parameterStateFor(preset->patch,version).createXml())state.addChildElement(xml.release());
     copyXmlToBinary(state,destination);
 }
 
-juce::ValueTree NitrideAudioProcessor::parameterStateFor(const Nitride::Patch& patch,bool legacyWire)
+juce::ValueTree NitrideAudioProcessor::parameterStateFor(const Nitride::Patch& patch,int wireVersion)
 {
     auto tree=apvts.copyState();
     for(auto child:tree)
@@ -160,10 +160,11 @@ juce::ValueTree NitrideAudioProcessor::parameterStateFor(const Nitride::Patch& p
         for(size_t i=0;i<Nitride::parameterCount;++i)if(id==Nitride::hostParameters[i].id)child.setProperty("value",static_cast<float>(patch.values[i]),nullptr);
         if(id==Nitride::monoParameterId)child.setProperty("value",patch.mono?1.0f:0.0f,nullptr);
     }
-    if(legacyWire)for(int child=tree.getNumChildren()-1;child>=0;--child)
+    const auto count=wireVersion==7?Nitride::v6ParameterCount:wireVersion==8?Nitride::v7ParameterCount:Nitride::parameterCount;
+    if(count<Nitride::parameterCount)for(int child=tree.getNumChildren()-1;child>=0;--child)
     {
         const auto id=tree.getChild(child).getProperty("id").toString();
-        for(size_t i=Nitride::v6ParameterCount;i<Nitride::parameterCount;++i)if(id==Nitride::hostParameters[i].id){tree.removeChild(child,nullptr);break;}
+        for(size_t i=static_cast<size_t>(count);i<Nitride::parameterCount;++i)if(id==Nitride::hostParameters[i].id){tree.removeChild(child,nullptr);break;}
     }
     return tree;
 }
@@ -175,7 +176,7 @@ void NitrideAudioProcessor::setStateInformation(const void* data,int size)
     if(auto state=getXmlFromBinary(data,size);state&&state->hasTagName("NITRIDE_INSTRUMENT"))
     {
         const auto version=state->getIntAttribute("version");
-        if(version==7||version==8)
+        if(version==7||version==8||version==9)
         {
             const auto* document=state->getChildByName("DOCUMENT");if(document==nullptr)return;
             const auto json=juce::JSON::parse(document->getAllSubText());

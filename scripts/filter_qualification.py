@@ -5,6 +5,7 @@ import json
 import math
 from pathlib import Path
 import re
+from factory_presets import native_parameter_count
 
 
 def expected_cases():
@@ -106,7 +107,7 @@ def summarize(folder):
         version, build = next(iter(identities)); result.update(synthVersion=version, evaluationBuild=build)
     native = folder/"native-reopen.json"; status = folder/"native-reopen.status"
     raw = json.loads(native.read_text()) if native.is_file() else {}
-    passed = status.is_file() and status.read_text().strip() == "PASS" and raw.get("full_document_exact") is True and raw.get("audio_exact") is True and raw.get("parameters") == 92
+    passed = status.is_file() and status.read_text().strip() == "PASS" and raw.get("full_document_exact") is True and raw.get("audio_exact") is True and raw.get("parameters") == native_parameter_count(result.get("synthVersion"))
     result["native_process_reopen"] = "passed-offline-probe" if passed else "missing-or-failed-not-qualified"
     result["boundary"] = "Missing/manual/external evidence never becomes a pass; no quality reduction, project/settings capture, installer or telemetry."
     return result

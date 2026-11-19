@@ -1,5 +1,30 @@
 # Performance / measured milestone-3 work
 
+## Independent Ripple / eval-047
+
+The 108-case M4 Max Release matrix covers three types, waveshaping/both feedback
+signs, 1/4/12 voices, 48/96 kHz and 64/256 frames. Three two-second passes follow
+.5-second warmup; full 4× processing, double precision and twelve voices remain.
+
+| Voices | 48 kHz median budget load | 96 kHz median budget load |
+| --- | ---: | ---: |
+| 1 | 4.4–4.9% | 8.5–9.5% |
+| 4 | 14.3–15.7% | 27.8–30.5% |
+| 12 | 42.0–45.5% | 81.7–89.0% |
+
+**89/108** meet p99 ≤80% deadline **and zero overdue blocks**. Every 48 kHz case
+passes. All eighteen 96 kHz/twelve-voice cases fail the headroom gate and together
+have 116 overdue blocks. The four-voice Hard/Waveshaper 96 kHz / 256-frame case has
+one additional overdue block; its low median does not erase that miss.
+
+The 30-audio-minute offline continuity run has 61 exact state round trips and zero
+numerical faults, but **10 overdue blocks**, a **15.092 ms** maximum block and
+397.066 seconds elapsed wall time. Audio/state continuity passes; deadline/device
+soak qualification does not. Historical Rage CPU/stall limits stay open. All 64
+approved Rage benchmark audio fingerprints remain exact on this build. Actual M2
+and manual Logic qualification remain unverified. See [Ripple details](RIPPLE.md)
+and private raw evidence in `evaluation/filters/ripple-001/`.
+
 ## Approved-sound optimization / eval-044
 
 The final isolated 64-case M4 Max Release matrix retains **all approved eval-043
